@@ -1,0 +1,84 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Перепроверим — Не верь, а проверь</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <span class="logo-icon">🔬</span>
+                <h1>Перепроверим</h1>
+            </div>
+            <p class="slogan">Не верь, а проверь</p>
+        </header>
+
+        <div class="disclaimer">
+            <span class="disclaimer-icon">⚠️</span>
+            <p><strong>Внимание!</strong> Это не медицинская консультация. При проблемах со здоровьем обязательно обратитесь к врачу.</p>
+        </div>
+
+        <main class="glass-card">
+            <div class="hero-section">
+                <h2 class="hero-title">Не уверен, правда это или миф?</h2>
+                <p class="hero-subtitle">Задай любой спорный факт — и получи разбор с опорой на надёжные источники.</p>
+            </div>
+
+            <div class="input-group">
+                <textarea id="userText" placeholder="Введите сомнительное медицинское утверждение...&#10;Например: 'Вакцины вызывают аутизм'"></textarea>
+                <button id="checkBtn" onclick="sendCheck()">
+                    <span id="btnText">Проверить факт</span>
+                    <div id="btnSpinner" class="spinner hidden"></div>
+                </button>
+            </div>
+
+            <div id="result" class="result hidden">
+                <div class="verdict-badge" id="verdictBadge"></div>
+                <h3 id="claimText" class="claim-text"></h3>
+                <div class="explanation-box">
+                    <p id="explanationText"></p>
+                </div>
+                
+                <div class="rating-section">
+                    <p>Насколько точен ответ?</p>
+                    <div class="hearts" id="hearts">
+                        <span class="heart" data-value="1" onclick="rate(1)">❤️</span>
+                        <span class="heart" data-value="2" onclick="rate(2)">❤️</span>
+                        <span class="heart" data-value="3" onclick="rate(3)">❤️</span>
+                        <span class="heart" data-value="4" onclick="rate(4)">❤️</span>
+                        <span class="heart" data-value="5" onclick="rate(5)">❤️</span>
+                    </div>
+                    <p id="ratingMessage" class="rating-message"></p>
+                </div>
+            </div>
+
+            <div class="review-section">
+                <h3>💬 Оставить отзыв о сервисе</h3>
+                <p class="review-subtitle">Мы молодая команда, и ваш фидбек поможет нам стать лучше!</p>
+                <input type="text" id="reviewName" placeholder="Ваше имя (необязательно)">
+                <textarea id="reviewText" placeholder="Что понравилось? Что можно улучшить?"></textarea>
+                <button onclick="submitReview()" class="btn-secondary">Отправить отзыв</button>
+            </div>
+        </main>
+
+        <footer>
+            <p>© 2026 Проект «Перепроверим» для конкурса "Медицина 2050". Трек "Школьники".</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
