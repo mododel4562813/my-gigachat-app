@@ -17,8 +17,8 @@ app = Flask(__name__)
 
 GIGACHAT_CLIENT_ID = os.getenv("GIGACHAT_CLIENT_ID")
 GIGACHAT_CLIENT_SECRET = os.getenv("GIGACHAT_CLIENT_SECRET")
-GIGACHAT_AUTH_URL = "https://sberbank.ru"
-GIGACHAT_API_URL = "https://sberbank.ru"
+GIGACHAT_AUTH_URL = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
+GIGACHAT_API_URL = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions"
 
 # --- ГЛОБАЛЬНЫЕ НАСТРОЙКИ ПРОКСИ ДЛЯ RENDER ---
 proxy_url = os.getenv("PROXY_URL")
@@ -59,7 +59,7 @@ def get_gsheet_client():
     if not USE_GOOGLE_SHEETS:
         return None
     try:
-        scope = ["https://google.com", "https://googleapis.com"]
+        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
         creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
         client = gspread.authorize(creds)
         return client.open(os.getenv("SHEET_NAME", "Фактчек_Медицина_2050"))
@@ -227,5 +227,5 @@ def submit_review():
     return jsonify({"status": "ok"})
 
 if __name__ == '__main__':
-    print("🚀 Сервер запущен на http://127.0.0.1:8080")
-    app.run(debug=True, port=8080)
+    print("🚀 Сервер запущен")
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
