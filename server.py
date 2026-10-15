@@ -76,16 +76,18 @@ def get_gigachat_token():
     }
     payload = {'scope': 'GIGACHAT_API_PERS'}
     
-    try:
+        try:
         import os
         proxy_url = os.getenv("PROXY_URL")
         proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
+
         response = requests.post(
-        GIGACHAT_AUTH_URL, 
-        headers=headers, 
-        data=payload, 
-        verify='russia_trusted_root.pem',
-        proxies=proxies)
+            GIGACHAT_AUTH_URL,
+            headers=headers,
+            data=payload,
+            verify='russia_trusted_root.pem',
+            proxies=proxies
+        )
         response.raise_for_status()
         return response.json().get('access_token')
     except Exception as e:
@@ -123,13 +125,14 @@ def ask_gigachat(user_text):
     
     try:
         response = requests.post(
-        GIGACHAT_API_URL, 
-        headers=headers, 
-        json=payload, 
-        verify='russia_trusted_root.pem',
-       proxies=proxies)
-       response.raise_for_status()
-       content = response.json()['choices'][0]['message']['content']
+            GIGACHAT_API_URL,
+            headers=headers,
+            json=payload,
+            verify='russia_trusted_root.pem',
+            proxies=proxies
+        )
+        response.raise_for_status()
+        content = response.json()['choices'][0]['message']['content']
        content = content.replace('```json', '').replace('```', '').strip()
        return json.loads(content)
     except Exception as e:
