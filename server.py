@@ -17,8 +17,12 @@ app = Flask(__name__)
 
 GIGACHAT_CLIENT_ID = os.getenv("GIGACHAT_CLIENT_ID")
 GIGACHAT_CLIENT_SECRET = os.getenv("GIGACHAT_CLIENT_SECRET")
-GIGACHAT_AUTH_URL = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
-GIGACHAT_API_URL = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions"
+GIGACHAT_AUTH_URL = "https://sberbank.ru"
+GIGACHAT_API_URL = "https://sberbank.ru"
+
+# --- ГЛОБАЛЬНЫЕ НАСТРОЙКИ ПРОКСИ ДЛЯ RENDER ---
+proxy_url = os.getenv("PROXY_URL")
+proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
 
 USE_GOOGLE_SHEETS = os.path.exists("credentials.json")
 
@@ -55,7 +59,7 @@ def get_gsheet_client():
     if not USE_GOOGLE_SHEETS:
         return None
     try:
-        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+        scope = ["https://google.com", "https://googleapis.com"]
         creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
         client = gspread.authorize(creds)
         return client.open(os.getenv("SHEET_NAME", "Фактчек_Медицина_2050"))
@@ -76,11 +80,7 @@ def get_gigachat_token():
     }
     payload = {'scope': 'GIGACHAT_API_PERS'}
     
-        try:
-        import os
-        proxy_url = os.getenv("PROXY_URL")
-        proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
-
+    try:
         response = requests.post(
             GIGACHAT_AUTH_URL,
             headers=headers,
@@ -133,16 +133,14 @@ def ask_gigachat(user_text):
         )
         response.raise_for_status()
         content = response.json()['choices'][0]['message']['content']
-       content = content.replace('```json', '').replace('```', '').strip()
-       return json.loads(content)
+        content = content.replace('```json', '').replace('```', '').strip()
+        return json.loads(content)
     except Exception as e:
         print(f"Техническая ошибка. Уже все чиним!: {e}")
         for key, value in MOCK_FACTS.items():
             if key in user_text.lower():
                 return value
         return {"verdict": "НЕЗНАЮ", "explanation": "Я не компетентна в этом вопросе, пожалуйста, обратитесь к специалисту."}
-
-
 
 @app.route('/')
 def index():
