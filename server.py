@@ -1,5 +1,8 @@
 import os
 import requests
+from flask import Flask, render_template, request, jsonify
+import urllib3
+import base64
 
 url = "https://api.giga.chat/v1/models"
 
@@ -12,9 +15,6 @@ headers = {
 response = requests.request("GET", url, headers=headers, data=payload)
 
 print(response.text)
-from flask import Flask, render_template, request, jsonify
-import urllib3
-import base64
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
