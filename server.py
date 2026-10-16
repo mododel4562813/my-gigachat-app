@@ -4,18 +4,6 @@ from flask import Flask, render_template, request, jsonify
 import urllib3
 import base64
 
-url = "https://api.giga.chat/v1/models"
-
-payload={}
-headers = {
-  'Accept': 'application/json',
-  'Authorization': 'Bearer <Access token>'
-}
-
-response = requests.request("GET", url, headers=headers, data=payload)
-
-print(response.text)
-
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 app = Flask(__name__)
