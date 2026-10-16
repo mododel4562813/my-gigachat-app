@@ -1,1 +1,78 @@
+# --- Виртуальное окружение (НИКОГДА не коммить!) ---
+venv/
+.venv/
+env/
+ENV/
+
+# --- Кэш и байт-код Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# --- Секреты и ключи (САМОЕ ВАЖНОЕ) ---
 .env
+credentials.json
+*.pem
+*.key
+*.p12
+*.pub
+*.crt
+*.csr
+*.json  # ⚠️ Осторожно: это скроет ВСЕ json-файлы. Если у тебя есть важные конфиги в json, которые НУЖНО хранить в Git — удали эту строку или используй исключения ниже.
+
+# Но мы хотим сохранить, например, package.json или другие конфиги, если они есть.
+# Если тебе нужно сохранить какой-то конкретный json, раскомментируй и поменяй имя:
+# !config.json 
+
+# --- Логи и временные файлы ---
+*.log
+logs/
+*.tmp
+*.temp
+
+# --- Файлы операционной системы ---
+.DS_Store          # Для macOS
+.AppleDouble
+.LSOverride
+Icon*
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db           # Для Windows
+
+# --- Редакторы кода и IDE ---
+.idea/             # JetBrains (PyCharm, WebStorm и т.д.)
+.vscode/           # VS Code (локальные настройки пользователя)
+*.swp
+*.swo
+*~
+
+# --- Тесты и покрытие ---
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# --- Артефакты сборки фронтенда (если будешь добавлять) ---
+node_modules/
+dist/
+static/bundle.js   # Если собираешь JS вручную
