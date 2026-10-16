@@ -12,8 +12,8 @@ app = Flask(__name__)
 GIGACHAT_CLIENT_ID = os.getenv("GIGACHAT_CLIENT_ID")
 GIGACHAT_CLIENT_SECRET = os.getenv("GIGACHAT_CLIENT_SECRET")
 
-GIGACHAT_AUTH_URL = "https://sberbank.ru"
-GIGACHAT_API_URL = "https://sberbank.ru"
+GIGACHAT_AUTH_URL = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
+GIGACHAT_API_URL = "https://api.giga.chat/v1/chat/completions"
 
 proxy_url = os.getenv("PROXY_URL")
 proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
