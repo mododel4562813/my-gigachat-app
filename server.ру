@@ -225,8 +225,8 @@ def check_claim():
     # 1. Ищем в Google Sheets
     if GS_CLIENT:
         try:
-            facts_sheet = GS_CLIENT.worksheet("Facts")
-            records = facts_sheet.get_all_records()
+            statements_sheet = GS_CLIENT.worksheet("statements")
+            records = statements_sheet.get_all_records()
             for row in records:
                 claim = str(row.get('Утверждение', '')).lower()
                 if user_text in claim:
