@@ -271,66 +271,19 @@ def check_claim():
             if not result:
                 result = ask_gigachat(user_text)
 
+            # 2. Ищем в локальной базе (Mock)
+            if not result:
+                for key, value in MOCK_FACTS.items():
+                    if key in user_text:
+                        result = {
+                            "verdict": value.get("verdict"),
+                            "explanation": value.get("explanation")
+                        }
+                        break
+
+            # 3. Спрашиваем GigaChat (если ничего не нашли)
+            if not result:
+                result = ask_gigachat(user_text)
+
             print(f"[LOG] Запрос: '{user_text}' -> Вердикт: {result.get('verdict', 'НЕЗНАЮ')}")
             return jsonify(result)
-def rate_answer():
-    data = request.get_json() or {}
-    claim = data.get('claim')
-    rating = data.get('rating')
-
-    if not claim or rating is None:
-        return jsonify({"error": "Недостаточно данных: нужны поля 'claim' и 'rating'"}), 400
-
-    # ИСПРАВЛЕНИЕ: используем глобальный клиент вместо get_gsheet_client()
-    sheet = GS_CLIENT
-
-    if sheet:
-        try:
-            rating_sheet = sheet.worksheet("Ratings")
-            rating_sheet.append_row([claim, rating, datetime.now().strftime("%Y-%m-%d %H:%M")])
-            print(f"✅ Оценка {rating}/5 для '{claim}' сохранена в таблицу.")
-            return jsonify({"status": "ok"})
-        except Exception as e:
-            print(f"⚠️ Ошибка записи оценки в Sheets: {e}")
-            # Возвращаем успех, но с предупреждением, чтобы фронтенд не ломался
-            return jsonify({"status": "ok", "warning": "Оценка не записана в таблицу"})
-    else:
-        print("⚠️ Google Sheets не подключен. Оценка не сохранена.")
-        return jsonify({"status": "ok", "warning": "Google Sheets не подключен"})
-
-
-@app.route('/api/review', methods=['POST'])
-def submit_review():
-    data = request.get_json() or {}
-    # ИСПРАВЛЕНИЕ: исправлена кавычка и значение по умолчанию
-    name = data.get('name', 'Аноним')
-    review_text = str(data.get('review', '')).strip()
-
-    if not review_text:
-        return jsonify({"error": "Пустой отзыв"}), 400
-
-    sheet = GS_CLIENT
-
-    if sheet:
-        try:
-            review_sheet = sheet.worksheet("Reviews")
-            review_sheet.append_row([name, review_text, datetime.now().strftime("%Y-%m-%d %H:%M")])
-            print(f"✅ Отзыв от {name} сохранен в таблицу.")
-        except Exception as e:
-            print(f"⚠️ Ошибка записи отзыва в Sheets: {e}")
-            # Даже если запись не удалась, сообщаем фронтенду, что всё ок, чтобы не ломать UX
-            return jsonify({"status": "ok", "warning": "Отзыв не записан в таблицу"})
-    else:
-        print("⚠️ Google Sheets не подключен. Отзыв не сохранен.")
-
-    # Дублируем в консоль для отладки
-    print(f"🗣 [ОТЗЫВ] Имя: {name} | Текст: {review_text} | Время: {datetime.now().strftime('%H:%M:%S')}")
-    
-    return jsonify({"status": "ok"})
-
-
-if __name__ == '__main__':
-    print("🚀 Сервер запущен...")
-    # Получаем порт из переменных окружения или используем 8080 по умолчанию
-    port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port, debug=True)
