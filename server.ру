@@ -257,14 +257,22 @@ def check_claim():
                 # print(f"⚠️ Ошибка чтения Google Sheets: {e}")
 
    # 2. Ищем в локальной базе (Mock)
-           # 3. Спрашиваем GigaChat (если ничего не нашли)
+          # 2. Ищем в локальной базе (Mock)
+            if not result:
+                for key, value in MOCK_FACTS.items():
+                    if key in user_text:
+                        result = {
+                            "verdict": value.get("verdict"),
+                            "explanation": value.get("explanation")
+                        }
+                        break
+
+            # 3. Спрашиваем GigaChat (если ничего не нашли)
             if not result:
                 result = ask_gigachat(user_text)
 
-            # Логирование в таблицу (если подключена)
-            # if sheet and result:             
-
-@app.route('/api/rate', methods=['POST'])
+            print(f"[LOG] Запрос: '{user_text}' -> Вердикт: {result.get('verdict', 'НЕЗНАЮ')}")
+            return jsonify(result)
 def rate_answer():
     data = request.get_json() or {}
     claim = data.get('claim')
