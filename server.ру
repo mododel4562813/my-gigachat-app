@@ -272,18 +272,6 @@ def check_claim():
 
             print(f"[LOG] Запрос: '{user_text}' -> Вердикт: {result.get('verdict', 'НЕЗНАЮ')}")
             return jsonify(result)
-            if sheet:
-                try:
-                    rating_sheet = sheet.worksheet("Ratings")
-                    rating_sheet.append_row([claim, rating, datetime.now().strftime("%Y-%m-%d %H:%M")])
-                    print(f"⭐ Оценка {rating}/5 сохранена в Google Таблицу для: '{claim}'")
-                    return jsonify({"status": "ok"})
-                except Exception as e:
-                    print(f"Ошибка сохранения оценки в Sheets: {e}")
-                    return jsonify({"status": "ok", "warning": "Оценка не записана в таблицу"})
-            else:
-                print("⚠️ Google Sheets не подключен, оценка не сохранена.")
-                return jsonify({"status": "ok", "warning": "Google Sheets не подключен"})
 @app.route('/api/rate', methods=['POST'])
 def rate_answer():
     data = request.get_json() or {}
