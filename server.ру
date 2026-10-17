@@ -257,7 +257,7 @@ def check_claim():
                 # print(f"⚠️ Ошибка чтения Google Sheets: {e}")
 
     # 2. Ищем в локальной базе (Mock)
-    if not result:
+        if not result:
         for key, value in MOCK_FACTS.items():
             if key in user_text:
                 result = {
@@ -271,14 +271,14 @@ def check_claim():
         result = ask_gigachat(user_text)
 
     # Логирование в таблицу (если подключена)
-    if sheet and result:
-        try:
-            # Убедись, что лист "Logs" существует в таблице
-            log_sheet = sheet.worksheet("Logs")
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
-            log_sheet.append_row([user_text, result['verdict'], timestamp])
-        except Exception as e:
-            print(f"⚠️ Ошибка логирования в Sheets: {e}")
+        if sheet and result:
+            try:
+                # Убедись, что лист "Logs" существует в таблице
+                log_sheet = sheet.worksheet("Logs")
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+                log_sheet.append_row([user_text, result['verdict'], timestamp])
+            except Exception as e:
+                print(f"⚠️ Ошибка логирования в Sheets: {e}")
     
     print(f"[LOG] Запрос: '{user_text}' -> Вердикт: {result.get('verdict', 'НЕЗНАЮ')}")
     return jsonify(result)
