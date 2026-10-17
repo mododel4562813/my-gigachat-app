@@ -248,7 +248,7 @@ def ask_gigachat(user_text):
     except json.JSONDecodeError:
         return {"verdict": "НЕЗНАЮ", "explanation": "Ошибка формата ответа"}
     except Exception as e:
-        print(f"❌ Ошибка при запросе к GigaChat: {e}")
+        print(f"❌ Я не компетента в этом вопросе, связь с ассистентом прервана: {e}")
         return {"verdict": "НЕЗНАЮ", "explanation": str(e)}
 
 
