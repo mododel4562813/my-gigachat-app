@@ -20,8 +20,10 @@ CERT_PATH = os.path.join(BASE_DIR, 'russia_trusted_root.pem')
 app = Flask(__name__)
 
 # ---------- GigaChat ----------
-GIGACHAT_CLIENT_ID = os.getenv("GIGACHAT_CLIENT_ID")
-GIGACHAT_CLIENT_SECRET = os.getenv("GIGACHAT_CLIENT_SECRET")
+GIGACHAT_CLIENT_ID = os.getenv("GIGACHAT_CLIENT_ID", "").strip().strip('"').strip("'")
+GIGACHAT_CLIENT_SECRET = os.getenv("GIGACHAT_CLIENT_SECRET", "").strip().strip('"').strip("'")
+GIGACHAT_AUTH_KEY = os.getenv("GIGACHAT_AUTH_KEY", "").strip().strip('"').strip("'")
+
 GIGACHAT_AUTH_URL = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
 GIGACHAT_API_URL = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions"
 
@@ -29,7 +31,7 @@ GIGACHAT_API_URL = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions
 # Прокси нужен, потому что серверы Render находятся за границей,
 # а API Сбера может не отвечать на зарубежные IP.
 # Формат: http://логин:пароль@адрес_прокси:порт
-PROXY_URL = os.getenv("PROXY_URL")
+PROXY_URL = os.getenv("PROXY_URL", "").strip()
 proxies = {"http": PROXY_URL, "https": PROXY_URL} if PROXY_URL else None
 
 if PROXY_URL:
@@ -37,7 +39,9 @@ if PROXY_URL:
 else:
     print("ℹ️ Прокси не задан — запросы к GigaChat пойдут напрямую")
 
-if GIGACHAT_CLIENT_ID and GIGACHAT_CLIENT_SECRET:
+if GIGACHAT_AUTH_KEY:
+    print("✅ Authorization Key найден (GIGACHAT_AUTH_KEY)")
+elif GIGACHAT_CLIENT_ID and GIGACHAT_CLIENT_SECRET:
     print("✅ Ключи GigaChat найдены")
 else:
     print("⚠️ Ключи GigaChat не найдены — ИИ будет отключён")
@@ -50,22 +54,30 @@ def _gigachat_verify():
     return CERT_PATH if os.path.exists(CERT_PATH) else False
 
 
+def _auth_header_value():
+    """Значение заголовка Authorization для GigaChat.
+    Если задан GIGACHAT_AUTH_KEY (готовая base64-строка) — используем её как есть.
+    Иначе собираем заголовок из пары CLIENT_ID:CLIENT_SECRET."""
+    if GIGACHAT_AUTH_KEY:
+        return 'Basic ' + GIGACHAT_AUTH_KEY
+    auth_string = f"{GIGACHAT_CLIENT_ID}:{GIGACHAT_CLIENT_SECRET}"
+    return 'Basic ' + base64.b64encode(auth_string.encode('utf-8')).decode('utf-8')
+
+
 def get_gigachat_token():
     """Токен GigaChat с кэшем на 25 минут."""
     if _token_cache["token"] and time.time() - _token_cache["time"] < 1500:
         return _token_cache["token"]
 
-    if not GIGACHAT_CLIENT_ID or not GIGACHAT_CLIENT_SECRET:
+    if not (GIGACHAT_AUTH_KEY or (GIGACHAT_CLIENT_ID and GIGACHAT_CLIENT_SECRET)):
         return None
 
     headers = {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json',
         'RqUID': str(uuid.uuid4()),
+        'Authorization': _auth_header_value(),
     }
-    auth_string = f"{GIGACHAT_CLIENT_ID}:{GIGACHAT_CLIENT_SECRET}"
-    headers['Authorization'] = 'Basic ' + base64.b64encode(
-        auth_string.encode('utf-8')).decode('utf-8')
 
     try:
         response = requests.post(
@@ -147,7 +159,7 @@ def ask_gigachat(user_text):
 
 # ---------- Google Sheets ----------
 GS_CLIENT = None
-GOOGLE_SPREADSHEET_ID = os.getenv("GOOGLE_SPREADSHEET_ID")
+GOOGLE_SPREADSHEET_ID = os.getenv("GOOGLE_SPREADSHEET_ID", "").strip()
 GOOGLE_CREDENTIALS = os.getenv("GOOGLE_CREDENTIALS")  # JSON одной строкой
 CREDENTIALS_FILE = os.path.join(BASE_DIR, "credentials.json")
 
@@ -300,18 +312,16 @@ def debug_gigachat():
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json',
         'RqUID': str(uuid.uuid4()),
+        'Authorization': _auth_header_value(),
     }
     info = {
         "proxy_set": bool(PROXY_URL),
+        "auth_key_set": bool(GIGACHAT_AUTH_KEY),
         "keys_set": bool(GIGACHAT_CLIENT_ID and GIGACHAT_CLIENT_SECRET),
         "cert_file": bool(os.path.exists(CERT_PATH)),
     }
-    if not info["keys_set"]:
+    if not (info["auth_key_set"] or info["keys_set"]):
         return jsonify({**info, "result": "Ключи не найдены в Environment"})
-
-    auth_string = f"{GIGACHAT_CLIENT_ID}:{GIGACHAT_CLIENT_SECRET}"
-    headers['Authorization'] = 'Basic ' + base64.b64encode(
-        auth_string.encode('utf-8')).decode('utf-8')
 
     try:
         response = requests.post(
