@@ -272,8 +272,8 @@ def check_claim():
 
             print(f"[LOG] Запрос: '{user_text}' -> Вердикт: {result.get('verdict', 'НЕЗНАЮ')}")
             return jsonify(result)
-    if sheet:
-        try:
+            if sheet:
+                try:
             rating_sheet = sheet.worksheet("Ratings")
             rating_sheet.append_row([claim, rating, datetime.now().strftime("%Y-%m-%d %H:%M")])
             print(f"⭐ Оценка {rating}/5 сохранена в Google Таблицу для: '{claim}'")
