@@ -33,7 +33,7 @@ PROXY_URL = os.getenv("PROXY_URL")
 proxies = {"http": PROXY_URL, "https": PROXY_URL} if PROXY_URL else None
 
 if PROXY_URL:
-    print(f"✅ Прокси включён")
+    print("✅ Прокси включён")
 else:
     print("ℹ️ Прокси не задан — запросы к GigaChat пойдут напрямую")
 
@@ -133,11 +133,13 @@ def ask_gigachat(user_text):
         try:
             result = json.loads(content)
             return {
+                "source": "gigachat",
                 "verdict": result.get("verdict", "НЕЗНАЮ"),
                 "explanation": result.get("explanation", "")
             }
         except json.JSONDecodeError:
-            return {"verdict": "НЕЗНАЮ", "explanation": content[:500]}
+            return {"source": "gigachat", "verdict": "НЕЗНАЮ",
+                    "explanation": content[:500]}
     except Exception as e:
         print(f"❌ Ошибка запроса к GigaChat: {e}")
         return None
@@ -290,9 +292,15 @@ def submit_review():
 
     return jsonify({"status": "ok"})
 
+
 @app.route('/api/debug')
 def debug_gigachat():
-    """Диагностика: пытается получить токен и показывает ошибку прямо в браузере."""
+    """Диагностика: пробует получить токен и показывает ошибку в браузере."""
+    headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
+        'RqUID': str(uuid.uuid4()),
+    }
     info = {
         "proxy_set": bool(PROXY_URL),
         "keys_set": bool(GIGACHAT_CLIENT_ID and GIGACHAT_CLIENT_SECRET),
@@ -301,15 +309,32 @@ def debug_gigachat():
     if not info["keys_set"]:
         return jsonify({**info, "result": "Ключи не найдены в Environment"})
 
-    token = get_gigachat_token()
-    if token:
-        return jsonify({**info, "result": "Токен получен! GigaChat доступен."})
-    else:
-        return jsonify({
-            **info,
-            "result": "Токен получить не удалось. Смотри логи Render -> Logs, "
-                      "ищи строку с 'Ошибка авторизации GigaChat'."
-        })
+    auth_string = f"{GIGACHAT_CLIENT_ID}:{GIGACHAT_CLIENT_SECRET}"
+    headers['Authorization'] = 'Basic ' + base64.b64encode(
+        auth_string.encode('utf-8')).decode('utf-8')
+
+    try:
+        response = requests.post(
+            GIGACHAT_AUTH_URL,
+            headers=headers,
+            data={'scope': 'GIGACHAT_API_PERS'},
+            verify=_gigachat_verify(),
+            proxies=proxies,
+            timeout=15
+        )
+        info["status"] = response.status_code
+        info["answer"] = response.text[:300]
+        if response.status_code == 200:
+            info["result"] = "Токен получен! GigaChat доступен."
+        else:
+            info["result"] = "Сервер GigaChat ответил ошибкой — смотри status и answer."
+    except Exception as e:
+        info["status"] = "нет ответа"
+        info["answer"] = str(e)[:300]
+        info["result"] = "Запрос до GigaChat не дошёл (проблема сети/прокси)."
+
+    return jsonify(info)
+
 
 if __name__ == '__main__':
     print("🚀 Сервер запущен...")
