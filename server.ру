@@ -2,6 +2,7 @@ import os
 import json
 import base64
 import uuid
+import time
 import requests
 from datetime import datetime
 from flask import Flask, request, jsonify, render_template
@@ -9,9 +10,9 @@ from dotenv import load_dotenv
 import gspread
 from google.oauth2.service_account import Credentials
 
-from facts import find_fact  # локальная база
+from facts import find_fact  # локальная база фактов
 
-# ---------- Настройка путей ----------
+# ---------- Пути ----------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 CERT_PATH = os.path.join(BASE_DIR, 'russia_trusted_root.pem')
@@ -24,25 +25,37 @@ GIGACHAT_CLIENT_SECRET = os.getenv("GIGACHAT_CLIENT_SECRET")
 GIGACHAT_AUTH_URL = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
 GIGACHAT_API_URL = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions"
 
-proxy_url = os.getenv("PROXY_URL")
-proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
+# ---------- ПРОКСИ ----------
+# Прокси нужен, потому что серверы Render находятся за границей,
+# а API Сбера может не отвечать на зарубежные IP.
+# Формат: http://логин:пароль@адрес_прокси:порт
+PROXY_URL = os.getenv("PROXY_URL")
+proxies = {"http": PROXY_URL, "https": PROXY_URL} if PROXY_URL else None
 
-if not GIGACHAT_CLIENT_ID or not GIGACHAT_CLIENT_SECRET:
-    print("⚠️ Ключи GigaChat не найдены в .env — чат будет отключён")
+if PROXY_URL:
+    print(f"✅ Прокси включён")
 else:
+    print("ℹ️ Прокси не задан — запросы к GigaChat пойдут напрямую")
+
+if GIGACHAT_CLIENT_ID and GIGACHAT_CLIENT_SECRET:
     print("✅ Ключи GigaChat найдены")
+else:
+    print("⚠️ Ключи GigaChat не найдены — ИИ будет отключён")
 
 _token_cache = {"token": None, "time": 0}
 
 
+def _gigachat_verify():
+    """Если сертификат лежит рядом — проверяем SSL, если нет — не проверяем."""
+    return CERT_PATH if os.path.exists(CERT_PATH) else False
+
+
 def get_gigachat_token():
-    """Получение токена GigaChat (с кэшем на 25 минут)."""
-    import time
+    """Токен GigaChat с кэшем на 25 минут."""
     if _token_cache["token"] and time.time() - _token_cache["time"] < 1500:
         return _token_cache["token"]
 
     if not GIGACHAT_CLIENT_ID or not GIGACHAT_CLIENT_SECRET:
-        print("⚠️ Не заданы ключи GigaChat в .env")
         return None
 
     headers = {
@@ -54,19 +67,12 @@ def get_gigachat_token():
     headers['Authorization'] = 'Basic ' + base64.b64encode(
         auth_string.encode('utf-8')).decode('utf-8')
 
-    payload = {'scope': 'GIGACHAT_API_PERS'}
-
-    # Если файла сертификата нет — не проверяем SSL (иначе будет падать)
-    verify = CERT_PATH if os.path.exists(CERT_PATH) else False
-    if not os.path.exists(CERT_PATH):
-        print("⚠️ Файл russia_trusted_root.pem не найден — SSL не проверяется")
-
     try:
         response = requests.post(
             GIGACHAT_AUTH_URL,
             headers=headers,
-            data=payload,
-            verify=verify,
+            data={'scope': 'GIGACHAT_API_PERS'},
+            verify=_gigachat_verify(),
             proxies=proxies,
             timeout=15
         )
@@ -79,7 +85,8 @@ def get_gigachat_token():
             _token_cache["token"] = token
             _token_cache["time"] = time.time()
             return token
-        print("⚠️ В ответе нет access_token:", response.text)
+
+        print("⚠️ В ответе нет access_token:", response.text[:200])
         return None
     except Exception as e:
         print(f"❌ Ошибка авторизации GigaChat: {e}")
@@ -87,10 +94,10 @@ def get_gigachat_token():
 
 
 def ask_gigachat(user_text):
-    """Запрос к GigaChat."""
+    """Запрос к GigaChat. Возвращает None, если ИИ недоступен."""
     token = get_gigachat_token()
     if not token:
-        return None  # чат недоступен — вернёмся к «НЕЗНАЮ»
+        return None
 
     prompt = (
         "Ты — медицинский фактчекер. Пользователь утверждает: \"" + user_text + "\". "
@@ -105,21 +112,18 @@ def ask_gigachat(user_text):
         'Accept': 'application/json',
         'Authorization': f'Bearer {token}'
     }
-
     payload = {
         "model": "GigaChat",
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.1
     }
 
-    verify = CERT_PATH if os.path.exists(CERT_PATH) else False
-
     try:
         response = requests.post(
             GIGACHAT_API_URL,
             headers=headers,
             json=payload,
-            verify=verify,
+            verify=_gigachat_verify(),
             proxies=proxies,
             timeout=30
         )
@@ -133,7 +137,6 @@ def ask_gigachat(user_text):
                 "explanation": result.get("explanation", "")
             }
         except json.JSONDecodeError:
-            # Модель вернула текст вместо JSON — отдаём его как объяснение
             return {"verdict": "НЕЗНАЮ", "explanation": content[:500]}
     except Exception as e:
         print(f"❌ Ошибка запроса к GigaChat: {e}")
@@ -142,42 +145,49 @@ def ask_gigachat(user_text):
 
 # ---------- Google Sheets ----------
 GS_CLIENT = None
-USE_GOOGLE_SHEETS = os.path.exists(os.path.join(BASE_DIR, "credentials.json"))
+GOOGLE_SPREADSHEET_ID = os.getenv("GOOGLE_SPREADSHEET_ID")
+GOOGLE_CREDENTIALS = os.getenv("GOOGLE_CREDENTIALS")  # JSON одной строкой
+CREDENTIALS_FILE = os.path.join(BASE_DIR, "credentials.json")
 
-if USE_GOOGLE_SHEETS:
+scopes = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+]
+
+if GOOGLE_SPREADSHEET_ID:
     try:
-        scopes = [
-            "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive"
-        ]
-        creds = Credentials.from_service_account_file(
-            os.path.join(BASE_DIR, "credentials.json"), scopes=scopes)
-        GS_CLIENT = gspread.authorize(creds)
-        print("✅ Google Таблицы подключены!")
+        if GOOGLE_CREDENTIALS:
+            info = json.loads(GOOGLE_CREDENTIALS)
+            creds = Credentials.from_service_account_info(info, scopes=scopes)
+            GS_CLIENT = gspread.authorize(creds)
+            print("✅ Google Таблицы подключены (из переменной GOOGLE_CREDENTIALS)")
+        elif os.path.exists(CREDENTIALS_FILE):
+            creds = Credentials.from_service_account_file(
+                CREDENTIALS_FILE, scopes=scopes)
+            GS_CLIENT = gspread.authorize(creds)
+            print("✅ Google Таблицы подключены (из файла credentials.json)")
+        else:
+            print("⚠️ Нет ни GOOGLE_CREDENTIALS, ни credentials.json — таблицы отключены")
     except Exception as e:
-        print(f"⚠️ Ошибка подключения к Google Sheets: {e}")
-        USE_GOOGLE_SHEETS = False
+        print(f"❌ Ошибка подключения к Google Sheets: {e}")
+        GS_CLIENT = None
 else:
-    print("ℹ️ credentials.json не найден — Google Sheets отключён")
+    print("ℹ️ GOOGLE_SPREADSHEET_ID не задан — таблицы отключены")
 
 
 def search_sheets(user_text):
-    """Поиск ответа в листе Facts (колонки: Утверждение, Вердикт, Объяснение)."""
-    if not GS_CLIENT:
+    """Поиск в листе Facts (колонки: Утверждение, Вердикт, Объяснение)."""
+    if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
         return None
     try:
-        spreadsheet_id = os.getenv("GOOGLE_SPREADSHEET_ID")
-        if not spreadsheet_id:
-            print("⚠️ Не задан GOOGLE_SPREADSHEET_ID в .env")
-            return None
-        spreadsheet = GS_CLIENT.open_by_key(spreadsheet_id)
+        spreadsheet = GS_CLIENT.open_by_key(GOOGLE_SPREADSHEET_ID)
         records = spreadsheet.worksheet("Facts").get_all_records()
         user_text = user_text.lower().strip()
 
         for row in records:
             claim = str(row.get('Утверждение', '')).lower()
-            # Совпадение: фраза пользователя в утверждении или ключевые слова в ней
-            if user_text in claim or any(w in claim for w in user_text.split() if len(w) > 4):
+            if user_text in claim or any(
+                    w in claim for w in user_text.split() if len(w) > 4):
                 return {
                     "source": "google_sheets",
                     "verdict": row.get('Вердикт', 'НЕЗНАЮ'),
@@ -189,15 +199,15 @@ def search_sheets(user_text):
 
 
 def log_to_sheet(user_text, verdict):
-    """Логирование запроса в лист Logs."""
-    if not GS_CLIENT:
+    """Лог запроса в лист Logs."""
+    if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
         return
     try:
-        sheet = GS_CLIENT.open_by_key(os.getenv("GOOGLE_SPREADSHEET_ID"))
+        sheet = GS_CLIENT.open_by_key(GOOGLE_SPREADSHEET_ID)
         sheet.worksheet("Logs").append_row(
             [user_text, verdict, datetime.now().strftime("%Y-%m-%d %H:%M")])
     except Exception as e:
-        print(f"⚠️ Ошибка логирования в Sheets: {e}")
+        print(f"⚠️ Ошибка логирования: {e}")
 
 
 # ---------- Маршруты ----------
@@ -209,34 +219,31 @@ def index():
 @app.route('/api/check', methods=['POST'])
 def check_claim():
     data = request.get_json() or {}
-    user_text = str(data.get('text', '')).lower().strip()
+    user_text = str(data.get('text', '')).strip()
 
     if not user_text:
         return jsonify({"error": "Пустой запрос"}), 400
 
-    result = None
+    text_lower = user_text.lower()
 
-    # 1. Google Sheets
-    result = search_sheets(user_text)
-
-    # 2. Локальная база
+    # 1. Google Таблица -> 2. Локальная база -> 3. GigaChat
+    result = search_sheets(text_lower)
     if not result:
-        result = find_fact(user_text)
-
-    # 3. GigaChat
+        result = find_fact(text_lower)
     if not result:
-        result = ask_gigachat(user_text)
-
-    # 4. Ничего не нашлось
+        result = ask_gigachat(text_lower)
     if not result:
         result = {
             "source": "none",
             "verdict": "НЕЗНАЮ",
-            "explanation": "Информация не найдена. Сервис работает в офлайн-режиме — попробуйте позже или переформулируйте запрос."
+            "explanation": ("Информация не найдена. Сервис работает в "
+                            "офлайн-режиме — попробуйте позже или "
+                            "переформулируйте запрос.")
         }
 
-    log_to_sheet(user_text, result.get("verdict", "НЕЗНАЮ"))
-    print(f"[LOG] '{user_text}' -> {result.get('verdict')} ({result.get('source')})")
+    log_to_sheet(text_lower, result.get("verdict", "НЕЗНАЮ"))
+    print(f"[LOG] '{text_lower}' -> {result.get('verdict')} "
+          f"({result.get('source')})")
     return jsonify(result)
 
 
@@ -251,7 +258,7 @@ def rate_answer():
 
     if GS_CLIENT:
         try:
-            sheet = GS_CLIENT.open_by_key(os.getenv("GOOGLE_SPREADSHEET_ID"))
+            sheet = GS_CLIENT.open_by_key(GOOGLE_SPREADSHEET_ID)
             sheet.worksheet("Ratings").append_row(
                 [claim, rating, datetime.now().strftime("%Y-%m-%d %H:%M")])
             return jsonify({"status": "ok"})
@@ -272,7 +279,7 @@ def submit_review():
 
     if GS_CLIENT:
         try:
-            sheet = GS_CLIENT.open_by_key(os.getenv("GOOGLE_SPREADSHEET_ID"))
+            sheet = GS_CLIENT.open_by_key(GOOGLE_SPREADSHEET_ID)
             sheet.worksheet("Reviews").append_row(
                 [name, review_text, datetime.now().strftime("%Y-%m-%d %H:%M")])
         except Exception as e:
