@@ -266,7 +266,7 @@ def check_claim():
                         }
                         break
 
-            # 3. Спрашиваем GigaChat (если ничего не нашли)
+           # 3. Спрашиваем GigaChat (если ничего не нашли)
             if not result:
                 result = ask_gigachat(user_text)
 
@@ -281,9 +281,6 @@ def check_claim():
 
             print(f"[LOG] Запрос: '{user_text}' -> Вердикт: {result.get('verdict', 'НЕЗНАЮ')}")
             return jsonify(result)
-    
-    print(f"[LOG] Запрос: '{user_text}' -> Вердикт: {result.get('verdict', 'НЕЗНАЮ')}")
-    return jsonify(result)
 
 @app.route('/api/rate', methods=['POST'])
 def rate_answer():
