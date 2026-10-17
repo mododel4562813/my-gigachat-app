@@ -226,7 +226,7 @@ def ask_gigachat(user_text):
             "verdict": result.get("verdict", "НЕЗНАЮ"),
             "explanation": result.get("explanation", "Ошибка парсинга ответа от GigaChat.")
          }
-         except json.JSONecodeError:
+    except json.JSONecodeError:
         return {"verdict": "НЕЗНАЮ","explanation": "Ошибка формата ответа"}
 
     except Exception as e:
@@ -250,7 +250,7 @@ def check_claim():
 
     # 1. Ищем в Google Sheets
     if sheet:
-        try:
+         try:
             # Убедись, что лист называется именно "Facts"
             facts_sheet = sheet.worksheet("Facts")
             records = facts_sheet.get_all_records()
@@ -262,7 +262,7 @@ def check_claim():
                         "explanation": row.get('Объяснение', '')
                     }
                     break
-        except Exception as e:
+          except Exception as e:
             print(f"⚠️ Ошибка чтения Google Sheets: {e}")
 
     # 2. Ищем в локальной базе (Mock)
