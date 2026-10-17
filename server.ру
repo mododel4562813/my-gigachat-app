@@ -219,17 +219,17 @@ def ask_gigachat(user_text):
         
         data=response.json()
         content = response.json()['choices'][0]['message']['content']
-
-        try:
-            result=json.loads(content_text)
+    try:
+            result=json.loads(content)
             return {
             "verdict": result.get("verdict", "НЕЗНАЮ"),
             "explanation": result.get("explanation", "Ошибка парсинга ответа от GigaChat.")
          } 
-        except json.JSONecodeError:
-        return {"verdict": "НЕЗНАЮ","explanation": "Ошибка формата ответа"}
+    except json.JSONecodeError:
+            return {"verdict": "НЕЗНАЮ","explanation": "Ошибка формата ответа"}
 
-     except Exception as e:
+    try:
+    except Exception as e:
         print(f"❌ Ошибка при запросе к GigaChat: {e}")
         return {"verdict": "НЕЗНАЮ","explanation": str(e)}
 
