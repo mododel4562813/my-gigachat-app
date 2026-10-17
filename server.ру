@@ -225,7 +225,7 @@ def ask_gigachat(user_text):
             return {
             "verdict": result.get("verdict", "НЕЗНАЮ"),
             "explanation": result.get("explanation", "Ошибка парсинга ответа от GigaChat.")
-        }
+         }
     except json.JSONecodeError:
         return {"verdict": "НЕЗНАЮ","explanation": "Ошибка формата ответа"}
 
