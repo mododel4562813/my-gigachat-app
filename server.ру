@@ -242,9 +242,9 @@ def check_claim():
     # 1. Ищем в Google Sheets
     if sheet:
          try:
-            # Убедись, что лист называется именно "Facts"
-            facts_sheet = sheet.worksheet("Facts")
-            records = facts_sheet.get_all_records()
+            # Убедись, что лист называется именно "statements"
+            facts_sheet = sheet.worksheet("statements")
+            records = statements_sheet.get_all_records()
             for row in records:
                 claim = str(row.get('Утверждение', '')).lower()
                 if user_text in claim:
@@ -253,7 +253,7 @@ def check_claim():
                         "explanation": row.get('Объяснение', '')
                     }
                     break
-        except Exception as e:
+except Exception as e:
             print(f"⚠️ Ошибка чтения Google Sheets: {e}")
 
     # 2. Ищем в локальной базе (Mock)
