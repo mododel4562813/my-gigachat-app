@@ -281,9 +281,6 @@ def check_claim():
 
             print(f"[LOG] Запрос: '{user_text}' -> Вердикт: {result.get('verdict', 'НЕЗНАЮ')}")
             return jsonify(result)
-
-@app.route('/api/rate', methods=['POST'])
-def rate_answer():
     data = request.get_json() or {}
     claim = data.get('claim')
     rating = data.get('rating')
