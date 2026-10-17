@@ -263,8 +263,7 @@ def check_claim():
 
             # Логирование в таблицу (если подключена)
             # if sheet and result:             
-print(f"[LOG] Запрос: '{user_text}' -> Вердикт: {result.get('verdict', 'НЕЗНАЮ')}")
-        return jsonify(result)
+
 @app.route('/api/rate', methods=['POST'])
 def rate_answer():
     data = request.get_json() or {}
