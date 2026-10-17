@@ -8,20 +8,33 @@ import requests
 import gspread
 from google.oauth2.service_account import Credentials
 
-# ---- НАСТРОЙКИ ----
-load_dotenv()
+# Загрузка переменных окружения
+current_dir = os.path.dirname(os.path.abspath(__file__))
+env_path = os.path.join(current_dir, '.env')
+
+if os.path.exists(env_path):
+    load_dotenv(env_path)
+    print("✅ Файл .env найден и загружен!")
+else:
+    print("❌ ОШИБКА: Файл .env НЕ найден!")
+
 app = Flask(__name__)
 
+# Конфигурационные переменные
 GIGACHAT_CLIENT_ID = os.getenv("GIGACHAT_CLIENT_ID")
 GIGACHAT_CLIENT_SECRET = os.getenv("GIGACHAT_CLIENT_SECRET")
 GIGACHAT_AUTH_URL = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
 GIGACHAT_API_URL = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions"
 
-# --- ГЛОБАЛЬНЫЕ НАСТРОЙКИ ПРОКСИ ---
+# Проверка загрузки ключей
+if not GIGACHAT_CLIENT_ID or not GIGACHAT_CLIENT_SECRET:
+    print("⚠️ Не заданы ключи GigaChat в .env")
+
+# Настройки прокси
 proxy_url = os.getenv("PROXY_URL")
 proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
 
-# --- ЛОКАЛЬНАЯ БАЗА ФАКТОВ (РАБОТАЕТ ВСЕГДА) ---
+# Расширенная база фактов
 MOCK_FACTS = {
     "вакцины вызывают аутизм": {
         "verdict": "МИФ",
@@ -34,12 +47,44 @@ MOCK_FACTS = {
     "коровье молоко вредно": {
         "verdict": "МИФ",
         "explanation": "Для большинства людей без лактазной недостаточности молоко безопасно и полезно. Оно является источником кальция и белка."
-    }
+    },
+    "чихание на солнце": {
+        "verdict": "МИФ",
+        "explanation": "Чихание на ярком свету — нормальная физиологическая реакция, не связанная с аллергией."
+    },
+    "иммунитет можно прокачать": {
+        "verdict": "МИФ",
+        "explanation": "Иммунитет — сложная система, требующая баланса. Чрезмерная активация приводит к аутоиммунным заболеваниям."
+    },
+    "антибиотики осенью": {
+        "verdict": "МИФ",
+        "explanation": "Профилактический приём антибиотиков нарушает микрофлору и способствует резистентности."
+    },
+    "температура 37": {
+        "verdict": "МИФ",
+        "explanation": "Температура 37°C — норма, не требует жаропонижающих."
+    },
+    "вирус гриппа на купюрах": {
+        "verdict": "МИФ",
+        "explanation": "Вирус гриппа живёт на поверхностях несколько часов, не лет."
+    },
+    "много воды при простуде": {
+        "verdict": "МИФ",
+        "explanation": "Вирусы не выводятся с мочой, обильное питьё нужно для восполнения потерь жидкости."
+    },
+    "фотическая чихательная реакция": {
+        "verdict": "ФАКТ",
+        "explanation": "Чихание на ярком свету встречается у каждого четвёртого человека и связано с особенностями нервной системы."
+    },
+    "иммунитет и старение": {
+        "verdict": "ФАКТ",
+        "explanation": "Иммунитет требует баланса, чрезмерная активация приводит к аутоиммунным заболеваниям."
+    },
 }
 
-# Проверка наличия credentials.json для Google Sheets
+# Настройки Google Sheets
 USE_GOOGLE_SHEETS = os.path.exists("credentials.json")
-GS_CLIENT = None  # Глобальная переменная
+GS_CLIENT = None
 
 if USE_GOOGLE_SHEETS:
     try:
