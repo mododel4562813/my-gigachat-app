@@ -290,6 +290,26 @@ def submit_review():
 
     return jsonify({"status": "ok"})
 
+@app.route('/api/debug')
+def debug_gigachat():
+    """Диагностика: пытается получить токен и показывает ошибку прямо в браузере."""
+    info = {
+        "proxy_set": bool(PROXY_URL),
+        "keys_set": bool(GIGACHAT_CLIENT_ID and GIGACHAT_CLIENT_SECRET),
+        "cert_file": bool(os.path.exists(CERT_PATH)),
+    }
+    if not info["keys_set"]:
+        return jsonify({**info, "result": "Ключи не найдены в Environment"})
+
+    token = get_gigachat_token()
+    if token:
+        return jsonify({**info, "result": "Токен получен! GigaChat доступен."})
+    else:
+        return jsonify({
+            **info,
+            "result": "Токен получить не удалось. Смотри логи Render -> Logs, "
+                      "ищи строку с 'Ошибка авторизации GigaChat'."
+        })
 
 if __name__ == '__main__':
     print("🚀 Сервер запущен...")
