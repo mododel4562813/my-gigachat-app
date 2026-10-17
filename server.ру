@@ -257,7 +257,7 @@ def check_claim():
                 # print(f"⚠️ Ошибка чтения Google Sheets: {e}")
 
    # 2. Ищем в локальной базе (Mock)
-            # 3. Спрашиваем GigaChat (если ничего не нашли)
+           # 3. Спрашиваем GigaChat (если ничего не нашли)
             if not result:
                 result = ask_gigachat(user_text)
 
@@ -272,15 +272,6 @@ def check_claim():
 
             print(f"[LOG] Запрос: '{user_text}' -> Вердикт: {result.get('verdict', 'НЕЗНАЮ')}")
             return jsonify(result)
-    data = request.get_json() or {}
-    claim = data.get('claim')
-    rating = data.get('rating')
-    
-    if not claim or not rating is None:
-        return jsonify({"error": "Недостаточно данных"}), 400
-
-    sheet = GS_CLIENT
-
     if sheet:
         try:
             rating_sheet = sheet.worksheet("Ratings")
