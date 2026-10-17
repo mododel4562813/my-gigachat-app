@@ -75,8 +75,7 @@ if USE_GOOGLE_SHEETS:
         GS_CLIENT = None
 else:
     print("ℹ️ Файл credentials.json не найден. Работа с Google Sheets отключена.")
-    print("💡 Бот будет использовать локальную базу фактов (MOCK_FACTS) и GigaChat.")   
-    # Возвращаем уже авторизованный клиент, созданный выше
+    print("Бот будет использовать локальную бузу фактов (MOCK_FACTS) и GigaChat.")
 
 def get_gigachat_token():
     """Получение токена доступа к GigaChat"""
