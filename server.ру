@@ -1,118 +1,46 @@
 import os
 import json
 import base64
+import uuid
+import requests
 from datetime import datetime
 from flask import Flask, request, jsonify, render_template
 from dotenv import load_dotenv
-import requests
 import gspread
 from google.oauth2.service_account import Credentials
 
-# Загрузка переменных окружения
-current_dir = os.path.dirname(os.path.abspath(__file__))
-env_path = os.path.join(current_dir, '.env')
+from facts import find_fact  # локальная база
 
-if os.path.exists(env_path):
-    load_dotenv(env_path)
-    print("✅ Файл .env найден и загружен!")
-else:
-    print("❌ ОШИБКА: Файл .env НЕ найден!")
+# ---------- Настройка путей ----------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(BASE_DIR, '.env'))
+CERT_PATH = os.path.join(BASE_DIR, 'russia_trusted_root.pem')
 
 app = Flask(__name__)
 
-# Конфигурационные переменные
+# ---------- GigaChat ----------
 GIGACHAT_CLIENT_ID = os.getenv("GIGACHAT_CLIENT_ID")
 GIGACHAT_CLIENT_SECRET = os.getenv("GIGACHAT_CLIENT_SECRET")
 GIGACHAT_AUTH_URL = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
 GIGACHAT_API_URL = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions"
 
-# Проверка загрузки ключей
-if not GIGACHAT_CLIENT_ID or not GIGACHAT_CLIENT_SECRET:
-    print("⚠️ Не заданы ключи GigaChat в .env")
-
-# Настройки прокси
 proxy_url = os.getenv("PROXY_URL")
 proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
 
-# Расширенная база фактов
-MOCK_FACTS = {
-    "вакцины вызывают аутизм": {
-        "verdict": "МИФ",
-        "explanation": "Многочисленные исследования опровергли эту связь. Исследование 1998 года было отозвано из-за фальсификации данных."
-    },
-    "витамин с лечит простуду": {
-        "verdict": "ЧАСТИЧНО ПРАВДА",
-        "explanation": "Витамин C не предотвращает простуду, но может немного сократить её длительность."
-    },
-    "коровье молоко вредно": {
-        "verdict": "МИФ",
-        "explanation": "Для большинства людей без лактазной недостаточности молоко безопасно и полезно. Оно является источником кальция и белка."
-    },
-    "чихание на солнце": {
-        "verdict": "МИФ",
-        "explanation": "Чихание на ярком свету — нормальная физиологическая реакция, не связанная с аллергией."
-    },
-    "иммунитет можно прокачать": {
-        "verdict": "МИФ",
-        "explanation": "Иммунитет — сложная система, требующая баланса. Чрезмерная активация приводит к аутоиммунным заболеваниям."
-    },
-    "антибиотики осенью": {
-        "verdict": "МИФ",
-        "explanation": "Профилактический приём антибиотиков нарушает микрофлору и способствует резистентности."
-    },
-    "температура 37": {
-        "verdict": "МИФ",
-        "explanation": "Температура 37°C — норма, не требует жаропонижающих."
-    },
-    "вирус гриппа на купюрах": {
-        "verdict": "МИФ",
-        "explanation": "Вирус гриппа живёт на поверхностях несколько часов, не лет."
-    },
-    "много воды при простуде": {
-        "verdict": "МИФ",
-        "explanation": "Вирусы не выводятся с мочой, обильное питьё нужно для восполнения потерь жидкости."
-    },
-    "фотическая чихательная реакция": {
-        "verdict": "ФАКТ",
-        "explanation": "Чихание на ярком свету встречается у каждого четвёртого человека и связано с особенностями нервной системы."
-    },
-    "иммунитет и старение": {
-        "verdict": "ФАКТ",
-        "explanation": "Иммунитет требует баланса, чрезмерная активация приводит к аутоиммунным заболеваниям."
-    },
-    "приём антибиотиков осенью": {
-        "verdict": "МИФ",
-        "explanation": "Антибиотики действуют только на бактерии и не защищают от вирусов гриппа и ОРВИ."
-    },
-    "температура 37,0": {
-        "verdict": "МИФ",
-        "explanation": "Температура 37,0 °C находится в пределах нормы и не требует жаропонижающих." }
-
-# Настройки Google Sheets
-USE_GOOGLE_SHEETS = os.path.exists("credentials.json")
-GS_CLIENT = None
-
-if USE_GOOGLE_SHEETS:
-    try:
-        scopes = [
-            "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive"
-        ]
-        creds = Credentials.from_service_account_file("credentials.json", scopes=scopes)
-        GS_CLIENT = gspread.authorize(creds)
-        print("✅ Google Таблицы успешно подключены!")
-    except Exception as e:
-        print(f"⚠️ Ошибка при подключении к Google Sheets: {e}")
-        print("🔍 Проверьте: файл credentials.json лежит рядом с server.py и у аккаунта есть доступ к таблице.")
-        USE_GOOGLE_SHEETS = False
-        GS_CLIENT = None
+if not GIGACHAT_CLIENT_ID or not GIGACHAT_CLIENT_SECRET:
+    print("⚠️ Ключи GigaChat не найдены в .env — чат будет отключён")
 else:
-    print("ℹ️ Файл credentials.json не найден. Работа с Google Sheets отключена.")
-    print("💡 Бот будет использовать локальную базу фактов (MOCK_FACTS) и GigaChat.")
+    print("✅ Ключи GigaChat найдены")
+
+_token_cache = {"token": None, "time": 0}
 
 
 def get_gigachat_token():
-    """Получение токена доступа к GigaChat"""
+    """Получение токена GigaChat (с кэшем на 25 минут)."""
+    import time
+    if _token_cache["token"] and time.time() - _token_cache["time"] < 1500:
+        return _token_cache["token"]
+
     if not GIGACHAT_CLIENT_ID or not GIGACHAT_CLIENT_SECRET:
         print("⚠️ Не заданы ключи GigaChat в .env")
         return None
@@ -120,105 +48,56 @@ def get_gigachat_token():
     headers = {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json',
-        'RqUID': '12345678-1234-1234-1234-123456789012'
+        'RqUID': str(uuid.uuid4()),
     }
-    
     auth_string = f"{GIGACHAT_CLIENT_ID}:{GIGACHAT_CLIENT_SECRET}"
-    encoded_auth = base64.b64encode(auth_string.encode('utf-8')).decode('utf-8')
-    headers['Authorization'] = f'Basic {encoded_auth}'
+    headers['Authorization'] = 'Basic ' + base64.b64encode(
+        auth_string.encode('utf-8')).decode('utf-8')
 
     payload = {'scope': 'GIGACHAT_API_PERS'}
+
+    # Если файла сертификата нет — не проверяем SSL (иначе будет падать)
+    verify = CERT_PATH if os.path.exists(CERT_PATH) else False
+    if not os.path.exists(CERT_PATH):
+        print("⚠️ Файл russia_trusted_root.pem не найден — SSL не проверяется")
 
     try:
         response = requests.post(
             GIGACHAT_AUTH_URL,
             headers=headers,
             data=payload,
-            verify=False,
-            proxies=proxies
+            verify=verify,
+            proxies=proxies,
+            timeout=15
         )
+        print(f"📡 Авторизация GigaChat: статус {response.status_code}")
         response.raise_for_status()
-        
+
         token = response.json().get('access_token')
-        
         if token:
-            print("✅ Токен GigaChat успешно получен!")
+            print("✅ Токен GigaChat получен!")
+            _token_cache["token"] = token
+            _token_cache["time"] = time.time()
             return token
-        else:
-            print("⚠️ В ответе от GigaChat нет токена")
-            return None
-            
+        print("⚠️ В ответе нет access_token:", response.text)
+        return None
     except Exception as e:
-        print(f"⚠️ Ошибка авторизации в GigaChat: {e}")
+        print(f"❌ Ошибка авторизации GigaChat: {e}")
         return None
 
 
-def find_answer(user_question, spreadsheet_id, worksheet_name):
-    """
-    Логика поиска ответа:
-    1. Google Sheets (приоритет 1)
-    2. MOCK_FACTS (приоритет 2)
-    3. GigaChat (приоритет 3)
-    """
-    
-    # --- ШАГ 1: Поиск в Google Sheets ---
-    if GS_CLIENT:
-        try:
-            spreadsheet = GS_CLIENT.open_by_key(spreadsheet_id)
-            worksheet = spreadsheet.worksheet(worksheet_name)
-            all_data = worksheet.get_all_values()
-            
-            clean_question = user_question.lower().replace('.', '').replace(',', '').replace('?', '').replace('!', '')
-            question_words = set(clean_question.split())
-            
-            for row in all_data[1:]:
-                if len(row) < 3: 
-                    continue
-                
-                keywords_str = row[0] if row[0] else ""
-                answer_text = row[1] if row[1] else ""
-                verdict_text = row[2] if row[2] else ""
-                
-                keywords_set = set(keywords_str.lower().split())
-                
-                if keywords_set.issubset(question_words) and len(keywords_set) > 0:
-                    return {
-                        "source": "google_sheets",
-                        "verdict": verdict_text,
-                        "answer": answer_text
-                    }
-                    
-        except Exception as e:
-            print(f"⚠️ Ошибка чтения Google Таблиц: {e}")
-
-    # --- ШАГ 2: Поиск в локальной базе (MOCK_FACTS) ---
-    for key, value in MOCK_FACTS.items():
-        if key.lower() in user_question.lower():
-            return {
-                "source": "mock_facts",
-                "verdict": value.get("verdict", "НЕЗНАЮ"),
-                "answer": value.get("answer", "Нет данных")
-            }
-
-    # --- ШАГ 3: GigaChat (если ничего не нашли) ---
-    return {
-        "source": "gigachat_placeholder",
-        "verdict": "НЕЗНАЮ",
-        "answer": "Информация не найдена в базе, требуется запрос к нейросети."
-    }
-
-
 def ask_gigachat(user_text):
+    """Запрос к GigaChat."""
     token = get_gigachat_token()
     if not token:
-        return {"verdict": "НЕЗНАЮ", "explanation": "Токен для GigaChat не получен. Проверьте credentials.json."}
+        return None  # чат недоступен — вернёмся к «НЕЗНАЮ»
 
     prompt = (
-        "Ты — строгий медицинский фактчекер. Пользователь утверждает: \"" + user_text + "\". "
-        "Твоя задача — проверить это утверждение с научной точки зрения. "
-        "Верни ответ СТРОГО в формате JSON (без markdown-разметки, только чистый JSON): "
-        "{\"verdict\": \"МИФ\" | \"ПРАВДА\" | \"СПОРНО\" | \"НЕЗНАЮ\", "
-        "\"explanation\": \"Подробное объяснение с указанием причин. Если не знаешь или вопрос требует индивидуальной консультации, пиши: Не давай медицинских назначений.\"}"
+        "Ты — медицинский фактчекер. Пользователь утверждает: \"" + user_text + "\". "
+        "Проверь утверждение с научной точки зрения. Ответь СТРОГО в формате JSON "
+        "(без markdown, только чистый JSON): {\"verdict\": \"МИФ\" | \"ПРАВДА\" | "
+        "\"СПОРНО\" | \"НЕЗНАЮ\", \"explanation\": \"краткое объяснение\"}. "
+        "Не давай медицинских назначений — вместо этого пиши «обратитесь к врачу»."
     )
 
     headers = {
@@ -233,31 +112,95 @@ def ask_gigachat(user_text):
         "temperature": 0.1
     }
 
+    verify = CERT_PATH if os.path.exists(CERT_PATH) else False
+
     try:
         response = requests.post(
             GIGACHAT_API_URL,
             headers=headers,
             json=payload,
-            verify='russia_trusted_root.pem',
-            proxies=proxies
+            verify=verify,
+            proxies=proxies,
+            timeout=30
         )
         response.raise_for_status()
-        
-        data = response.json()
-        content = data['choices'][0]['message']['content']
+        content = response.json()['choices'][0]['message']['content']
 
-        result = json.loads(content)
-        return {
-            "verdict": result.get("verdict", "НЕЗНАЮ"),
-            "explanation": result.get("explanation", "Ошибка парсинга ответа от GigaChat.")
-        }
-    except json.JSONDecodeError:
-        return {"verdict": "НЕЗНАЮ", "explanation": "Ошибка формата ответа"}
+        try:
+            result = json.loads(content)
+            return {
+                "verdict": result.get("verdict", "НЕЗНАЮ"),
+                "explanation": result.get("explanation", "")
+            }
+        except json.JSONDecodeError:
+            # Модель вернула текст вместо JSON — отдаём его как объяснение
+            return {"verdict": "НЕЗНАЮ", "explanation": content[:500]}
     except Exception as e:
-        print(f"❌ Я не компетента в этом вопросе, связь с ассистентом прервана: {e}")
-        return {"verdict": "НЕЗНАЮ", "explanation": str(e)}
+        print(f"❌ Ошибка запроса к GigaChat: {e}")
+        return None
 
 
+# ---------- Google Sheets ----------
+GS_CLIENT = None
+USE_GOOGLE_SHEETS = os.path.exists(os.path.join(BASE_DIR, "credentials.json"))
+
+if USE_GOOGLE_SHEETS:
+    try:
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive"
+        ]
+        creds = Credentials.from_service_account_file(
+            os.path.join(BASE_DIR, "credentials.json"), scopes=scopes)
+        GS_CLIENT = gspread.authorize(creds)
+        print("✅ Google Таблицы подключены!")
+    except Exception as e:
+        print(f"⚠️ Ошибка подключения к Google Sheets: {e}")
+        USE_GOOGLE_SHEETS = False
+else:
+    print("ℹ️ credentials.json не найден — Google Sheets отключён")
+
+
+def search_sheets(user_text):
+    """Поиск ответа в листе Facts (колонки: Утверждение, Вердикт, Объяснение)."""
+    if not GS_CLIENT:
+        return None
+    try:
+        spreadsheet_id = os.getenv("GOOGLE_SPREADSHEET_ID")
+        if not spreadsheet_id:
+            print("⚠️ Не задан GOOGLE_SPREADSHEET_ID в .env")
+            return None
+        spreadsheet = GS_CLIENT.open_by_key(spreadsheet_id)
+        records = spreadsheet.worksheet("Facts").get_all_records()
+        user_text = user_text.lower().strip()
+
+        for row in records:
+            claim = str(row.get('Утверждение', '')).lower()
+            # Совпадение: фраза пользователя в утверждении или ключевые слова в ней
+            if user_text in claim or any(w in claim for w in user_text.split() if len(w) > 4):
+                return {
+                    "source": "google_sheets",
+                    "verdict": row.get('Вердикт', 'НЕЗНАЮ'),
+                    "explanation": row.get('Объяснение', '')
+                }
+    except Exception as e:
+        print(f"⚠️ Ошибка чтения Google Sheets: {e}")
+    return None
+
+
+def log_to_sheet(user_text, verdict):
+    """Логирование запроса в лист Logs."""
+    if not GS_CLIENT:
+        return
+    try:
+        sheet = GS_CLIENT.open_by_key(os.getenv("GOOGLE_SPREADSHEET_ID"))
+        sheet.worksheet("Logs").append_row(
+            [user_text, verdict, datetime.now().strftime("%Y-%m-%d %H:%M")])
+    except Exception as e:
+        print(f"⚠️ Ошибка логирования в Sheets: {e}")
+
+
+# ---------- Маршруты ----------
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -267,52 +210,33 @@ def index():
 def check_claim():
     data = request.get_json() or {}
     user_text = str(data.get('text', '')).lower().strip()
-    
+
     if not user_text:
         return jsonify({"error": "Пустой запрос"}), 400
 
     result = None
 
-    # 1. Ищем в Google Sheets
-    if GS_CLIENT:
-        try:
-            statements_sheet = GS_CLIENT.worksheet("statements")
-            records = statements_sheet.get_all_records()
-            for row in records:
-                claim = str(row.get('Утверждение', '')).lower()
-                if user_text in claim:
-                    result = {
-                        "verdict": row.get('Вердикт', 'НЕЗНАЮ'),
-                        "explanation": row.get('Объяснение', '')
-                    }
-                    break
-        except Exception as e:
-            print(f"⚠️ Ошибка чтения Google Sheets: {e}")
+    # 1. Google Sheets
+    result = search_sheets(user_text)
 
-    # 2. Ищем в локальной базе (Mock)
+    # 2. Локальная база
     if not result:
-        for key, value in MOCK_FACTS.items():
-            if key in user_text:
-                result = {
-                    "verdict": value.get("verdict"),
-                    "explanation": value.get("explanation")
-                }
-                break
+        result = find_fact(user_text)
 
-    # 3. Спрашиваем GigaChat (если ничего не нашли)
+    # 3. GigaChat
     if not result:
         result = ask_gigachat(user_text)
 
-    # Логирование в таблицу (если подключена)
-    if GS_CLIENT and result:
-        try:
-            log_sheet = GS_CLIENT.worksheet("Logs")
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
-            log_sheet.append_row([user_text, result['verdict'], timestamp])
-        except Exception as e:
-            print(f"⚠️ Ошибка логирования в Sheets: {e}")
-    
-    print(f"[LOG] Запрос: '{user_text}' -> Вердикт: {result.get('verdict', 'НЕЗНАЮ')}")
+    # 4. Ничего не нашлось
+    if not result:
+        result = {
+            "source": "none",
+            "verdict": "НЕЗНАЮ",
+            "explanation": "Информация не найдена. Сервис работает в офлайн-режиме — попробуйте позже или переформулируйте запрос."
+        }
+
+    log_to_sheet(user_text, result.get("verdict", "НЕЗНАЮ"))
+    print(f"[LOG] '{user_text}' -> {result.get('verdict')} ({result.get('source')})")
     return jsonify(result)
 
 
@@ -323,20 +247,18 @@ def rate_answer():
     rating = data.get('rating')
 
     if not claim or rating is None:
-        return jsonify({"error": "Недостаточно данных: нужны поля 'claim' и 'rating'"}), 400
+        return jsonify({"error": "Нужны поля 'claim' и 'rating'"}), 400
 
     if GS_CLIENT:
         try:
-            rating_sheet = GS_CLIENT.worksheet("Ratings")
-            rating_sheet.append_row([claim, rating, datetime.now().strftime("%Y-%m-%d %H:%M")])
-            print(f"✅ Оценка {rating}/5 для '{claim}' сохранена в таблицу.")
+            sheet = GS_CLIENT.open_by_key(os.getenv("GOOGLE_SPREADSHEET_ID"))
+            sheet.worksheet("Ratings").append_row(
+                [claim, rating, datetime.now().strftime("%Y-%m-%d %H:%M")])
             return jsonify({"status": "ok"})
         except Exception as e:
-            print(f"⚠️ Ошибка записи оценки в Sheets: {e}")
-            return jsonify({"status": "ok", "warning": "Оценка не записана в таблицу"})
-    else:
-        print("⚠️ Google Sheets не подключен. Оценка не сохранена.")
-        return jsonify({"status": "ok", "warning": "Google Sheets не подключен"})
+            print(f"⚠️ Ошибка записи оценки: {e}")
+            return jsonify({"status": "ok", "warning": "Оценка не записана"})
+    return jsonify({"status": "ok", "warning": "Sheets не подключен"})
 
 
 @app.route('/api/review', methods=['POST'])
@@ -350,17 +272,15 @@ def submit_review():
 
     if GS_CLIENT:
         try:
-            review_sheet = GS_CLIENT.worksheet("Reviews")
-            review_sheet.append_row([name, review_text, datetime.now().strftime("%Y-%m-%d %H:%M")])
-            print(f"✅ Отзыв от {name} сохранен в таблицу.")
+            sheet = GS_CLIENT.open_by_key(os.getenv("GOOGLE_SPREADSHEET_ID"))
+            sheet.worksheet("Reviews").append_row(
+                [name, review_text, datetime.now().strftime("%Y-%m-%d %H:%M")])
         except Exception as e:
-            print(f"⚠️ Ошибка записи отзыва в Sheets: {e}")
-            return jsonify({"status": "ok", "warning": "Отзыв не записан в таблицу"})
+            print(f"⚠️ Ошибка записи отзыва: {e}")
+            return jsonify({"status": "ok", "warning": "Отзыв не записан"})
     else:
-        print("⚠️ Google Sheets не подключен. Отзыв не сохранен.")
+        print(f"🗣 [ОТЗЫВ] {name}: {review_text}")
 
-    print(f"🗣 [ОТЗЫВ] Имя: {name} | Текст: {review_text} | Время: {datetime.now().strftime('%H:%M:%S')}")
-    
     return jsonify({"status": "ok"})
 
 
