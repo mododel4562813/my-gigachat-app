@@ -20,8 +20,8 @@ GIGACHAT_API_URL = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions
 PROXY_URL = os.environ.get('PROXY_URL')
 
 proxies = {
-    'http': PROXY_URL,
-    'https': PROXY_URL
+  'http': PROXY_URL,
+  'https': PROXY_URL
 } if PROXY_URL else None
 
 MOCK_FACTS = {
