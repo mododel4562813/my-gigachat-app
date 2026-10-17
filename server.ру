@@ -253,8 +253,8 @@ def check_claim():
                         "explanation": row.get('Объяснение', '')
                     }
                     break
-    except Exception as e:
-                print(f"⚠️ Ошибка чтения Google Sheets: {e}")
+    # except Exception as e:
+                # print(f"⚠️ Ошибка чтения Google Sheets: {e}")
 
     # 2. Ищем в локальной базе (Mock)
     if not result:
