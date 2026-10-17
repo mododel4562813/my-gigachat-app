@@ -86,8 +86,7 @@ MOCK_FACTS = {
     },
     "температура 37,0": {
         "verdict": "МИФ",
-        "explanation": "Температура 37,0 °C находится в пределах нормы и не требует жаропонижающих."
-    }
+        "explanation": "Температура 37,0 °C находится в пределах нормы и не требует жаропонижающих." }
 
 # Настройки Google Sheets
 USE_GOOGLE_SHEETS = os.path.exists("credentials.json")
