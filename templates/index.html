@@ -24,12 +24,13 @@
             <p class="slogan">Не верь, а проверь</p>
         </header>
 
+        <!-- Дисклеймер: значок ВНУТРИ строки с текстом -->
         <div class="disclaimer">
-            <span>⚠️</span>
-            <p><strong>Внимание!</strong> Это не медицинская консультация. При проблемах со здоровьем обязательно обратитесь к врачу.</p>
+            <p><span class="warn-icon">⚠️</span> <strong>Внимание!</strong> Это не медицинская консультация. При проблемах со здоровьем обязательно обратитесь к врачу.</p>
         </div>
 
         <main class="glass-card">
+            <!-- Маскот Вера -->
             <div class="mascot" id="mascot">
                 <img id="mascotImage"
                      src="{{ url_for('static', filename='vera_hello.png') }}"
@@ -149,7 +150,7 @@
         speech.innerHTML = PHRASES.hello;
 
         // ---------- Проверка факта ----------
-        let lastClaim = ''; // запоминаем последний запрос для оценки
+        let lastClaim = '';
 
         function sendCheck() {
             const text = document.getElementById('userText').value.trim();
@@ -194,7 +195,7 @@
             });
         }
 
-        // ---------- Сердечки (сервер ждёт /api/rate с claim и rating) ----------
+        // ---------- Сердечки ----------
         document.querySelectorAll('.heart').forEach(function (h) {
             h.addEventListener('click', function () {
                 const val = h.dataset.value;
@@ -210,7 +211,7 @@
             });
         });
 
-        // ---------- Отзыв (сервер ждёт поле 'review') ----------
+        // ---------- Отзыв ----------
         function sendReview() {
             const name = document.getElementById('reviewName').value.trim() || 'Гость';
             const text = document.getElementById('reviewText').value.trim();
@@ -227,7 +228,7 @@
             .catch(function () {});
         }
 
-        // ---------- Профиль (сервер отвечает {"status": "ok"}) ----------
+        // ---------- Профиль ----------
         let authMode = 'login';
 
         function switchTab(mode) {
@@ -277,7 +278,7 @@
             document.getElementById('authPassword').value = '';
         }
 
-        // ---------- Обсуждение (работает через /api/reviews и /api/review) ----------
+        // ---------- Обсуждение ----------
         function sendComment() {
             const name = document.getElementById('commentName').value.trim() || 'Гость';
             const text = document.getElementById('commentText').value.trim();
