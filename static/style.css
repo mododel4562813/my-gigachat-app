@@ -1,9 +1,8 @@
 /* ============================================================
-   «Перепроверим» — Не верь, а проверь
-   Команда «Единый пульс»
+   «Перепроверим» — Полный стиль для конкурса «Медицина 2050»
    ============================================================ */
 
-/* ---------- База ---------- */
+/* ---------- База и сброс ---------- */
 * { box-sizing: border-box; }
 
 body {
@@ -15,7 +14,7 @@ body {
     min-height: 100vh;
 }
 
-/* ---------- Фоновые пузыри ---------- */
+/* ---------- Декоративные пузыри (фон) ---------- */
 .background-blobs {
     position: fixed;
     inset: 0;
@@ -99,7 +98,7 @@ h1 {
 .disclaimer p { margin: 0; }
 .disclaimer strong { color: #92400E; }
 
-/* ---------- Главная карточка ---------- */
+/* ---------- Главная карточка (Glassmorphism) ---------- */
 .glass-card {
     background: rgba(255, 255, 255, 0.75);
     backdrop-filter: blur(10px);
@@ -148,7 +147,7 @@ h1 {
 }
 .mascot-speech b { color: #4F46E5; font-weight: 700; }
 
-/* ---------- Главный блок ---------- */
+/* ---------- Главный блок (Hero) ---------- */
 .hero-section {
     text-align: center;
     margin-bottom: 24px;
@@ -165,7 +164,7 @@ h1 {
     margin: 0;
 }
 
-/* ---------- Ввод и кнопка проверки ---------- */
+/* ---------- Поле ввода и кнопка проверки ---------- */
 textarea#userText {
     width: 100%;
     padding: 18px;
@@ -198,7 +197,7 @@ button#checkBtn:hover  { background-color: #4338ca; }
 button#checkBtn:active { transform: scale(0.98); }
 button#checkBtn:disabled { opacity: 0.6; cursor: wait; }
 
-/* ---------- Результат ---------- */
+/* ---------- Результат проверки ---------- */
 #result.hidden { display: none; }
 .verdict-badge {
     display: inline-block;
@@ -232,7 +231,7 @@ button#checkBtn:disabled { opacity: 0.6; cursor: wait; }
     white-space: pre-line;
 }
 
-/* ---------- Сердечки ---------- */
+/* ---------- Рейтинг (сердечки) ---------- */
 .rating-section {
     text-align: center;
 }
@@ -268,8 +267,7 @@ button#checkBtn:disabled { opacity: 0.6; cursor: wait; }
     margin: 0 0 5px;
     font-weight: 800;
 }
-.review-subtitle,
-.comments-subtitle {
+.review-subtitle {
     font-size: 0.85rem;
     color: #6B7280;
     margin: 0 0 15px;
@@ -290,7 +288,7 @@ button#checkBtn:disabled { opacity: 0.6; cursor: wait; }
 .review-section textarea:focus { border-color: #4F46E5; }
 .review-section textarea { min-height: 80px; resize: vertical; }
 
-/* ---------- Кнопки второстепенные ---------- */
+/* ---------- Вторичные кнопки ---------- */
 .btn-secondary {
     background: white;
     border: 2px solid #E5E7EB;
@@ -308,14 +306,13 @@ button#checkBtn:disabled { opacity: 0.6; cursor: wait; }
     color: #4F46E5;
 }
 
-/* ---------- Профиль ---------- */
+/* ---------- Профиль (Авторизация) ---------- */
 .auth-section {
     border-top: 2px solid #F3F4F6;
     padding-top: 30px;
     margin-top: 30px;
 }
-.auth-section h3,
-.comments-section h3 {
+.auth-section h3 {
     font-size: 1.2rem;
     margin: 0 0 5px;
     font-weight: 800;
@@ -400,6 +397,16 @@ button#checkBtn:disabled { opacity: 0.6; cursor: wait; }
     padding-top: 30px;
     margin-top: 30px;
 }
+.comments-section h3 {
+    font-size: 1.2rem;
+    margin: 0 0 5px;
+    font-weight: 800;
+}
+.comments-subtitle {
+    font-size: 0.85rem;
+    color: #6B7280;
+    margin: 0 0 15px;
+}
 .comments-section input,
 .comments-section textarea {
     width: 100%;
@@ -438,15 +445,26 @@ button#checkBtn:disabled { opacity: 0.6; cursor: wait; }
     word-break: break-word;
 }
 
-/* ---------- Подвал ---------- */
-footer {
+/* ---------- Подвал (Footer) ---------- */
+.project-footer {
     text-align: center;
-    padding: 20px;
-    color: #9CA3AF;
-    font-size: 0.9rem;
+    padding: 24px 16px;
+    color: #4B5563;
+    font-size: 0.85rem;
+    border-top: 1px solid #E5E7EB;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(8px);
+}
+.project-footer p {
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: 0.5px;
 }
 
-/* ---------- Мобильная версия ---------- */
+/* ---------- Утилиты ---------- */
+.hidden { display: none !important; }
+
+/* ---------- Адаптив для мобильных ---------- */
 @media (max-width: 480px) {
     h1 { font-size: 1.8rem; }
     .glass-card { padding: 20px 14px; }
