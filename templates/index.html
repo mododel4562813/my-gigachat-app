@@ -26,11 +26,6 @@
             border: 8px solid transparent; border-right-color: rgba(255, 255, 255, 0.9);
         }
         .mascot-speech b { color: #4F46E5; }
-        .speak-btn {
-            border: none; background: none; cursor: pointer;
-            font-size: 16px; padding: 2px 6px; align-self: flex-end; margin-bottom: 40px;
-        }
-        .speak-btn:hover { transform: scale(1.15); }
 
         /* ---------- Вход / регистрация ---------- */
         .auth-section { border-top: 2px solid #F3F4F6; padding-top: 30px; margin-top: 30px; }
@@ -65,7 +60,6 @@
         @media (max-width: 480px) {
             .mascot img { width: 80px; }
             .mascot-speech { font-size: 13px; margin-bottom: 20px; }
-            .speak-btn { margin-bottom: 20px; }
             .auth-fields { flex-direction: column; }
         }
     </style>
@@ -99,7 +93,6 @@
                      src="{{ url_for('static', filename='vera_hello.png') }}"
                      alt="Вера — маскот проекта">
                 <div class="mascot-speech" id="mascotSpeech"></div>
-                <button class="speak-btn" onclick="speakBtnClick()" title="Озвучить реплику Веры">🔊</button>
             </div>
 
             <div class="hero-section">
@@ -135,7 +128,7 @@
 
             <!-- Отзыв -->
             <div class="review-section">
-                <h3>💬 Оставить отзыв</h3>
+                <h3>✍️ Оставить отзыв</h3>
                 <p class="review-subtitle">Расскажи, что можно улучшить</p>
                 <input type="text" id="reviewName" placeholder="Твоё имя">
                 <textarea id="reviewText" placeholder="Твой отзыв..."></textarea>
@@ -178,35 +171,6 @@
     </div>
 
     <script>
-        // ---------- Голос Веры ----------
-        let ruVoice = null;
-
-        function pickVoice() {
-            const voices = speechSynthesis.getVoices();
-            ruVoice = voices.find(function (v) { return v.lang === 'ru-RU'; })
-                || voices.find(function (v) { return v.lang && v.lang.startsWith('ru'); })
-                || null;
-        }
-        pickVoice();
-        speechSynthesis.onvoiceschanged = pickVoice;
-
-        function speak(text) {
-            if (!('speechSynthesis' in window)) return;
-            try {
-                speechSynthesis.cancel();
-                const u = new SpeechSynthesisUtterance(text);
-                u.lang = 'ru-RU';
-                if (ruVoice) u.voice = ruVoice;
-                u.rate = 1.0;
-                u.pitch = 1.2;
-                speechSynthesis.speak(u);
-            } catch (e) { console.error('Голос недоступен:', e); }
-        }
-
-        function speakBtnClick() {
-            speak(document.getElementById('mascotSpeech').textContent);
-        }
-
         // ---------- Маскот ----------
         const mascot = document.getElementById('mascot');
         const mascotImage = document.getElementById('mascotImage');
@@ -238,17 +202,9 @@
                 mascot.classList.remove('mood-true', 'mood-false');
                 speech.innerHTML = PHRASES.unsure;
             }
-            speak(speech.textContent);
         }
 
         speech.innerHTML = PHRASES.hello;
-
-        let greeted = false;
-        document.addEventListener('click', function () {
-            if (greeted) return;
-            greeted = true;
-            speak("Привет! Я Вера — медицинский фактчекер команды Единый пульс. Напишите сомнительное утверждение — я разберу его!");
-        });
 
         // ---------- Проверка факта ----------
         function sendCheck() {
@@ -279,7 +235,7 @@
                 document.getElementById('explanationText').textContent = data.explanation || data.answer || '';
                 react(data.verdict || '');
             })
-            .catch(function (e) {
+            .catch(function () {
                 speech.innerHTML = 'Ой, кажется связь с сервером пропала 📡';
             })
             .finally(function () {
