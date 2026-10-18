@@ -1,5 +1,6 @@
 /* ============================================================
-   «Перепроверим» — Полный стиль для конкурса «Медицина 2050»
+   «Перепроверим» — Не верь, а проверь
+   Команда «Единый пульс» · Конкурс «Медицина 2050»
    ============================================================ */
 
 /* ---------- База и сброс ---------- */
@@ -191,6 +192,7 @@ button#checkBtn {
     font-size: 1.1rem;
     font-weight: 700;
     cursor: pointer;
+    font-family: inherit;
     transition: transform 0.1s, background-color 0.2s;
 }
 button#checkBtn:hover  { background-color: #4338ca; }
@@ -448,12 +450,10 @@ button#checkBtn:disabled { opacity: 0.6; cursor: wait; }
 /* ---------- Подвал (Footer) ---------- */
 .project-footer {
     text-align: center;
-    padding: 24px 16px;
+    padding: 20px 16px 32px;
     color: #4B5563;
     font-size: 0.85rem;
-    border-top: 1px solid #E5E7EB;
-    background: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(8px);
+    background: transparent;
 }
 .project-footer p {
     margin: 0;
