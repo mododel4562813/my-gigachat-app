@@ -46,4 +46,284 @@
 
             <textarea id="userText" placeholder="Например: вакцины вызывают аутизм..."></textarea>
             <button id="checkBtn" onclick="sendCheck()">
-                <span
+                <span id="btnText">Проверить факт</span>
+            </button>
+
+            <!-- Результат проверки -->
+            <div id="result" class="result hidden">
+                <div class="verdict-badge" id="verdictBadge"></div>
+                <h3 class="claim-text" id="claimText"></h3>
+                <div class="explanation-box">
+                    <p id="explanationText"></p>
+                </div>
+
+                <div class="rating-section">
+                    <p>Насколько полезен ответ?</p>
+                    <div class="hearts">
+                        <span class="heart" data-value="1">❤️</span>
+                        <span class="heart" data-value="2">❤️</span>
+                        <span class="heart" data-value="3">❤️</span>
+                        <span class="heart" data-value="4">❤️</span>
+                        <span class="heart" data-value="5">❤️</span>
+                    </div>
+                    <p class="rating-message" id="ratingMessage"></p>
+                </div>
+            </div>
+
+            <!-- Блок отзыва -->
+            <div class="review-section">
+                <h3>✍️ Оставить отзыв</h3>
+                <p class="review-subtitle">Расскажи, что можно улучшить</p>
+                <input type="text" id="reviewName" placeholder="Твоё имя">
+                <textarea id="reviewText" placeholder="Твой отзыв..."></textarea>
+                <button class="btn-secondary" onclick="sendReview()">Отправить отзыв</button>
+            </div>
+
+            <!-- Блок профиля (Авторизация) -->
+            <div class="auth-section">
+                <h3>👤 Профиль</h3>
+                <div id="authBox">
+                    <div class="auth-tabs">
+                        <button id="tabLogin" class="active" onclick="switchTab('login')">Вход</button>
+                        <button id="tabRegister" onclick="switchTab('register')">Регистрация</button>
+                    </div>
+                    <div class="auth-fields">
+                        <input type="text" id="authUsername" placeholder="Имя пользователя">
+                        <input type="password" id="authPassword" placeholder="Пароль (от 4 символов)">
+                    </div>
+                    <div class="auth-btn-wrapper">
+                        <button id="authBtn" class="btn-secondary" onclick="doAuth()">Войти</button>
+                    </div>
+                    <p id="authStatus" class="auth-status"></p>
+                </div>
+                <div id="userBox" class="hidden">
+                    <span class="user-chip" id="userChip"></span>
+                    <button class="btn-secondary" style="margin-top:12px;" onclick="logout()">Выйти</button>
+                </div>
+            </div>
+
+            <!-- Блок комментариев -->
+            <div class="comments-section">
+                <h3>💬 Обсуждение</h3>
+                <p class="comments-subtitle">Что думают другие?</p>
+                <input type="text" id="commentName" placeholder="Твоё имя">
+                <textarea id="commentText" placeholder="Твой комментарий..." style="height:80px;"></textarea>
+                <button class="btn-secondary" onclick="sendComment()">Отправить</button>
+                <div id="commentsList" style="margin-top:20px;"></div>
+            </div>
+        </main>
+
+        <footer class="project-footer">
+            <p>©2026 Проект «Перепроверим» для конкурса «Медицина 2050»</p>
+        </footer>
+    </div>
+
+    <script>
+        // ---------- Маскот ----------
+        const mascot = document.getElementById('mascot');
+        const mascotImage = document.getElementById('mascotImage');
+        const speech = document.getElementById('mascotSpeech');
+
+        const PHRASES = {
+            hello:  "Привет! Я <b>Вера</b> — медицинский фактчекер команды «Единый пульс». Напишите сомнительное утверждение — я разберу его на миф и правду!",
+            true:   "Разоблачено — правда! Всё проверено, спи спокойно 💚",
+            false:  "Осторожно, это миф! Я нашла подтверждение, что так думать не стоит 🚫",
+            unsure: "Честно? Точного ответа у меня нет — лучше уточнить у специалиста 🤔"
+        };
+
+        function setMascotImage(name) {
+            mascotImage.src = '/static/' + name + '.png';
+        }
+
+        function react(verdict) {
+            const v = (verdict || '').toUpperCase();
+            if (v.includes('ПРАВДА')) {
+                setMascotImage('vera_true');
+                mascot.classList.add('mood-true'); mascot.classList.remove('mood-false');
+                speech.innerHTML = PHRASES.true;
+            } else if (v.includes('МИФ')) {
+                setMascotImage('vera_false');
+                mascot.classList.add('mood-false'); mascot.classList.remove('mood-true');
+                speech.innerHTML = PHRASES.false;
+            } else {
+                setMascotImage('vera_hello');
+                mascot.classList.remove('mood-true', 'mood-false');
+                speech.innerHTML = PHRASES.unsure;
+            }
+        }
+
+        speech.innerHTML = PHRASES.hello;
+
+        // ---------- Проверка факта (НАСТОЯЩИЙ ЗАПРОС К СЕРВЕРУ) ----------
+        function sendCheck() {
+            const text = document.getElementById('userText').value.trim();
+            if (text.length < 5) {
+                speech.innerHTML = 'Введите хотя бы несколько слов 🙂';
+                return;
+            }
+
+            const btn = document.getElementById('checkBtn');
+            const btnText = document.getElementById('btnText');
+
+            btn.disabled = true;
+            btnText.textContent = 'Проверяю...';
+
+            fetch('/api/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: text })
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                document.getElementById('result').classList.remove('hidden');
+                const badge = document.getElementById('verdictBadge');
+                const verdict = (data.verdict || 'НЕЗНАЮ').toUpperCase();
+                badge.textContent = verdict;
+                badge.className = 'verdict-badge';
+                if (verdict.includes('ПРАВДА')) badge.classList.add('pravda');
+                else if (verdict.includes('МИФ')) badge.classList.add('mif');
+                else badge.classList.add('neznayu');
+
+                document.getElementById('claimText').textContent = text;
+                document.getElementById('explanationText').textContent = data.explanation || data.answer || '';
+                react(data.verdict || '');
+            })
+            .catch(function () {
+                speech.innerHTML = 'Ой, кажется связь с сервером пропала 📡';
+            })
+            .finally(function () {
+                btn.disabled = false;
+                btnText.textContent = 'Проверить факт';
+            });
+        }
+
+        // ---------- Сердечки ----------
+        document.querySelectorAll('.heart').forEach(function (h) {
+            h.addEventListener('click', function () {
+                const val = h.dataset.value;
+                document.querySelectorAll('.heart').forEach(function (x) {
+                    x.classList.toggle('active', Number(x.dataset.value) <= Number(val));
+                });
+                document.getElementById('ratingMessage').textContent = 'Спасибо за оценку! 💙';
+                fetch('/api/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rating: Number(val) })
+                }).catch(function () {});
+            });
+        });
+
+        // ---------- Отзыв ----------
+        function sendReview() {
+            const name = document.getElementById('reviewName').value.trim() || 'Гость';
+            const text = document.getElementById('reviewText').value.trim();
+            if (!text) return;
+            fetch('/api/review', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, text: text })
+            })
+            .then(function () {
+                document.getElementById('reviewText').value = '';
+                speech.innerHTML = 'Спасибо за отзыв! Это очень помогает 💙';
+            })
+            .catch(function () {});
+        }
+
+        // ---------- Профиль ----------
+        let authMode = 'login';
+
+        function switchTab(mode) {
+            authMode = mode;
+            document.getElementById('tabLogin').classList.toggle('active', mode === 'login');
+            document.getElementById('tabRegister').classList.toggle('active', mode === 'register');
+            document.getElementById('authBtn').textContent = (mode === 'login') ? 'Войти' : 'Зарегистрироваться';
+        }
+
+        function doAuth() {
+            const username = document.getElementById('authUsername').value.trim();
+            const password = document.getElementById('authPassword').value;
+            const status = document.getElementById('authStatus');
+            if (!username || password.length < 4) {
+                status.textContent = 'Введите имя и пароль от 4 символов';
+                status.className = 'auth-status err';
+                return;
+            }
+            const url = (authMode === 'login') ? '/api/login' : '/api/register';
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username, password: password })
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.ok || data.success) {
+                    status.textContent = '';
+                    document.getElementById('authBox').classList.add('hidden');
+                    document.getElementById('userBox').classList.remove('hidden');
+                    document.getElementById('userChip').textContent = '👋 ' + username;
+                } else {
+                    status.textContent = data.error || 'Не получилось, попробуйте ещё раз';
+                    status.className = 'auth-status err';
+                }
+            })
+            .catch(function () {
+                status.textContent = 'Сервер недоступен';
+                status.className = 'auth-status err';
+            });
+        }
+
+        function logout() {
+            document.getElementById('userBox').classList.add('hidden');
+            document.getElementById('authBox').classList.remove('hidden');
+            document.getElementById('authUsername').value = '';
+            document.getElementById('authPassword').value = '';
+        }
+
+        // ---------- Комментарии ----------
+        function sendComment() {
+            const name = document.getElementById('commentName').value.trim() || 'Гость';
+            const text = document.getElementById('commentText').value.trim();
+            if (!text) return;
+            fetch('/api/comments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, text: text })
+            })
+            .then(function () {
+                document.getElementById('commentText').value = '';
+                loadComments();
+            })
+            .catch(function () {});
+        }
+
+        function loadComments() {
+            fetch('/api/comments')
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                const list = document.getElementById('commentsList');
+                list.innerHTML = '';
+                (Array.isArray(data) ? data : (data.comments || [])).forEach(function (c) {
+                    const div = document.createElement('div');
+                    div.className = 'comment';
+                    const head = document.createElement('div');
+                    head.className = 'comment-header';
+                    const author = document.createElement('span');
+                    author.className = 'comment-author';
+                    author.textContent = c.name || 'Гость';
+                    const time = document.createElement('span');
+                    time.textContent = c.time || '';
+                    head.appendChild(author); head.appendChild(time);
+                    const body = document.createElement('div');
+                    body.className = 'comment-text';
+                    body.textContent = c.text || '';
+                    div.appendChild(head); div.appendChild(body);
+                    list.appendChild(div);
+                });
+            })
+            .catch(function () {});
+        }
+        loadComments();
+    </script>
+</body>
+</html>
