@@ -1,4 +1,20 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Перепроверим — Не верь, а проверь</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
 <body>
+    <!-- Фоновые декоративные элементы -->
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
     <div class="app-container">
         <header>
             <div class="logo">
@@ -15,7 +31,7 @@
         </div>
 
         <main class="glass-card">
-            <!-- Маскот -->
+            <!-- Маскот Вера -->
             <div class="mascot" id="mascot">
                 <img id="mascotImage"
                      src="{{ url_for('static', filename='vera_hello.png') }}"
@@ -33,7 +49,7 @@
                 <span id="btnText">Проверить факт</span>
             </button>
 
-            <!-- Результат -->
+            <!-- Результат проверки -->
             <div id="result" class="result hidden">
                 <div class="verdict-badge" id="verdictBadge"></div>
                 <h3 class="claim-text" id="claimText"></h3>
@@ -54,7 +70,7 @@
                 </div>
             </div>
 
-            <!-- Отзыв -->
+            <!-- Блок отзыва -->
             <div class="review-section">
                 <h3>✍️ Оставить отзыв</h3>
                 <p class="review-subtitle">Расскажи, что можно улучшить</p>
@@ -63,7 +79,7 @@
                 <button class="btn-secondary" onclick="sendReview()">Отправить отзыв</button>
             </div>
 
-            <!-- Профиль -->
+            <!-- Блок профиля (Авторизация) -->
             <div class="auth-section">
                 <h3>👤 Профиль</h3>
                 <div id="authBox">
@@ -86,7 +102,7 @@
                 </div>
             </div>
 
-            <!-- Комментарии -->
+            <!-- Блок комментариев -->
             <div class="comments-section">
                 <h3>💬 Обсуждение</h3>
                 <p class="comments-subtitle">Что думают другие?</p>
@@ -97,13 +113,13 @@
             </div>
         </main>
 
-        <footer style="text-align: center; padding: 20px; color: #9CA3AF; font-size: 0.9rem;">
-            Команда «Единый пульс» · Проект проверяет факты, а не заменяет врача
+        <footer class="project-footer">
+            <p>©2026 Проект «Перепроверим» для конкурса «Медицина 2050»</p>
         </footer>
     </div>
 
     <script>
-        // ---------- Маскот ----------
+        // ---------- Инициализация маскота ----------
         const mascot = document.getElementById('mascot');
         const mascotImage = document.getElementById('mascotImage');
         const speech = document.getElementById('mascotSpeech');
@@ -136,172 +152,109 @@
             }
         }
 
+        // Установка приветствия при загрузке
         speech.innerHTML = PHRASES.hello;
 
-        // ---------- Проверка факта ----------
+        // ---------- Логика проверки факта ----------
         function sendCheck() {
             const text = document.getElementById('userText').value.trim();
-            if (text.length < 5) { speech.innerHTML = 'Введите хотя бы несколько слов 🙂'; return; }
+            if (text.length < 5) { 
+                speech.innerHTML = 'Введите хотя бы несколько слов 🙂'; 
+                return; 
+            }
 
             const btn = document.getElementById('checkBtn');
+            const btnText = document.getElementById('btnText');
+            
             btn.disabled = true;
-            document.getElementById('btnText').textContent = 'Проверяю...';
+            btnText.textContent = 'Проверяю...';
 
-            fetch('/api/check', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: text })
-            })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                document.getElementById('result').classList.remove('hidden');
-                const badge = document.getElementById('verdictBadge');
-                const verdict = (data.verdict || 'НЕЗНАЮ').toUpperCase();
-                badge.textContent = verdict;
-                badge.className = 'verdict-badge';
-                if (verdict.includes('ПРАВДА')) badge.classList.add('pravda');
-                else if (verdict.includes('МИФ')) badge.classList.add('mif');
-                else badge.classList.add('neznayu');
+            // Имитация запроса (замените на реальный fetch)
+            setTimeout(() => {
+                const resultDiv = document.getElementById('result');
+                const verdictBadge = document.getElementById('verdictBadge');
+                const claimText = document.getElementById('claimText');
+                const explanationText = document.getElementById('explanationText');
 
-                document.getElementById('claimText').textContent = text;
-                document.getElementById('explanationText').textContent = data.explanation || data.answer || '';
-                react(data.verdict || '');
-            })
-            .catch(function () {
-                speech.innerHTML = 'Ой, кажется связь с сервером пропала 📡';
-            })
-            .finally(function () {
+                // Для демо: случайный результат
+                const isTrue = Math.random() > 0.5;
+                const verdict = isTrue ? 'ПРАВДА' : 'МИФ';
+                const badgeClass = isTrue ? 'pravda' : 'mif';
+                const explanation = isTrue 
+                    ? 'Надёжные источники подтверждают это утверждение. Доказательная база сильная.' 
+                    : 'Это распространённый миф. Исследования не находят связи между этим фактором и заявленным эффектом.';
+
+                // Обновление UI
+                verdictBadge.textContent = verdict;
+                verdictBadge.className = `verdict-badge \${badgeClass}`;
+                claimText.textContent = text;
+                explanationText.textContent = explanation;
+                
+                resultDiv.classList.remove('hidden');
+                
+                // Анимация маскота
+                react(verdict);
+
+                // Сброс кнопки
                 btn.disabled = false;
-                document.getElementById('btnText').textContent = 'Проверить факт';
-            });
+                btnText.textContent = 'Проверить факт';
+            }, 1500);
         }
 
-        // ---------- Сердечки ----------
-        document.querySelectorAll('.heart').forEach(function (h) {
-            h.addEventListener('click', function () {
-                const val = h.dataset.value;
-                document.querySelectorAll('.heart').forEach(function (x) {
-                    x.classList.toggle('active', Number(x.dataset.value) <= Number(val));
-                });
-                document.getElementById('ratingMessage').textContent = 'Спасибо за оценку! 💙';
-                fetch('/api/feedback', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ rating: Number(val) })
-                }).catch(function () {});
-            });
-        });
+        // ---------- Логика вкладок профиля ----------
+        function switchTab(tab) {
+            const loginBtn = document.getElementById('tabLogin');
+            const regBtn = document.getElementById('tabRegister');
+            const authBox = document.getElementById('authBox');
+            const userBox = document.getElementById('userBox');
 
-        // ---------- Отзыв ----------
-        function sendReview() {
-            const name = document.getElementById('reviewName').value.trim() || 'Гость';
-            const text = document.getElementById('reviewText').value.trim();
-            if (!text) return;
-            fetch('/api/review', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: name, text: text })
-            })
-            .then(function () {
-                document.getElementById('reviewText').value = '';
-                speech.innerHTML = 'Спасибо за отзыв! Это очень помогает 💙';
-            })
-            .catch(function () {});
+            if (tab === 'login') {
+                loginBtn.classList.add('active');
+                regBtn.classList.remove('active');
+                authBox.style.display = 'block';
+                userBox.classList.add('hidden');
+            } else {
+                loginBtn.classList.remove('active');
+                regBtn.classList.add('active');
+                authBox.style.display = 'block';
+                userBox.classList.add('hidden');
+            }
         }
 
-        // ---------- Профиль ----------
-        let authMode = 'login';
-
-        function switchTab(mode) {
-            authMode = mode;
-            document.getElementById('tabLogin').classList.toggle('active', mode === 'login');
-            document.getElementById('tabRegister').classList.toggle('active', mode === 'register');
-            document.getElementById('authBtn').textContent = (mode === 'login') ? 'Войти' : 'Зарегистрироваться';
-        }
-
+        // ---------- Заглушки для остальных функций ----------
         function doAuth() {
-            const username = document.getElementById('authUsername').value.trim();
-            const password = document.getElementById('authPassword').value;
+            const user = document.getElementById('authUsername').value;
+            const pass = document.getElementById('authPassword').value;
             const status = document.getElementById('authStatus');
-            if (!username || password.length < 4) {
-                status.textContent = 'Введите имя и пароль от 4 символов';
+            
+            if (pass.length < 4) {
+                status.textContent = 'Пароль слишком короткий!';
                 status.className = 'auth-status err';
                 return;
             }
-            const url = (authMode === 'login') ? '/api/login' : '/api/register';
-            fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: username, password: password })
-            })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                if (data.ok || data.success) {
-                    status.textContent = '';
-                    document.getElementById('authBox').classList.add('hidden');
-                    document.getElementById('userBox').classList.remove('hidden');
-                    document.getElementById('userChip').textContent = '👋 ' + username;
-                } else {
-                    status.textContent = data.error || 'Не получилось, попробуйте ещё раз';
-                    status.className = 'auth-status err';
-                }
-            })
-            .catch(function () {
-                status.textContent = 'Сервер недоступен';
-                status.className = 'auth-status err';
-            });
+            
+            // Успешный вход
+            status.textContent = 'Успешный вход!';
+            status.className = 'auth-status ok';
+            
+            setTimeout(() => {
+                document.getElementById('authBox').style.display = 'none';
+                document.getElementById('userBox').classList.remove('hidden');
+                document.getElementById('userChip').textContent = 'Привет, ' + user + '!';
+            }, 800);
         }
 
         function logout() {
+            document.getElementById('authBox').style.display = 'block';
             document.getElementById('userBox').classList.add('hidden');
-            document.getElementById('authBox').classList.remove('hidden');
             document.getElementById('authUsername').value = '';
             document.getElementById('authPassword').value = '';
+            document.getElementById('authStatus').textContent = '';
+            switchTab('login');
         }
 
-        // ---------- Комментарии ----------
-        function sendComment() {
-            const name = document.getElementById('commentName').value.trim() || 'Гость';
-            const text = document.getElementById('commentText').value.trim();
-            if (!text) return;
-            fetch('/api/comments', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: name, text: text })
-            })
-            .then(function () {
-                document.getElementById('commentText').value = '';
-                loadComments();
-            })
-            .catch(function () {});
-        }
-
-        function loadComments() {
-            fetch('/api/comments')
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                const list = document.getElementById('commentsList');
-                list.innerHTML = '';
-                (Array.isArray(data) ? data : (data.comments || )).forEach(function (c) {
-                    const div = document.createElement('div');
-                    div.className = 'comment';
-                    const head = document.createElement('div');
-                    head.className = 'comment-header';
-                    const author = document.createElement('span');
-                    author.className = 'comment-author';
-                    author.textContent = c.name || 'Гость';
-                    const time = document.createElement('span');
-                    time.textContent = c.time || '';
-                    head.appendChild(author); head.appendChild(time);
-                    const body = document.createElement('div');
-                    body.className = 'comment-text';
-                    body.textContent = c.text || '';
-                    div.appendChild(head); div.appendChild(body);
-                    list.appendChild(div);
-                });
-            })
-            .catch(function () {});
-        }
-        loadComments();
+        function sendReview() { alert('Отзыв отправлен (демо)'); }
+        function sendComment() { alert('Комментарий отправлен (демо)'); }
     </script>
 </body>
+</html>
