@@ -3,6 +3,7 @@ import json
 import base64
 import uuid
 import time
+import hashlib
 import requests
 from datetime import datetime
 from flask import Flask, request, jsonify, render_template
@@ -28,9 +29,6 @@ GIGACHAT_AUTH_URL = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
 GIGACHAT_API_URL = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions"
 
 # ---------- ПРОКСИ ----------
-# Прокси нужен, потому что серверы Render находятся за границей,
-# а API Сбера может не отвечать на зарубежные IP.
-# Формат: http://логин:пароль@адрес_прокси:порт
 PROXY_URL = os.getenv("PROXY_URL", "").strip()
 proxies = {"http": PROXY_URL, "https": PROXY_URL} if PROXY_URL else None
 
@@ -50,14 +48,10 @@ _token_cache = {"token": None, "time": 0}
 
 
 def _gigachat_verify():
-    """Если сертификат лежит рядом — проверяем SSL, если нет — не проверяем."""
     return CERT_PATH if os.path.exists(CERT_PATH) else False
 
 
 def _auth_header_value():
-    """Значение заголовка Authorization для GigaChat.
-    Если задан GIGACHAT_AUTH_KEY (готовая base64-строка) — используем её как есть.
-    Иначе собираем заголовок из пары CLIENT_ID:CLIENT_SECRET."""
     if GIGACHAT_AUTH_KEY:
         return 'Basic ' + GIGACHAT_AUTH_KEY
     auth_string = f"{GIGACHAT_CLIENT_ID}:{GIGACHAT_CLIENT_SECRET}"
@@ -65,7 +59,6 @@ def _auth_header_value():
 
 
 def get_gigachat_token():
-    """Токен GigaChat с кэшем на 25 минут."""
     if _token_cache["token"] and time.time() - _token_cache["time"] < 1500:
         return _token_cache["token"]
 
@@ -106,8 +99,6 @@ def get_gigachat_token():
 
 
 def _extract_json(text):
-    """Вытаскивает чистый JSON из ответа модели:
-    срезает обёртку ```json ... ``` и всё лишнее вокруг фигурных скобок."""
     text = text.strip()
     if text.startswith("```"):
         text = text.strip("`")
@@ -122,7 +113,6 @@ def _extract_json(text):
 
 
 def ask_gigachat(user_text):
-    """Запрос к GigaChat. Возвращает None, если ИИ недоступен."""
     token = get_gigachat_token()
     if not token:
         return None
@@ -206,13 +196,25 @@ else:
     print("ℹ️ GOOGLE_SPREADSHEET_ID не задан — таблицы отключены")
 
 
+def get_sheet():
+    """Открывает таблицу, а если нужного листа нет — создаёт его."""
+    sheet = GS_CLIENT.open_by_key(GOOGLE_SPREADSHEET_ID)
+    return sheet
+
+
+def ensure_worksheet(sheet, title):
+    try:
+        return sheet.worksheet(title)
+    except Exception:
+        return sheet.add_worksheet(title=title, rows=100, cols=10)
+
+
 def search_sheets(user_text):
-    """Поиск в листе Facts (колонки: Утверждение, Вердикт, Объяснение)."""
     if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
         return None
     try:
-        spreadsheet = GS_CLIENT.open_by_key(GOOGLE_SPREADSHEET_ID)
-        records = spreadsheet.worksheet("Facts").get_all_records()
+        sheet = get_sheet()
+        records = ensure_worksheet(sheet, "Facts").get_all_records()
         user_text = user_text.lower().strip()
 
         for row in records:
@@ -229,16 +231,34 @@ def search_sheets(user_text):
     return None
 
 
-def log_to_sheet(user_text, verdict):
-    """Лог запроса в лист Logs."""
+def add_fact_to_sheet(user_text, verdict, explanation):
+    """Новое непроверенное утверждение попадает в нашу базу с вердиктом ИИ."""
     if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
         return
     try:
-        sheet = GS_CLIENT.open_by_key(GOOGLE_SPREADSHEET_ID)
-        sheet.worksheet("Logs").append_row(
+        sheet = get_sheet()
+        ensure_worksheet(sheet, "Facts").append_row(
+            [user_text, verdict, explanation,
+             datetime.now().strftime("%Y-%m-%d %H:%M")])
+        print(f"📚 Новое утверждение добавлено в базу: '{user_text}' -> {verdict}")
+    except Exception as e:
+        print(f"⚠️ Ошибка добавления факта: {e}")
+
+
+def log_to_sheet(user_text, verdict):
+    if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
+        return
+    try:
+        sheet = get_sheet()
+        ensure_worksheet(sheet, "Logs").append_row(
             [user_text, verdict, datetime.now().strftime("%Y-%m-%d %H:%M")])
     except Exception as e:
         print(f"⚠️ Ошибка логирования: {e}")
+
+
+# ---------- Пользователи ----------
+def hash_password(password):
+    return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
 
 # ---------- Маршруты ----------
@@ -263,6 +283,12 @@ def check_claim():
         result = find_fact(text_lower)
     if not result:
         result = ask_gigachat(text_lower)
+
+        # НОВОЕ: факт из ИИ дописываем в нашу базу с вердиктом
+        if result and result.get("verdict") not in ("НЕЗНАЮ", None):
+            add_fact_to_sheet(text_lower, result["verdict"],
+                              result.get("explanation", ""))
+
     if not result:
         result = {
             "source": "none",
@@ -289,8 +315,8 @@ def rate_answer():
 
     if GS_CLIENT:
         try:
-            sheet = GS_CLIENT.open_by_key(GOOGLE_SPREADSHEET_ID)
-            sheet.worksheet("Ratings").append_row(
+            sheet = get_sheet()
+            ensure_worksheet(sheet, "Ratings").append_row(
                 [claim, rating, datetime.now().strftime("%Y-%m-%d %H:%M")])
             return jsonify({"status": "ok"})
         except Exception as e:
@@ -302,7 +328,7 @@ def rate_answer():
 @app.route('/api/review', methods=['POST'])
 def submit_review():
     data = request.get_json() or {}
-    name = data.get('name', 'Аноним')
+    name = data.get('name', 'Аноним') or 'Аноним'
     review_text = str(data.get('review', '')).strip()
 
     if not review_text:
@@ -310,21 +336,92 @@ def submit_review():
 
     if GS_CLIENT:
         try:
-            sheet = GS_CLIENT.open_by_key(GOOGLE_SPREADSHEET_ID)
-            sheet.worksheet("Reviews").append_row(
+            sheet = get_sheet()
+            ensure_worksheet(sheet, "Reviews").append_row(
                 [name, review_text, datetime.now().strftime("%Y-%m-%d %H:%M")])
+            return jsonify({"status": "ok"})
         except Exception as e:
             print(f"⚠️ Ошибка записи отзыва: {e}")
             return jsonify({"status": "ok", "warning": "Отзыв не записан"})
     else:
         print(f"🗣 [ОТЗЫВ] {name}: {review_text}")
-
     return jsonify({"status": "ok"})
+
+
+@app.route('/api/reviews')
+def get_reviews():
+    """Отдаёт последние 10 отзывов для блока «Ваши комментарии»."""
+    if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
+        return jsonify({"reviews": []})
+    try:
+        sheet = get_sheet()
+        records = ensure_worksheet(sheet, "Reviews").get_all_records()
+        reviews = []
+        for r in records[-10:]:
+            reviews.append({
+                "name": str(r.get('Имя', 'Аноним') or 'Аноним'),
+                "text": str(r.get('Отзыв', '')),
+                "date": str(r.get('Дата', ''))
+            })
+        return jsonify({"reviews": reviews})
+    except Exception as e:
+        print(f"⚠️ Ошибка чтения отзывов: {e}")
+        return jsonify({"reviews": []})
+
+
+@app.route('/api/register', methods=['POST'])
+def register():
+    data = request.get_json() or {}
+    username = str(data.get('username', '')).strip()
+    password = str(data.get('password', ''))
+
+    if not username or len(password) < 4:
+        return jsonify({"error": "Имя не пустое, пароль от 4 символов"}), 400
+
+    if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
+        return jsonify({"error": "База пользователей недоступна"}), 500
+
+    try:
+        sheet = get_sheet()
+        ws = ensure_worksheet(sheet, "Users")
+        existing = [str(r.get('Логин', '')).lower() for r in ws.get_all_records()]
+        if username.lower() in existing:
+            return jsonify({"error": "Такое имя уже занято"}), 400
+
+        ws.append_row([username, hash_password(password),
+                       datetime.now().strftime("%Y-%m-%d %H:%M")])
+        print(f"👤 Новый пользователь: {username}")
+        return jsonify({"status": "ok", "username": username})
+    except Exception as e:
+        print(f"⚠️ Ошибка регистрации: {e}")
+        return jsonify({"error": "Ошибка регистрации"}), 500
+
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    data = request.get_json() or {}
+    username = str(data.get('username', '')).strip()
+    password = str(data.get('password', ''))
+
+    if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
+        return jsonify({"error": "База пользователей недоступна"}), 500
+
+    try:
+        sheet = get_sheet()
+        records = ensure_worksheet(sheet, "Users").get_all_records()
+        for r in records:
+            if str(r.get('Логин', '')).lower() == username.lower():
+                if str(r.get('Пароль (хэш)', '')) == hash_password(password):
+                    return jsonify({"status": "ok", "username": username})
+                return jsonify({"error": "Неверный пароль"}), 401
+        return jsonify({"error": "Пользователь не найден"}), 404
+    except Exception as e:
+        print(f"⚠️ Ошибка входа: {e}")
+        return jsonify({"error": "Ошибка входа"}), 500
 
 
 @app.route('/api/debug')
 def debug_gigachat():
-    """Диагностика: пробует получить токен и показывает ошибку в браузере."""
     headers = {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json',
@@ -351,14 +448,13 @@ def debug_gigachat():
         )
         info["status"] = response.status_code
         info["answer"] = response.text[:80]
-        if response.status_code == 200:
-            info["result"] = "Токен получен! GigaChat доступен."
-        else:
-            info["result"] = "Сервер GigaChat ответил ошибкой — смотри status и answer."
+        info["result"] = ("Токен получен! GigaChat доступен."
+                          if response.status_code == 200
+                          else "Сервер GigaChat ответил ошибкой.")
     except Exception as e:
         info["status"] = "нет ответа"
         info["answer"] = str(e)[:300]
-        info["result"] = "Запрос до GigaChat не дошёл (проблема сети/прокси)."
+        info["result"] = "Запрос до GigaChat не дошёл (сеть/прокси)."
 
     return jsonify(info)
 
