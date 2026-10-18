@@ -1,84 +1,237 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Перепроверим — Не верь, а проверь</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Перепроверим — Не верь, а проверь</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        /* ---------- Маскот Вера ---------- */
+        .mascot { display: flex; align-items: flex-end; gap: 12px; margin-bottom: 18px; }
+        .mascot img { width: 110px; height: auto; flex-shrink: 0; transition: transform 0.25s ease; }
+        .mascot.mood-true img  { transform: scale(1.05) rotate(-2deg); }
+        .mascot.mood-false img { transform: rotate(2deg); }
+        .mascot-speech {
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 14px; padding: 10px 14px;
+            font-size: 14px; line-height: 1.5; color: #2c3e50;
+            position: relative; flex: 1; margin-bottom: 40px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+        .mascot-speech::before {
+            content: ""; position: absolute; left: -8px; bottom: 18px;
+            border: 8px solid transparent; border-right-color: rgba(255, 255, 255, 0.85);
+        }
+        .mascot-speech b { color: #4F46E5; }
+
+        /* ---------- Вход / регистрация ---------- */
+        .auth-section { border-top: 2px solid #F3F4F6; padding-top: 30px; margin-bottom: 30px; }
+        .auth-tabs { display: flex; gap: 10px; margin: 12px 0; }
+        .auth-tabs button {
+            flex: 1; padding: 10px; border-radius: 10px; border: 2px solid #E5E7EB;
+            background: #fff; font-family: inherit; font-weight: 700; cursor: pointer;
+        }
+        .auth-tabs button.active { border-color: #4F46E5; color: #4F46E5; background: #EEF2FF; }
+        .auth-fields { display: flex; gap: 10px; }
+        .auth-fields input { flex: 1; }
+        .auth-status { font-size: 0.85rem; margin-top: 8px; font-weight: 700; }
+        .auth-status.ok { color: #10B981; }
+        .auth-status.err { color: #EF4444; }
+        .user-chip {
+            display: inline-block; background: #EEF2FF; color: #4F46E5;
+            padding: 6px 14px; border-radius: 50px; font-weight: 700; font-size: 0.9rem;
+        }
+
+        /* ---------- Ваши комментарии ---------- */
+        .comments-section { border-top: 2px solid #F3F4F6; padding-top: 30px; margin-top: 30px; }
+        .comments-section h3 { font-size: 1.2rem; margin-bottom: 15px; font-weight: 800; }
+        .comment {
+            background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 12px;
+            padding: 12px 16px; margin-bottom: 10px;
+        }
+        .comment-header { display: flex; justify-content: space-between; font-size: 0.8rem; color: #6B7280; margin-bottom: 4px; }
+        .comment-author { font-weight: 800; color: #4F46E5; }
+        .comment-text { font-size: 0.95rem; line-height: 1.5; color: #374151; }
+
+        @media (max-width: 480px) {
+            .mascot img { width: 80px; }
+            .mascot-speech { font-size: 13px; margin-bottom: 20px; }
+            .auth-fields { flex-direction: column; }
+        }
+    </style>
 </head>
 <body>
-    <div class="background-blobs">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
-        <div class="blob blob-3"></div>
-    </div>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
 
-    <div class="app-container">
-        <header>
-            <div class="logo">
-                <span class="logo-icon">🔬</span>
-                <h1>Перепроверим</h1>
-            </div>
-            <p class="slogan">Не верь, а проверь</p>
-        </header>
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <span class="logo-icon">🔬</span>
+                <h1>Перепроверим</h1>
+            </div>
+            <p class="slogan">Не верь, а проверь</p>
+        </header>
 
-        <div class="disclaimer">
-            <span class="disclaimer-icon">⚠️</span>
-            <p><strong>Внимание!</strong> Это не медицинская консультация. При проблемах со здоровьем обязательно обратитесь к врачу.</p>
-        </div>
+        <div class="disclaimer">
+            <span class="disclaimer-icon">⚠️</span>
+            <p><strong>Внимание!</strong> Это не медицинская консультация. При проблемах со здоровьем обязательно обратитесь к врачу.</p>
+        </div>
 
-        <main class="glass-card">
-            <div class="hero-section">
-                <h2 class="hero-title">Не уверен, правда это или миф?</h2>
-                <p class="hero-subtitle">Задай любой спорный факт — и получи разбор с опорой на надёжные источники.</p>
-            </div>
+        <main class="glass-card">
+            <div class="mascot" id="mascot">
+                <img id="mascotImage"
+                     src="{{ url_for('static', filename='vera_hello.png') }}"
+                     alt="Вера — маскот проекта">
+                <div class="mascot-speech" id="mascotSpeech"></div>
+            </div>
 
-            <div class="input-group">
-                <textarea id="userText" placeholder="Введите сомнительное медицинское утверждение...&#10;Например: 'Вакцины вызывают аутизм'"></textarea>
-                <button id="checkBtn" onclick="sendCheck()">
-                    <span id="btnText">Проверить факт</span>
-                    <div id="btnSpinner" class="spinner hidden"></div>
-                </button>
-            </div>
+            <div class="hero-section">
+                <h2 class="hero-title">Не уверен, правда это или миф?</h2>
+                <p class="hero-subtitle">Задай любой спорный факт — и получи разбор с опорой на надёжные источники.</p>
+            </div>
 
-            <div id="result" class="result hidden">
-                <div class="verdict-badge" id="verdictBadge"></div>
-                <h3 id="claimText" class="claim-text"></h3>
-                <div class="explanation-box">
-                    <p id="explanationText"></p>
-                </div>
-                
-                <div class="rating-section">
-                    <p>Насколько точен ответ?</p>
-                    <div class="hearts" id="hearts">
-                        <span class="heart" data-value="1" onclick="rate(1)">❤️</span>
-                        <span class="heart" data-value="2" onclick="rate(2)">❤️</span>
-                        <span class="heart" data-value="3" onclick="rate(3)">❤️</span>
-                        <span class="heart" data-value="4" onclick="rate(4)">❤️</span>
-                        <span class="heart" data-value="5" onclick="rate(5)">❤️</span>
-                    </div>
-                    <p id="ratingMessage" class="rating-message"></p>
-                </div>
-            </div>
+            <div class="input-group">
+                <textarea id="userText" placeholder="Введите сомнительное медицинское утверждение...&#10;Например: 'Вакцины вызывают аутизм'"></textarea>
+                <button id="checkBtn" onclick="sendCheck()">
+                    <span id="btnText">Проверить факт</span>
+                    <div id="btnSpinner" class="spinner hidden"></div>
+                </button>
+            </div>
 
-            <div class="review-section">
-                <h3>💬 Оставить отзыв о сервисе</h3>
-                <p class="review-subtitle">Мы молодая команда, и ваш фидбек поможет нам стать лучше!</p>
-                <input type="text" id="reviewName" placeholder="Ваше имя (необязательно)">
-                <textarea id="reviewText" placeholder="Что понравилось? Что можно улучшить?"></textarea>
-                <button onclick="submitReview()" class="btn-secondary">Отправить отзыв</button>
-            </div>
-        </main>
+            <div id="result" class="result hidden">
+                <div class="verdict-badge" id="verdictBadge"></div>
+                <h3 id="claimText" class="claim-text"></h3>
+                <div class="explanation-box">
+                    <p id="explanationText"></p>
+                </div>
 
-        <footer>
-            <p>© 2026 Проект «Перепроверим» для конкурса "Медицина 2050". Трек "Школьники".</p>
-        </footer>
-    </div>
+                <div class="rating-section">
+                    <p>Насколько точен ответ?</p>
+                    <div class="hearts" id="hearts">
+                        <span class="heart" data-value="1" onclick="rate(1)">❤️</span>
+                        <span class="heart" data-value="2" onclick="rate(2)">❤️</span>
+                        <span class="heart" data-value="3" onclick="rate(3)">❤️</span>
+                        <span class="heart" data-value="4" onclick="rate(4)">❤️</span>
+                        <span class="heart" data-value="5" onclick="rate(5)">❤️</span>
+                    </div>
+                    <p id="ratingMessage" class="rating-message"></p>
+                </div>
+            </div>
 
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+            <!-- Вход / регистрация -->
+            <div class="auth-section">
+                <h3>👤 Профиль</h3>
+                <div id="authBox">
+                    <div class="auth-tabs">
+                        <button id="tabLogin" class="active" onclick="switchTab('login')">Вход</button>
+                        <button id="tabRegister" onclick="switchTab('register')">Регистрация</button>
+                    </div>
+                    <div class="auth-fields">
+                        <input type="text" id="authUsername" placeholder="Имя пользователя">
+                        <input type="password" id="authPassword" placeholder="Пароль (от 4 символов)">
+                    </div>
+                    <button id="authBtn" class="btn-secondary" style="margin-top:12px;" onclick="doAuth()">Войти</button>
+                    <p id="authStatus" class="auth-status"></p>
+                </div>
+                <div id="userBox" class="hidden">
+                    <p style="margin-bottom:10px;">Вы вошли как: <span class="user-chip" id="userNameChip"></span></p>
+                    <button class="btn-secondary" onclick="logout()">Выйти</button>
+                </div>
+            </div>
+
+            <!-- Отзывы -->
+            <div class="review-section">
+                <h3>💬 Оставить отзыв о сервисе</h3>
+                <p class="review-subtitle">Мы молодая команда, и ваш фидбек поможет нам стать лучше!</p>
+                <input type="text" id="reviewName" placeholder="Ваше имя (необязательно)">
+                <textarea id="reviewText" placeholder="Что понравилось? Что можно улучшить?"></textarea>
+                <button onclick="submitReview()" class="btn-secondary">Отправить отзыв</button>
+            </div>
+
+            <!-- Ваши комментарии -->
+            <div class="comments-section">
+                <h3>❤️ Ваши комментарии</h3>
+                <div id="reviewsList"></div>
+            </div>
+        </main>
+
+        <footer>
+            <p>© 2026 Проект «Перепроверим» для конкурса "Медицина 2050". Трек "Школьники".</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        // ---------- Маскот Вера: реакции на вердикт ----------
+        (function () {
+            const mascot = document.getElementById("mascot");
+            const img = document.getElementById("mascotImage");
+            const speech = document.getElementById("mascotSpeech");
+            const badge = document.getElementById("verdictBadge");
+
+            speech.innerHTML =
+                "Привет! Я <b>Вера</b> — медицинский фактчекер команды «Единый пульс». " +
+                "Мы очень старались, чтобы этот сайт был полезным для вас 💙 " +
+                "Напишите сомнительное утверждение — я разберу его на миф и правду. " +
+                "А если заметите ошибку — обязательно напишите нам в отзывах!";
+
+            const PHRASES = {
+                true: [
+                    "Я проверила — так и есть! Это правда.",
+                    "Верно! Наука на стороне этого утверждения.",
+                    "Подтверждаю: это правда."
+                ],
+                false: [
+                    "Миф! Не верь этому — я проверила в источниках.",
+                    "Это неправда! Хорошо, что ты спросил(а).",
+                    "Уличено! Это миф, развенчан и обезврежен."
+                ],
+                unsure: [
+                    "Хм, тут всё не так однозначно…",
+                    "Учёные пока спорят об этом.",
+                    "Не нашла точного ответа — лучше уточнить у врача."
+                ]
+            };
+
+            function pickPhrase(key) {
+                const list = PHRASES[key] || PHRASES.unsure;
+                return list[Math.floor(Math.random() * list.length)];
+            }
+
+            function setMascot(key) {
+                const files = {
+                    true: "vera_true.png",
+                    false: "vera_false.png",
+                    unsure: "vera_hello.png"
+                };
+                const src = "/static/" + files[key];
+                if (!img.src.endsWith(files[key])) img.src = src;
+
+                mascot.classList.remove("mood-true", "mood-false");
+                if (key === "true") mascot.classList.add("mood-true");
+                if (key === "false") mascot.classList.add("mood-false");
+
+                speech.textContent = pickPhrase(key);
+            }
+
+            function react(verdict) {
+                const v = (verdict || "").toUpperCase();
+                if (v.includes("ПРАВДА")) setMascot("true");
+                else if (v.includes("МИФ")) setMascot("false");
+                else setMascot("unsure");
+            }
+
+            new MutationObserver(function () {
+                react(badge.textContent);
+            }).observe(badge, { childList: true, characterData: true, subtree: true });
+        })();
+    </script>
 </body>
 </html>
