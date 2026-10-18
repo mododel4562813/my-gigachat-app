@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Перепроверим — Не верь, а проверь</title>
+    <title>Перепроверим — не верь, а проверь</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,7 +15,7 @@
         .mascot.mood-true img  { transform: scale(1.05) rotate(-2deg); }
         .mascot.mood-false img { transform: rotate(2deg); }
         .mascot-speech {
-            background: rgba(255, 255, 255, 0.85);
+            background: rgba(255, 255, 255, 0.9);
             border-radius: 14px; padding: 10px 14px;
             font-size: 14px; line-height: 1.5; color: #2c3e50;
             position: relative; flex: 1; margin-bottom: 40px;
@@ -23,12 +23,17 @@
         }
         .mascot-speech::before {
             content: ""; position: absolute; left: -8px; bottom: 18px;
-            border: 8px solid transparent; border-right-color: rgba(255, 255, 255, 0.85);
+            border: 8px solid transparent; border-right-color: rgba(255, 255, 255, 0.9);
         }
         .mascot-speech b { color: #4F46E5; }
+        .speak-btn {
+            border: none; background: none; cursor: pointer;
+            font-size: 16px; padding: 2px 6px; align-self: flex-end; margin-bottom: 40px;
+        }
+        .speak-btn:hover { transform: scale(1.15); }
 
         /* ---------- Вход / регистрация ---------- */
-        .auth-section { border-top: 2px solid #F3F4F6; padding-top: 30px; margin-bottom: 30px; }
+        .auth-section { border-top: 2px solid #F3F4F6; padding-top: 30px; margin-top: 30px; }
         .auth-tabs { display: flex; gap: 10px; margin: 12px 0; }
         .auth-tabs button {
             flex: 1; padding: 10px; border-radius: 10px; border: 2px solid #E5E7EB;
@@ -37,17 +42,18 @@
         .auth-tabs button.active { border-color: #4F46E5; color: #4F46E5; background: #EEF2FF; }
         .auth-fields { display: flex; gap: 10px; }
         .auth-fields input { flex: 1; }
-        .auth-status { font-size: 0.85rem; margin-top: 8px; font-weight: 700; }
-        .auth-status.ok { color: #10B981; }
+        .auth-status { font-size: 0.85rem; margin-top: 8px; font-weight: 700; min-height: 18px; }
+        .auth-status.ok  { color: #10B981; }
         .auth-status.err { color: #EF4444; }
         .user-chip {
             display: inline-block; background: #EEF2FF; color: #4F46E5;
             padding: 6px 14px; border-radius: 50px; font-weight: 700; font-size: 0.9rem;
         }
 
-        /* ---------- Ваши комментарии ---------- */
+        /* ---------- Комментарии ---------- */
         .comments-section { border-top: 2px solid #F3F4F6; padding-top: 30px; margin-top: 30px; }
-        .comments-section h3 { font-size: 1.2rem; margin-bottom: 15px; font-weight: 800; }
+        .comments-section h3 { font-size: 1.2rem; margin-bottom: 5px; font-weight: 800; }
+        .comments-subtitle { font-size: 0.85rem; color: #6B7280; margin-bottom: 15px; }
         .comment {
             background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 12px;
             padding: 12px 16px; margin-bottom: 10px;
@@ -59,6 +65,7 @@
         @media (max-width: 480px) {
             .mascot img { width: 80px; }
             .mascot-speech { font-size: 13px; margin-bottom: 20px; }
+            .speak-btn { margin-bottom: 20px; }
             .auth-fields { flex-direction: column; }
         }
     </style>
@@ -75,57 +82,67 @@
             <div class="logo">
                 <span class="logo-icon">🔬</span>
                 <h1>Перепроверим</h1>
+                <span class="logo-icon">🔬</span>
             </div>
             <p class="slogan">Не верь, а проверь</p>
         </header>
 
         <div class="disclaimer">
-            <span class="disclaimer-icon">⚠️</span>
+            <span>⚠️</span>
             <p><strong>Внимание!</strong> Это не медицинская консультация. При проблемах со здоровьем обязательно обратитесь к врачу.</p>
         </div>
 
         <main class="glass-card">
+            <!-- Маскот -->
             <div class="mascot" id="mascot">
                 <img id="mascotImage"
                      src="{{ url_for('static', filename='vera_hello.png') }}"
                      alt="Вера — маскот проекта">
                 <div class="mascot-speech" id="mascotSpeech"></div>
+                <button class="speak-btn" onclick="speakBtnClick()" title="Озвучить реплику Веры">🔊</button>
             </div>
 
             <div class="hero-section">
                 <h2 class="hero-title">Не уверен, правда это или миф?</h2>
-                <p class="hero-subtitle">Задай любой спорный факт — и получи разбор с опорой на надёжные источники.</p>
+                <p class="hero-subtitle">Введи сомнительное медицинское утверждение — Вера разберёт его с опорой на надёжные источники.</p>
             </div>
 
-            <div class="input-group">
-                <textarea id="userText" placeholder="Введите сомнительное медицинское утверждение...&#10;Например: 'Вакцины вызывают аутизм'"></textarea>
-                <button id="checkBtn" onclick="sendCheck()">
-                    <span id="btnText">Проверить факт</span>
-                    <div id="btnSpinner" class="spinner hidden"></div>
-                </button>
-            </div>
+            <textarea id="userText" placeholder="Например: вакцины вызывают аутизм..."></textarea>
+            <button id="checkBtn" onclick="sendCheck()">
+                <span id="btnText">Проверить факт</span>
+            </button>
 
+            <!-- Результат -->
             <div id="result" class="result hidden">
                 <div class="verdict-badge" id="verdictBadge"></div>
-                <h3 id="claimText" class="claim-text"></h3>
+                <h3 class="claim-text" id="claimText"></h3>
                 <div class="explanation-box">
                     <p id="explanationText"></p>
                 </div>
 
                 <div class="rating-section">
-                    <p>Насколько точен ответ?</p>
-                    <div class="hearts" id="hearts">
-                        <span class="heart" data-value="1" onclick="rate(1)">❤️</span>
-                        <span class="heart" data-value="2" onclick="rate(2)">❤️</span>
-                        <span class="heart" data-value="3" onclick="rate(3)">❤️</span>
-                        <span class="heart" data-value="4" onclick="rate(4)">❤️</span>
-                        <span class="heart" data-value="5" onclick="rate(5)">❤️</span>
+                    <p>Насколько полезен ответ?</p>
+                    <div class="hearts">
+                        <span class="heart" data-value="1">❤️</span>
+                        <span class="heart" data-value="2">❤️</span>
+                        <span class="heart" data-value="3">❤️</span>
+                        <span class="heart" data-value="4">❤️</span>
+                        <span class="heart" data-value="5">❤️</span>
                     </div>
-                    <p id="ratingMessage" class="rating-message"></p>
+                    <p class="rating-message" id="ratingMessage"></p>
                 </div>
             </div>
 
-            <!-- Вход / регистрация -->
+            <!-- Отзыв -->
+            <div class="review-section">
+                <h3>💬 Оставить отзыв</h3>
+                <p class="review-subtitle">Расскажи, что можно улучшить</p>
+                <input type="text" id="reviewName" placeholder="Твоё имя">
+                <textarea id="reviewText" placeholder="Твой отзыв..."></textarea>
+                <button class="btn-secondary" onclick="sendReview()">Отправить отзыв</button>
+            </div>
+
+            <!-- Профиль -->
             <div class="auth-section">
                 <h3>👤 Профиль</h3>
                 <div id="authBox">
@@ -141,97 +158,263 @@
                     <p id="authStatus" class="auth-status"></p>
                 </div>
                 <div id="userBox" class="hidden">
-                    <p style="margin-bottom:10px;">Вы вошли как: <span class="user-chip" id="userNameChip"></span></p>
-                    <button class="btn-secondary" onclick="logout()">Выйти</button>
+                    <span class="user-chip" id="userChip"></span>
+                    <button class="btn-secondary" style="margin-top:12px;" onclick="logout()">Выйти</button>
                 </div>
             </div>
 
-            <!-- Отзывы -->
-            <div class="review-section">
-                <h3>💬 Оставить отзыв о сервисе</h3>
-                <p class="review-subtitle">Мы молодая команда, и ваш фидбек поможет нам стать лучше!</p>
-                <input type="text" id="reviewName" placeholder="Ваше имя (необязательно)">
-                <textarea id="reviewText" placeholder="Что понравилось? Что можно улучшить?"></textarea>
-                <button onclick="submitReview()" class="btn-secondary">Отправить отзыв</button>
-            </div>
-
-            <!-- Ваши комментарии -->
+            <!-- Комментарии -->
             <div class="comments-section">
-                <h3>❤️ Ваши комментарии</h3>
-                <div id="reviewsList"></div>
+                <h3>🗨️ Обсуждение</h3>
+                <p class="comments-subtitle">Что думают другие?</p>
+                <input type="text" id="commentName" placeholder="Твоё имя">
+                <textarea id="commentText" placeholder="Твой комментарий..." style="height:80px;"></textarea>
+                <button class="btn-secondary" onclick="sendComment()">Отправить</button>
+                <div id="commentsList" style="margin-top:20px;"></div>
             </div>
         </main>
 
-        <footer>
-            <p>© 2026 Проект «Перепроверим» для конкурса "Медицина 2050". Трек "Школьники".</p>
-        </footer>
+        <footer>Команда «Единый пульс» · Проект проверяет факты, а не заменяет врача</footer>
     </div>
 
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script>
-        // ---------- Маскот Вера: реакции на вердикт ----------
-        (function () {
-            const mascot = document.getElementById("mascot");
-            const img = document.getElementById("mascotImage");
-            const speech = document.getElementById("mascotSpeech");
-            const badge = document.getElementById("verdictBadge");
+        // ---------- Голос Веры ----------
+        let ruVoice = null;
 
-            speech.innerHTML =
-                "Привет! Я <b>Вера</b> — медицинский фактчекер команды «Единый пульс». " +
-                "Мы очень старались, чтобы этот сайт был полезным для вас 💙 " +
-                "Напишите сомнительное утверждение — я разберу его на миф и правду. " +
-                "А если заметите ошибку — обязательно напишите нам в отзывах!";
+        function pickVoice() {
+            const voices = speechSynthesis.getVoices();
+            ruVoice = voices.find(function (v) { return v.lang === 'ru-RU'; })
+                || voices.find(function (v) { return v.lang && v.lang.startsWith('ru'); })
+                || null;
+        }
+        pickVoice();
+        speechSynthesis.onvoiceschanged = pickVoice;
 
-            const PHRASES = {
-                true: [
-                    "Я проверила — так и есть! Это правда.",
-                    "Верно! Наука на стороне этого утверждения.",
-                    "Подтверждаю: это правда."
-                ],
-                false: [
-                    "Миф! Не верь этому — я проверила в источниках.",
-                    "Это неправда! Хорошо, что ты спросил(а).",
-                    "Уличено! Это миф, развенчан и обезврежен."
-                ],
-                unsure: [
-                    "Хм, тут всё не так однозначно…",
-                    "Учёные пока спорят об этом.",
-                    "Не нашла точного ответа — лучше уточнить у врача."
-                ]
-            };
+        function speak(text) {
+            if (!('speechSynthesis' in window)) return;
+            try {
+                speechSynthesis.cancel();
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = 'ru-RU';
+                if (ruVoice) u.voice = ruVoice;
+                u.rate = 1.0;
+                u.pitch = 1.2;
+                speechSynthesis.speak(u);
+            } catch (e) { console.error('Голос недоступен:', e); }
+        }
 
-            function pickPhrase(key) {
-                const list = PHRASES[key] || PHRASES.unsure;
-                return list[Math.floor(Math.random() * list.length)];
+        function speakBtnClick() {
+            speak(document.getElementById('mascotSpeech').textContent);
+        }
+
+        // ---------- Маскот ----------
+        const mascot = document.getElementById('mascot');
+        const mascotImage = document.getElementById('mascotImage');
+        const speech = document.getElementById('mascotSpeech');
+
+        const PHRASES = {
+            hello:  "Привет! Я <b>Вера</b> — медицинский фактчекер команды «Единый пульс». Напишите сомнительное утверждение — я разберу его на миф и правду!",
+            true:   "Разоблачено — правда! Всё проверено, спи спокойно 💚",
+            false:  "Осторожно, это миф! Я нашла подтверждение, что так думать не стоит 🚫",
+            unsure: "Честно? Точного ответа у меня нет — лучше уточнить у специалиста 🤔"
+        };
+
+        function setMascotImage(name) {
+            mascotImage.src = '/static/' + name + '.png';
+        }
+
+        function react(verdict) {
+            const v = (verdict || '').toUpperCase();
+            if (v.includes('ПРАВДА')) {
+                setMascotImage('vera_true');
+                mascot.classList.add('mood-true'); mascot.classList.remove('mood-false');
+                speech.innerHTML = PHRASES.true;
+            } else if (v.includes('МИФ')) {
+                setMascotImage('vera_false');
+                mascot.classList.add('mood-false'); mascot.classList.remove('mood-true');
+                speech.innerHTML = PHRASES.false;
+            } else {
+                setMascotImage('vera_hello');
+                mascot.classList.remove('mood-true', 'mood-false');
+                speech.innerHTML = PHRASES.unsure;
             }
+            speak(speech.textContent);
+        }
 
-            function setMascot(key) {
-                const files = {
-                    true: "vera_true.png",
-                    false: "vera_false.png",
-                    unsure: "vera_hello.png"
-                };
-                const src = "/static/" + files[key];
-                if (!img.src.endsWith(files[key])) img.src = src;
+        speech.innerHTML = PHRASES.hello;
 
-                mascot.classList.remove("mood-true", "mood-false");
-                if (key === "true") mascot.classList.add("mood-true");
-                if (key === "false") mascot.classList.add("mood-false");
+        let greeted = false;
+        document.addEventListener('click', function () {
+            if (greeted) return;
+            greeted = true;
+            speak("Привет! Я Вера — медицинский фактчекер команды Единый пульс. Напишите сомнительное утверждение — я разберу его!");
+        });
 
-                speech.textContent = pickPhrase(key);
+        // ---------- Проверка факта ----------
+        function sendCheck() {
+            const text = document.getElementById('userText').value.trim();
+            if (text.length < 5) { speech.innerHTML = 'Введите хотя бы несколько слов 🙂'; return; }
+
+            const btn = document.getElementById('checkBtn');
+            btn.disabled = true;
+            document.getElementById('btnText').textContent = 'Проверяю...';
+
+            fetch('/api/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: text })
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                document.getElementById('result').classList.remove('hidden');
+                const badge = document.getElementById('verdictBadge');
+                const verdict = (data.verdict || 'НЕЗНАЮ').toUpperCase();
+                badge.textContent = verdict;
+                badge.className = 'verdict-badge';
+                if (verdict.includes('ПРАВДА')) badge.classList.add('pravda');
+                else if (verdict.includes('МИФ')) badge.classList.add('mif');
+                else badge.classList.add('neznayu');
+
+                document.getElementById('claimText').textContent = text;
+                document.getElementById('explanationText').textContent = data.explanation || data.answer || '';
+                react(data.verdict || '');
+            })
+            .catch(function (e) {
+                speech.innerHTML = 'Ой, кажется связь с сервером пропала 📡';
+            })
+            .finally(function () {
+                btn.disabled = false;
+                document.getElementById('btnText').textContent = 'Проверить факт';
+            });
+        }
+
+        // ---------- Сердечки ----------
+        document.querySelectorAll('.heart').forEach(function (h) {
+            h.addEventListener('click', function () {
+                const val = h.dataset.value;
+                document.querySelectorAll('.heart').forEach(function (x) {
+                    x.classList.toggle('active', Number(x.dataset.value) <= Number(val));
+                });
+                document.getElementById('ratingMessage').textContent = 'Спасибо за оценку! 💙';
+                fetch('/api/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rating: Number(val) })
+                }).catch(function () {});
+            });
+        });
+
+        // ---------- Отзыв ----------
+        function sendReview() {
+            const name = document.getElementById('reviewName').value.trim() || 'Гость';
+            const text = document.getElementById('reviewText').value.trim();
+            if (!text) return;
+            fetch('/api/review', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, text: text })
+            })
+            .then(function () {
+                document.getElementById('reviewText').value = '';
+                speech.innerHTML = 'Спасибо за отзыв! Это очень помогает 💙';
+            })
+            .catch(function () {});
+        }
+
+        // ---------- Профиль ----------
+        let authMode = 'login';
+
+        function switchTab(mode) {
+            authMode = mode;
+            document.getElementById('tabLogin').classList.toggle('active', mode === 'login');
+            document.getElementById('tabRegister').classList.toggle('active', mode === 'register');
+            document.getElementById('authBtn').textContent = (mode === 'login') ? 'Войти' : 'Зарегистрироваться';
+        }
+
+        function doAuth() {
+            const username = document.getElementById('authUsername').value.trim();
+            const password = document.getElementById('authPassword').value;
+            const status = document.getElementById('authStatus');
+            if (!username || password.length < 4) {
+                status.textContent = 'Введите имя и пароль от 4 символов';
+                status.className = 'auth-status err';
+                return;
             }
+            const url = (authMode === 'login') ? '/api/login' : '/api/register';
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username, password: password })
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.ok || data.success) {
+                    status.textContent = '';
+                    document.getElementById('authBox').classList.add('hidden');
+                    document.getElementById('userBox').classList.remove('hidden');
+                    document.getElementById('userChip').textContent = '👋 ' + username;
+                } else {
+                    status.textContent = data.error || 'Не получилось, попробуйте ещё раз';
+                    status.className = 'auth-status err';
+                }
+            })
+            .catch(function () {
+                status.textContent = 'Сервер недоступен';
+                status.className = 'auth-status err';
+            });
+        }
 
-            function react(verdict) {
-                const v = (verdict || "").toUpperCase();
-                if (v.includes("ПРАВДА")) setMascot("true");
-                else if (v.includes("МИФ")) setMascot("false");
-                else setMascot("unsure");
-            }
+        function logout() {
+            document.getElementById('userBox').classList.add('hidden');
+            document.getElementById('authBox').classList.remove('hidden');
+            document.getElementById('authUsername').value = '';
+            document.getElementById('authPassword').value = '';
+        }
 
-            new MutationObserver(function () {
-                react(badge.textContent);
-            }).observe(badge, { childList: true, characterData: true, subtree: true });
-        })();
+        // ---------- Комментарии ----------
+        function sendComment() {
+            const name = document.getElementById('commentName').value.trim() || 'Гость';
+            const text = document.getElementById('commentText').value.trim();
+            if (!text) return;
+            fetch('/api/comments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, text: text })
+            })
+            .then(function () {
+                document.getElementById('commentText').value = '';
+                loadComments();
+            })
+            .catch(function () {});
+        }
+
+        function loadComments() {
+            fetch('/api/comments')
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                const list = document.getElementById('commentsList');
+                list.innerHTML = '';
+                (Array.isArray(data) ? data : (data.comments || [])).forEach(function (c) {
+                    const div = document.createElement('div');
+                    div.className = 'comment';
+                    const head = document.createElement('div');
+                    head.className = 'comment-header';
+                    const author = document.createElement('span');
+                    author.className = 'comment-author';
+                    author.textContent = c.name || 'Гость';
+                    const time = document.createElement('span');
+                    time.textContent = c.time || '';
+                    head.appendChild(author); head.appendChild(time);
+                    const body = document.createElement('div');
+                    body.className = 'comment-text';
+                    body.textContent = c.text || '';
+                    div.appendChild(head); div.appendChild(body);
+                    list.appendChild(div);
+                });
+            })
+            .catch(function () {});
+        }
+        loadComments();
     </script>
 </body>
 </html>
