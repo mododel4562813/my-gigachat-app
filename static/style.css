@@ -1,9 +1,7 @@
 /* ============================================================
-   «Перепроверим» — Не верь, а проверь
-   Команда «Единый пульс» · Конкурс «Медицина 2050»
+   «Перепроверим» — адаптивный стиль (Mobile & Desktop)
    ============================================================ */
 
-/* ---------- База и сброс ---------- */
 * { box-sizing: border-box; }
 
 body {
@@ -15,7 +13,7 @@ body {
     min-height: 100vh;
 }
 
-/* ---------- Декоративные пузыри (фон) ---------- */
+/* ---------- Фон (пузыри) ---------- */
 .background-blobs {
     position: fixed;
     inset: 0;
@@ -28,451 +26,383 @@ body {
     filter: blur(60px);
     opacity: 0.55;
 }
-.blob-1 {
-    width: 320px; height: 320px;
-    background: #c7d2fe;
-    top: -80px; left: -80px;
-}
-.blob-2 {
-    width: 260px; height: 260px;
-    background: #a7f3d0;
-    top: 40%; right: -100px;
-}
-.blob-3 {
-    width: 280px; height: 280px;
-    background: #ddd6fe;
-    bottom: -100px; left: 20%;
-}
+.blob-1 { width: 320px; height: 320px; background: #c7d2fe; top: -80px; left: -80px; }
+.blob-2 { width: 260px; height: 260px; background: #a7f3d0; top: 40%; right: -100px; }
+.blob-3 { width: 280px; height: 280px; background: #ddd6fe; bottom: -100px; left: 20%; }
 
 /* ---------- Контейнер ---------- */
 .app-container {
-    max-width: 600px;
+    max-width: 640px; /* Чуть шире для планшетов */
     margin: 0 auto;
-    padding: 0 16px;
+    padding: 16px;
 }
 
 /* ---------- Шапка ---------- */
 header {
     text-align: center;
-    padding: 40px 0 20px;
+    padding: 24px 0;
 }
 .logo {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    margin: 0 auto 10px;
+    gap: 10px;
+    margin: 0 auto 8px;
 }
-.logo-icon { font-size: 24px; }
+.logo-icon { font-size: 20px; }
 h1 {
-    font-size: 2.2rem;
+    font-size: 1.6rem;
     font-weight: 800;
     color: #4F46E5;
     margin: 0;
     line-height: 1.1;
 }
 .slogan {
-    font-size: 1rem;
+    font-size: 0.85rem;
     font-weight: 600;
     color: #6B7280;
     text-transform: uppercase;
     letter-spacing: 1px;
-    margin: 8px 0 0;
+    margin: 6px 0 0;
 }
 
 /* ---------- Предупреждение ---------- */
 .disclaimer {
     background-color: #FFFBE6;
     border-left: 5px solid #F59E0B;
-    padding: 16px;
+    padding: 14px;
     border-radius: 12px;
-    margin-bottom: 24px;
-    font-size: 0.95rem;
+    margin-bottom: 20px;
+    font-size: 0.85rem;
     color: #555;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
-.disclaimer span {
-    font-size: 1.2rem;
-    margin-right: 8px;
-    vertical-align: middle;
-}
+.disclaimer span { font-size: 1.1rem; margin-right: 8px; vertical-align: middle; }
 .disclaimer p { margin: 0; }
 .disclaimer strong { color: #92400E; }
 
 /* ---------- Главная карточка (Glassmorphism) ---------- */
 .glass-card {
-    background: rgba(255, 255, 255, 0.75);
-    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.6);
-    border-radius: 24px;
-    padding: 28px 22px;
-    box-shadow: 0 8px 30px rgba(79, 70, 229, 0.10);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 8px 30px rgba(79, 70, 229, 0.12);
 }
 
-/* ---------- Маскот Вера ---------- */
+/* ---------- МАСКОТ: Адаптивная логика ---------- */
 .mascot {
     display: flex;
-    align-items: flex-end;
-    gap: 16px;
-    margin-bottom: 24px;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    min-height: 200px; /* Фиксируем высоту, чтобы верстка не «прыгала» при загрузке */
+    position: relative;
 }
-.mascot img {
-    width: 140px;
+#mascotImage {
+    width: 100%;
+    max-width: 260px; /* На ПК — не больше 260px */
     height: auto;
-    flex-shrink: 0;
-    transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+    transition: transform 0.3s ease;
 }
-.mascot.mood-true img  { transform: scale(1.08) rotate(-3deg); }
-.mascot.mood-false img { transform: rotate(3deg); }
+/* Анимация при смене эмоций */
+.mascot.mood-true #mascotImage { transform: scale(1.05) rotate(-3deg); }
+.mascot.mood-false #mascotImage { transform: scale(1.05) rotate(3deg); }
 
 .mascot-speech {
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 16px;
-    padding: 16px 20px;
-    font-size: 15px;
-    line-height: 1.5;
-    color: #2c3e50;
-    position: relative;
-    flex: 1;
-    margin-bottom: 32px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-}
-.mascot-speech::before {
-    content: "";
     position: absolute;
-    left: -10px;
-    bottom: 22px;
-    border: 10px solid transparent;
-    border-right-color: rgba(255, 255, 255, 0.95);
+    top: 110px; /* Позиция «пузыря» речи относительно родителя .mascot */
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.95);
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 0.9rem;
+    color: #333;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    max-width: 260px;
+    text-align: center;
+    z-index: 2;
 }
-.mascot-speech b { color: #4F46E5; font-weight: 700; }
 
-/* ---------- Главный блок (Hero) ---------- */
+/* ---------- Hero-блок ---------- */
 .hero-section {
     text-align: center;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 }
 .hero-title {
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: #111827;
-    margin: 0 0 12px;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #1F2937;
+    margin: 0 0 6px;
 }
 .hero-subtitle {
-    font-size: 1rem;
+    font-size: 0.9rem;
     color: #6B7280;
     margin: 0;
 }
 
-/* ---------- Поле ввода и кнопка проверки ---------- */
+/* ---------- Поле ввода ---------- */
 textarea#userText {
     width: 100%;
-    padding: 18px;
+    padding: 16px;
     border: 2px solid #E5E7EB;
     border-radius: 16px;
     font-size: 1rem;
     font-family: inherit;
     resize: vertical;
     min-height: 100px;
-    margin-bottom: 16px;
-    outline: none;
+    margin-bottom: 12px;
     transition: border-color 0.2s;
 }
-textarea#userText:focus { border-color: #4F46E5; }
-textarea#userText::placeholder { color: #9CA3AF; }
+textarea#userText:focus {
+    outline: none;
+    border-color: #4F46E5;
+}
 
+/* ---------- Кнопка ---------- */
 button#checkBtn {
     width: 100%;
-    padding: 16px;
-    background-color: #4F46E5;
+    padding: 14px;
+    background: #4F46E5;
     color: white;
     border: none;
     border-radius: 16px;
-    font-size: 1.1rem;
-    font-weight: 700;
+    font-size: 1rem;
+    font-weight: 600;
     cursor: pointer;
-    font-family: inherit;
-    transition: transform 0.1s, background-color 0.2s;
+    transition: transform 0.1s, background 0.2s;
 }
-button#checkBtn:hover  { background-color: #4338ca; }
 button#checkBtn:active { transform: scale(0.98); }
-button#checkBtn:disabled { opacity: 0.6; cursor: wait; }
+button#checkBtn:disabled { background: #9CA3AF; cursor: not-allowed; }
 
-/* ---------- Результат проверки ---------- */
-#result {
-    margin-top: 24px;
+/* ---------- Результат ---------- */
+.result {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px dashed #E5E7EB;
 }
-#result.hidden { display: none; }
 .verdict-badge {
     display: inline-block;
-    padding: 8px 18px;
+    padding: 6px 12px;
     border-radius: 50px;
-    font-weight: 800;
-    font-size: 0.9rem;
-    margin-top: 4px;
-    margin-bottom: 20px;
+    font-weight: 700;
+    font-size: 0.85rem;
     text-transform: uppercase;
+    margin-bottom: 12px;
 }
-.verdict-badge.pravda  { background: #D1FAE5; color: #065F46; }
-.verdict-badge.mif     { background: #FEE2E2; color: #991B1B; }
+.verdict-badge.pravda { background: #D1FAE5; color: #065F46; }
+.verdict-badge.mif { background: #FEE2E2; color: #991B1B; }
 .verdict-badge.neznayu { background: #E0E7FF; color: #4338CA; }
 
 .claim-text {
     font-size: 1.1rem;
-    margin: 0 0 16px;
+    font-weight: 600;
     color: #111827;
+    margin: 0 0 16px;
 }
 .explanation-box {
     background: #F9FAFB;
     padding: 16px;
     border-radius: 12px;
-    border: 1px solid #E5E7EB;
-    margin-bottom: 20px;
+    border-left: 4px solid #4F46E5;
+    margin-bottom: 16px;
 }
 .explanation-box p {
     margin: 0;
     color: #374151;
-    line-height: 1.6;
-    white-space: pre-line;
+    line-height: 1.5;
 }
 
-/* ---------- Рейтинг (сердечки) ---------- */
+/* ---------- Рейтинг (Сердечки) ---------- */
 .rating-section {
     text-align: center;
 }
-.rating-section p { margin: 0 0 8px; color: #374151; }
 .hearts {
     display: flex;
-    gap: 8px;
     justify-content: center;
-    margin: 8px 0;
+    gap: 8px;
+    margin: 12px 0;
 }
 .heart {
+    font-size: 1.5rem;
     cursor: pointer;
-    font-size: 1.4rem;
-    opacity: 0.4;
-    transition: opacity 0.2s, transform 0.2s;
+    opacity: 0.5;
+    transition: opacity 0.2s, transform 0.1s;
 }
-.heart:hover  { transform: scale(1.2); }
-.heart.active { opacity: 1; transform: scale(1.15); }
+.heart.active, .heart:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
 .rating-message {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: #6B7280;
     margin-top: 8px;
 }
 
-/* ---------- Отзыв ---------- */
-.review-section {
-    border-top: 2px solid #F3F4F6;
-    padding-top: 30px;
-    margin-top: 30px;
+/* ---------- Секции форм (Отзыв, Профиль, Комментарии) ---------- */
+.review-section, .auth-section, .comments-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px dashed #E5E7EB;
 }
-.review-section h3 {
-    font-size: 1.2rem;
-    margin: 0 0 5px;
-    font-weight: 800;
+.review-section h3,
+.auth-section h3,
+.comments-section h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0 0 8px;
+    color: #1F2937;
 }
-.review-subtitle {
+.review-subtitle, .comments-subtitle {
     font-size: 0.85rem;
     color: #6B7280;
-    margin: 0 0 15px;
+    margin: 0 0 12px;
 }
-.review-section input,
-.review-section textarea {
+
+input[type="text"],
+input[type="password"],
+textarea:not(#userText) {
     width: 100%;
-    padding: 12px 16px;
-    border: 2px solid #E5E7EB;
+    padding: 12px;
+    border: 1px solid #E5E7EB;
     border-radius: 12px;
-    font-size: 1rem;
+    font-size: 0.95rem;
+    margin-bottom: 12px;
     font-family: inherit;
-    margin-bottom: 10px;
-    outline: none;
-    transition: border-color 0.2s;
 }
-.review-section input:focus,
-.review-section textarea:focus { border-color: #4F46E5; }
-.review-section textarea { min-height: 80px; resize: vertical; }
 
-/* ---------- Вторичные кнопки ---------- */
-.btn-secondary {
-    background: white;
-    border: 2px solid #E5E7EB;
+button.btn-secondary {
+    width: 100%;
+    padding: 12px;
+    background: #F3F4F6;
     color: #374151;
-    padding: 12px 24px;
+    border: none;
     border-radius: 12px;
+    font-weight: 600;
     cursor: pointer;
-    font-weight: 700;
-    font-family: inherit;
-    font-size: 1rem;
-    transition: border-color 0.2s, color 0.2s, background 0.2s;
 }
-.btn-secondary:hover {
-    border-color: #4F46E5;
-    color: #4F46E5;
-}
+button.btn-secondary:active { transform: scale(0.98); }
 
-/* ---------- Профиль (Авторизация) ---------- */
-.auth-section {
-    border-top: 2px solid #F3F4F6;
-    padding-top: 30px;
-    margin-top: 30px;
-}
-.auth-section h3 {
-    font-size: 1.2rem;
-    margin: 0 0 5px;
-    font-weight: 800;
-}
+/* ---------- Профиль (Вкладки) ---------- */
 .auth-tabs {
     display: flex;
-    gap: 10px;
-    margin: 12px 0;
+    gap: 8px;
+    margin-bottom: 16px;
 }
 .auth-tabs button {
     flex: 1;
-    padding: 12px;
-    border-radius: 12px;
-    border: 2px solid #E5E7EB;
-    background: #fff;
-    font-family: inherit;
-    font-weight: 700;
+    padding: 8px;
+    background: #F3F4F6;
+    border: none;
+    border-radius: 8px;
+    color: #6B7280;
+    font-size: 0.85rem;
     cursor: pointer;
-    transition: all 0.2s;
 }
 .auth-tabs button.active {
-    border-color: #4F46E5;
-    color: #4F46E5;
-    background: #EEF2FF;
-    box-shadow: 0 2px 4px rgba(79, 70, 229, 0.15);
+    background: #4F46E5;
+    color: white;
 }
 .auth-fields {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    margin-bottom: 16px;
 }
-.auth-fields input {
-    width: 100%;
-    padding: 12px 16px;
-    border: 2px solid #E5E7EB;
-    border-radius: 12px;
-    font-size: 1rem;
-    font-family: inherit;
-    outline: none;
-    transition: border-color 0.2s;
-}
-.auth-fields input:focus { border-color: #4F46E5; }
-.auth-btn-wrapper { margin-top: 4px; }
-.auth-btn-wrapper button {
-    width: 100%;
-    padding: 14px;
-    border-radius: 12px;
-    border: none;
-    background: #4F46E5;
-    color: white;
-    font-weight: 700;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 1rem;
-    transition: background 0.2s;
-}
-.auth-btn-wrapper button:hover { background: #4338ca; }
+.auth-btn-wrapper { margin-top: 12px; }
 .auth-status {
+    margin-top: 12px;
     font-size: 0.85rem;
-    margin-top: 10px;
-    font-weight: 700;
-    min-height: 18px;
     text-align: center;
 }
-.auth-status.ok  { color: #10B981; }
-.auth-status.err { color: #EF4444; }
+.auth-status.err { color: #DC2626; }
 .user-chip {
     display: inline-block;
-    background: #EEF2FF;
-    color: #4F46E5;
-    padding: 8px 16px;
+    padding: 6px 12px;
+    background: #E0E7FF;
+    color: #4338CA;
     border-radius: 50px;
-    font-weight: 700;
-    font-size: 0.9rem;
-    margin-bottom: 16px;
+    font-weight: 600;
 }
 
-/* ---------- Комментарии ---------- */
-.comments-section {
-    border-top: 2px solid #F3F4F6;
-    padding-top: 30px;
-    margin-top: 30px;
-}
-.comments-section h3 {
-    font-size: 1.2rem;
-    margin: 0 0 5px;
-    font-weight: 800;
-}
-.comments-subtitle {
-    font-size: 0.85rem;
-    color: #6B7280;
-    margin: 0 0 15px;
-}
-.comments-section input,
-.comments-section textarea {
-    width: 100%;
-    padding: 12px 16px;
-    border: 2px solid #E5E7EB;
-    border-radius: 12px;
-    font-size: 1rem;
-    font-family: inherit;
-    margin-bottom: 10px;
-    outline: none;
-    transition: border-color 0.2s;
-}
-.comments-section input:focus,
-.comments-section textarea:focus { border-color: #4F46E5; }
-.comments-section textarea { resize: vertical; }
-
+/* ---------- Комментарии (Список) ---------- */
 .comment {
     background: #F9FAFB;
-    border: 1px solid #E5E7EB;
+    padding: 12px;
     border-radius: 12px;
-    padding: 12px 16px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    border-left: 3px solid #4F46E5;
 }
 .comment-header {
     display: flex;
     justify-content: space-between;
-    font-size: 0.8rem;
-    color: #6B7280;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
-.comment-author { font-weight: 800; color: #4F46E5; }
-.comment-text {
-    font-size: 0.95rem;
-    line-height: 1.5;
-    color: #374151;
-    word-break: break-word;
-}
-
-/* ---------- Подвал (Footer) ---------- */
-.project-footer {
-    text-align: center;
-    padding: 20px 16px 32px;
-    color: #4B5563;
-    font-size: 0.85rem;
-    background: transparent;
-}
-.project-footer p {
-    margin: 0;
+.comment-author {
     font-weight: 600;
-    letter-spacing: 0.5px;
+    color: #1F2937;
+}
+.comment-date {
+    font-size: 0.75rem;
+    color: #9CA3AF;
+}
+.comment-text {
+    color: #4B5563;
+    line-height: 1.4;
 }
 
 /* ---------- Утилиты ---------- */
 .hidden { display: none !important; }
 
-/* ---------- Адаптив для мобильных ---------- */
-@media (max-width: 480px) {
-    h1 { font-size: 1.8rem; }
-    .glass-card { padding: 20px 14px; }
-    .mascot img { width: 100px; }
-    .mascot-speech { font-size: 13px; margin-bottom: 20px; }
-    .hero-title { font-size: 1.3rem; }
+/* ---------- АДАПТИВНОСТЬ (MEDIA QUERIES) ---------- */
+
+/* Планшеты и небольшие ноутбуки */
+@media (min-width: 768px) {
+    .app-container {
+        max-width: 720px;
+    }
+    .glass-card {
+        padding: 32px;
+    }
+    .mascot {
+        min-height: 240px;
+    }
+    #mascotImage {
+        max-width: 300px; /* Чуть крупнее на ПК */
+    }
+    .hero-title {
+        font-size: 1.7rem;
+    }
+}
+
+/* Большие экраны (Desktop) */
+@media (min-width: 1024px) {
+    .app-container {
+        max-width: 800px;
+    }
+    .glass-card {
+        padding: 40px;
+    }
+    .mascot {
+        min-height: 280px;
+    }
+    #mascotImage {
+        max-width: 340px; /* Крупная Вера на больших экранах */
+    }
+    .hero-title {
+        font-size: 2rem;
+    }
+}
+
+/* ---------- Footer ---------- */
+.project-footer {
+    text-align: center;
+    padding: 20px;
+    color: #6B7280;
+    font-size: 0.85rem;
 }
