@@ -134,9 +134,32 @@ button#checkBtn:disabled { background: #9CA3AF; box-shadow: none; transform: non
     letter-spacing: 1px;
     margin-bottom: 15px;
 }
-.verdict-badge.mif { background: #FEE2E2; color: var(--danger); box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2); }
-.verdict-badge.pravda { background: #D1FAE5; color: var(--success); box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); }
-.verdict-badge.neznayu { background: #FEF3C7; color: var(--warning); box-shadow: 0 4px 10px rgba(245, 158, 11, 0.2); }
+
+/* Миф — красный */
+.verdict-badge.mif,
+.verdict-badge.миф {
+    background: #FEE2E2;
+    color: var(--danger);
+    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2);
+}
+
+/* Правда — зелёный */
+.verdict-badge.pravda,
+.verdict-badge.правда {
+    background: #D1FAE5;
+    color: var(--success);
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+}
+
+/* Спорно и не знаю — серый */
+.verdict-badge.neznayu,
+.verdict-badge.незнаю,
+.verdict-badge.sporno,
+.verdict-badge.спорно {
+    background: #E5E7EB;
+    color: #4B5563;
+    box-shadow: 0 4px 10px rgba(75, 85, 99, 0.15);
+}
 
 .claim-text { font-size: 1.3rem; font-weight: 800; margin-bottom: 15px; line-height: 1.4; color: #111827; }
 .explanation-box { background: #F9FAFB; padding: 18px; border-radius: 14px; font-size: 1rem; line-height: 1.6; color: #374151; margin-bottom: 25px; border: 1px solid #E5E7EB; }
