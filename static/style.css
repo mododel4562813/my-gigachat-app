@@ -1,7 +1,10 @@
 /* ============================================================
-   «Перепроверим» — адаптивный стиль (Mobile & Desktop)
+   «Перепроверим» — Не верь, а проверь
+   Команда «Единый пульс» · Конкурс «Медицина 2050»
+   Адаптив: ПК / планшет / телефон
    ============================================================ */
 
+/* ---------- База и сброс ---------- */
 * { box-sizing: border-box; }
 
 body {
@@ -13,7 +16,7 @@ body {
     min-height: 100vh;
 }
 
-/* ---------- Фон (пузыри) ---------- */
+/* ---------- Декоративные пузыри (фон) ---------- */
 .background-blobs {
     position: fixed;
     inset: 0;
@@ -32,33 +35,33 @@ body {
 
 /* ---------- Контейнер ---------- */
 .app-container {
-    max-width: 640px; /* Чуть шире для планшетов */
+    max-width: 620px;
     margin: 0 auto;
-    padding: 16px;
+    padding: 0 16px;
 }
 
 /* ---------- Шапка ---------- */
 header {
     text-align: center;
-    padding: 24px 0;
+    padding: 32px 0 16px;
 }
 .logo {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 12px;
     margin: 0 auto 8px;
 }
-.logo-icon { font-size: 20px; }
+.logo-icon { font-size: 24px; }
 h1 {
-    font-size: 1.6rem;
+    font-size: 2rem;
     font-weight: 800;
     color: #4F46E5;
     margin: 0;
     line-height: 1.1;
 }
 .slogan {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 600;
     color: #6B7280;
     text-transform: uppercase;
@@ -70,65 +73,72 @@ h1 {
 .disclaimer {
     background-color: #FFFBE6;
     border-left: 5px solid #F59E0B;
-    padding: 14px;
+    padding: 14px 16px;
     border-radius: 12px;
-    margin-bottom: 20px;
-    font-size: 0.85rem;
+    margin-bottom: 22px;
+    font-size: 0.9rem;
     color: #555;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
-.disclaimer span { font-size: 1.1rem; margin-right: 8px; vertical-align: middle; }
+.disclaimer span {
+    font-size: 1.1rem;
+    margin-right: 8px;
+    vertical-align: middle;
+}
 .disclaimer p { margin: 0; }
 .disclaimer strong { color: #92400E; }
 
-/* ---------- Главная карточка (Glassmorphism) ---------- */
+/* ---------- Главная карточка ---------- */
 .glass-card {
     background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.6);
-    border-radius: 20px;
-    padding: 20px;
-    box-shadow: 0 8px 30px rgba(79, 70, 229, 0.12);
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 8px 30px rgba(79, 70, 229, 0.10);
 }
 
-/* ---------- МАСКОТ: Адаптивная логика ---------- */
+/* ---------- Маскот Вера ---------- */
+/* Вера слева, пузырь речи справа — обычный поток, без наложений */
 .mascot {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 20px;
-    min-height: 200px; /* Фиксируем высоту, чтобы верстка не «прыгала» при загрузке */
-    position: relative;
+    align-items: flex-end;
+    gap: 16px;
+    margin-bottom: 22px;
 }
-#mascotImage {
-    width: 100%;
-    max-width: 260px; /* На ПК — не больше 260px */
+.mascot img {
+    width: 130px;
+    max-width: 35%;      /* на узких экранах не больше трети карточки */
     height: auto;
-    object-fit: contain;
+    flex-shrink: 0;
     display: block;
-    margin: 0 auto;
-    transition: transform 0.3s ease;
+    transition: transform 0.25s ease;
 }
-/* Анимация при смене эмоций */
-.mascot.mood-true #mascotImage { transform: scale(1.05) rotate(-3deg); }
-.mascot.mood-false #mascotImage { transform: scale(1.05) rotate(3deg); }
+.mascot.mood-true img  { transform: scale(1.06) rotate(-3deg); }
+.mascot.mood-false img { transform: rotate(3deg); }
 
 .mascot-speech {
-    position: absolute;
-    top: 110px; /* Позиция «пузыря» речи относительно родителя .mascot */
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(255, 255, 255, 0.95);
-    padding: 10px 14px;
-    border-radius: 14px;
-    font-size: 0.9rem;
-    color: #333;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-    max-width: 260px;
-    text-align: center;
-    z-index: 2;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 12px 16px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #2c3e50;
+    position: relative;
+    flex: 1;
+    margin-bottom: 24px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.07);
 }
+.mascot-speech::before {
+    content: "";
+    position: absolute;
+    left: -9px;
+    bottom: 18px;
+    border: 9px solid transparent;
+    border-right-color: #ffffff;
+}
+.mascot-speech b { color: #4F46E5; font-weight: 700; }
 
 /* ---------- Hero-блок ---------- */
 .hero-section {
@@ -137,17 +147,17 @@ h1 {
 }
 .hero-title {
     font-size: 1.4rem;
-    font-weight: 700;
-    color: #1F2937;
-    margin: 0 0 6px;
+    font-weight: 800;
+    color: #111827;
+    margin: 0 0 8px;
 }
 .hero-subtitle {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     color: #6B7280;
     margin: 0;
 }
 
-/* ---------- Поле ввода ---------- */
+/* ---------- Поле ввода и кнопка ---------- */
 textarea#userText {
     width: 100%;
     padding: 16px;
@@ -157,252 +167,269 @@ textarea#userText {
     font-family: inherit;
     resize: vertical;
     min-height: 100px;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
+    outline: none;
     transition: border-color 0.2s;
 }
-textarea#userText:focus {
-    outline: none;
-    border-color: #4F46E5;
-}
+textarea#userText:focus { border-color: #4F46E5; }
+textarea#userText::placeholder { color: #9CA3AF; }
 
-/* ---------- Кнопка ---------- */
 button#checkBtn {
     width: 100%;
     padding: 14px;
-    background: #4F46E5;
+    background-color: #4F46E5;
     color: white;
     border: none;
     border-radius: 16px;
-    font-size: 1rem;
-    font-weight: 600;
+    font-size: 1.05rem;
+    font-weight: 700;
     cursor: pointer;
-    transition: transform 0.1s, background 0.2s;
+    font-family: inherit;
+    transition: transform 0.1s, background-color 0.2s;
 }
+button#checkBtn:hover  { background-color: #4338ca; }
 button#checkBtn:active { transform: scale(0.98); }
-button#checkBtn:disabled { background: #9CA3AF; cursor: not-allowed; }
+button#checkBtn:disabled { opacity: 0.6; cursor: wait; }
 
-/* ---------- Результат ---------- */
-.result {
-    margin-top: 20px;
-    padding-top: 20px;
+/* ---------- Результат проверки ---------- */
+#result {
+    margin-top: 22px;
+    padding-top: 18px;
     border-top: 1px dashed #E5E7EB;
 }
 .verdict-badge {
     display: inline-block;
-    padding: 6px 12px;
+    padding: 7px 16px;
     border-radius: 50px;
-    font-weight: 700;
+    font-weight: 800;
     font-size: 0.85rem;
+    margin-bottom: 14px;
     text-transform: uppercase;
-    margin-bottom: 12px;
 }
-.verdict-badge.pravda { background: #D1FAE5; color: #065F46; }
-.verdict-badge.mif { background: #FEE2E2; color: #991B1B; }
+.verdict-badge.pravda  { background: #D1FAE5; color: #065F46; }
+.verdict-badge.mif     { background: #FEE2E2; color: #991B1B; }
 .verdict-badge.neznayu { background: #E0E7FF; color: #4338CA; }
 
 .claim-text {
-    font-size: 1.1rem;
-    font-weight: 600;
+    font-size: 1.05rem;
+    margin: 0 0 14px;
     color: #111827;
-    margin: 0 0 16px;
 }
 .explanation-box {
     background: #F9FAFB;
-    padding: 16px;
+    padding: 14px 16px;
     border-radius: 12px;
     border-left: 4px solid #4F46E5;
-    margin-bottom: 16px;
+    margin-bottom: 18px;
 }
 .explanation-box p {
     margin: 0;
     color: #374151;
-    line-height: 1.5;
+    line-height: 1.55;
+    white-space: pre-line;
 }
 
-/* ---------- Рейтинг (Сердечки) ---------- */
-.rating-section {
-    text-align: center;
-}
+/* ---------- Рейтинг (сердечки) ---------- */
+.rating-section { text-align: center; }
+.rating-section p { margin: 0 0 6px; color: #374151; }
 .hearts {
     display: flex;
-    justify-content: center;
     gap: 8px;
-    margin: 12px 0;
+    justify-content: center;
+    margin: 8px 0;
 }
 .heart {
-    font-size: 1.5rem;
     cursor: pointer;
-    opacity: 0.5;
-    transition: opacity 0.2s, transform 0.1s;
+    font-size: 1.4rem;
+    opacity: 0.4;
+    transition: opacity 0.2s, transform 0.2s;
 }
-.heart.active, .heart:hover {
-    opacity: 1;
-    transform: scale(1.1);
-}
+.heart:hover  { transform: scale(1.2); }
+.heart.active { opacity: 1; transform: scale(1.15); }
 .rating-message {
     font-size: 0.85rem;
     color: #6B7280;
-    margin-top: 8px;
+    margin-top: 6px;
 }
 
-/* ---------- Секции форм (Отзыв, Профиль, Комментарии) ---------- */
-.review-section, .auth-section, .comments-section {
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px dashed #E5E7EB;
+/* ---------- Отзыв / Профиль / Обсуждение ---------- */
+.review-section,
+.auth-section,
+.comments-section {
+    border-top: 2px solid #F3F4F6;
+    padding-top: 24px;
+    margin-top: 24px;
 }
 .review-section h3,
 .auth-section h3,
 .comments-section h3 {
-    font-size: 1.1rem;
-    font-weight: 700;
-    margin: 0 0 8px;
-    color: #1F2937;
+    font-size: 1.15rem;
+    margin: 0 0 5px;
+    font-weight: 800;
 }
-.review-subtitle, .comments-subtitle {
+.review-subtitle,
+.comments-subtitle {
     font-size: 0.85rem;
     color: #6B7280;
-    margin: 0 0 12px;
+    margin: 0 0 14px;
 }
 
 input[type="text"],
 input[type="password"],
 textarea:not(#userText) {
     width: 100%;
-    padding: 12px;
-    border: 1px solid #E5E7EB;
+    padding: 12px 14px;
+    border: 2px solid #E5E7EB;
     border-radius: 12px;
     font-size: 0.95rem;
-    margin-bottom: 12px;
     font-family: inherit;
+    margin-bottom: 10px;
+    outline: none;
+    transition: border-color 0.2s;
 }
+input[type="text"]:focus,
+input[type="password"]:focus,
+textarea:not(#userText):focus { border-color: #4F46E5; }
+textarea:not(#userText) { min-height: 80px; resize: vertical; }
 
-button.btn-secondary {
-    width: 100%;
-    padding: 12px;
-    background: #F3F4F6;
+.btn-secondary {
+    background: white;
+    border: 2px solid #E5E7EB;
     color: #374151;
-    border: none;
+    padding: 12px 24px;
     border-radius: 12px;
-    font-weight: 600;
     cursor: pointer;
+    font-weight: 700;
+    font-family: inherit;
+    font-size: 0.95rem;
+    transition: border-color 0.2s, color 0.2s;
 }
-button.btn-secondary:active { transform: scale(0.98); }
+.btn-secondary:hover {
+    border-color: #4F46E5;
+    color: #4F46E5;
+}
 
-/* ---------- Профиль (Вкладки) ---------- */
+/* ---------- Профиль ---------- */
 .auth-tabs {
     display: flex;
-    gap: 8px;
-    margin-bottom: 16px;
+    gap: 10px;
+    margin: 12px 0;
 }
 .auth-tabs button {
     flex: 1;
-    padding: 8px;
-    background: #F3F4F6;
-    border: none;
-    border-radius: 8px;
-    color: #6B7280;
-    font-size: 0.85rem;
+    padding: 11px;
+    border-radius: 12px;
+    border: 2px solid #E5E7EB;
+    background: #fff;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.95rem;
     cursor: pointer;
+    transition: all 0.2s;
 }
 .auth-tabs button.active {
-    background: #4F46E5;
-    color: white;
+    border-color: #4F46E5;
+    color: #4F46E5;
+    background: #EEF2FF;
 }
 .auth-fields {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
+    margin-bottom: 12px;
 }
-.auth-btn-wrapper { margin-top: 12px; }
+.auth-fields input { margin-bottom: 0; }
+.auth-btn-wrapper { margin-top: 4px; }
+.auth-btn-wrapper button {
+    width: 100%;
+    padding: 13px;
+    border-radius: 12px;
+    border: none;
+    background: #4F46E5;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 1rem;
+    transition: background 0.2s;
+}
+.auth-btn-wrapper button:hover { background: #4338ca; }
 .auth-status {
-    margin-top: 12px;
     font-size: 0.85rem;
+    margin-top: 8px;
+    font-weight: 700;
+    min-height: 18px;
     text-align: center;
 }
-.auth-status.err { color: #DC2626; }
+.auth-status.ok  { color: #10B981; }
+.auth-status.err { color: #EF4444; }
 .user-chip {
     display: inline-block;
-    padding: 6px 12px;
-    background: #E0E7FF;
-    color: #4338CA;
+    background: #EEF2FF;
+    color: #4F46E5;
+    padding: 8px 16px;
     border-radius: 50px;
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-bottom: 12px;
 }
 
-/* ---------- Комментарии (Список) ---------- */
+/* ---------- Комментарии ---------- */
 .comment {
     background: #F9FAFB;
-    padding: 12px;
+    border: 1px solid #E5E7EB;
     border-radius: 12px;
-    margin-bottom: 12px;
-    border-left: 3px solid #4F46E5;
+    padding: 12px 16px;
+    margin-bottom: 10px;
 }
 .comment-header {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 6px;
+    font-size: 0.8rem;
+    color: #6B7280;
+    margin-bottom: 4px;
 }
-.comment-author {
-    font-weight: 600;
-    color: #1F2937;
-}
-.comment-date {
-    font-size: 0.75rem;
-    color: #9CA3AF;
-}
+.comment-author { font-weight: 800; color: #4F46E5; }
 .comment-text {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #374151;
+    word-break: break-word;
+}
+
+/* ---------- Подвал ---------- */
+.project-footer {
+    text-align: center;
+    padding: 20px 16px 32px;
     color: #4B5563;
-    line-height: 1.4;
+    font-size: 0.85rem;
+    background: transparent;
+}
+.project-footer p {
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: 0.5px;
 }
 
 /* ---------- Утилиты ---------- */
 .hidden { display: none !important; }
 
-/* ---------- АДАПТИВНОСТЬ (MEDIA QUERIES) ---------- */
-
-/* Планшеты и небольшие ноутбуки */
-@media (min-width: 768px) {
-    .app-container {
-        max-width: 720px;
+/* ---------- Мобильная версия ---------- */
+@media (max-width: 480px) {
+    h1 { font-size: 1.7rem; }
+    .glass-card { padding: 18px 14px; }
+    .mascot { gap: 10px; margin-bottom: 18px; }
+    .mascot img { width: 96px; }
+    .mascot-speech {
+        font-size: 12.5px;
+        padding: 10px 12px;
+        margin-bottom: 14px;
     }
-    .glass-card {
-        padding: 32px;
-    }
-    .mascot {
-        min-height: 240px;
-    }
-    #mascotImage {
-        max-width: 300px; /* Чуть крупнее на ПК */
-    }
-    .hero-title {
-        font-size: 1.7rem;
-    }
+    .hero-title { font-size: 1.2rem; }
 }
 
-/* Большие экраны (Desktop) */
+/* ---------- Крупные экраны: Вера остаётся умеренной ---------- */
 @media (min-width: 1024px) {
-    .app-container {
-        max-width: 800px;
-    }
-    .glass-card {
-        padding: 40px;
-    }
-    .mascot {
-        min-height: 280px;
-    }
-    #mascotImage {
-        max-width: 340px; /* Крупная Вера на больших экранах */
-    }
-    .hero-title {
-        font-size: 2rem;
-    }
-}
-
-/* ---------- Footer ---------- */
-.project-footer {
-    text-align: center;
-    padding: 20px;
-    color: #6B7280;
-    font-size: 0.85rem;
+    .app-container { max-width: 640px; }
+    .mascot img { width: 140px; }
 }
