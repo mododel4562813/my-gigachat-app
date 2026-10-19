@@ -216,6 +216,29 @@ def ensure_worksheet(sheet, title):
         return sheet.add_worksheet(title=title, rows=100, cols=10)
 
 
+def _stem(word):
+    """Грубая обрезка русских окончаний: 'вирусами' -> 'вирус'."""
+    for suf in ("ами", "ями", "ого", "его", "ому", "ему", "ыми", "ими",
+                "ой", "ый", "ий", "ая", "яя", "ую", "юю", "ом", "ем",
+                "ах", "ях", "ей", "ов", "ев", "у", "ю", "а", "я", "ы",
+                "и", "е", "ь"):
+        if word.endswith(suf) and len(word) - len(suf) >= 4:
+            return word[:-len(suf)]
+    return word
+
+
+def _match_score(query_stems, claim):
+    """Сколько ключевых слов запроса реально есть в утверждении."""
+    claim_stems = [_stem(w) for w in claim.split()]
+    score = 0
+    for qs in query_stems:
+        for cs in claim_stems:
+            if cs.startswith(qs) or qs.startswith(cs):
+                score += 1
+                break
+    return score
+
+
 def search_sheets(user_text):
     if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
         return None
@@ -224,15 +247,30 @@ def search_sheets(user_text):
         records = ensure_worksheet(sheet, "Facts").get_all_records()
         user_text = user_text.lower().strip()
 
+        query_words = [w for w in user_text.split() if len(w) > 3]
+        query_stems = [_stem(w) for w in query_words]
+        if not query_stems:
+            return None
+
+        best_row = None
+        best_score = 0
         for row in records:
             claim = str(row.get('Утверждение', '')).lower()
-            if user_text in claim or any(
-                    w in claim for w in user_text.split() if len(w) > 4):
-                return {
-                    "source": "google_sheets",
-                    "verdict": row.get('Вердикт', 'НЕЗНАЮ'),
-                    "explanation": row.get('Объяснение', '')
-                }
+            score = _match_score(query_stems, claim)
+            if user_text in claim:
+                score += 10  # дословное совпадение — сильный приоритет
+            if score > best_score:
+                best_score = score
+                best_row = row
+
+        # Отдаём результат, только если совпало хотя бы половина
+        # ключевых слов (и минимум два)
+        if best_row and best_score >= max(2, len(query_stems) // 2):
+            return {
+                "source": "google_sheets",
+                "verdict": best_row.get('Вердикт', 'НЕЗНАЮ'),
+                "explanation": best_row.get('Объяснение', '')
+            }
     except Exception as e:
         print(f"⚠️ Ошибка чтения Google Sheets: {e}")
     return None
