@@ -208,6 +208,7 @@ def ask_gigachat(user_text):
 GS_CLIENT = None
 GOOGLE_SPREADSHEET_ID = os.getenv("GOOGLE_SPREADSHEET_ID", "").strip()
 GOOGLE_CREDENTIALS = os.getenv("GOOGLE_CREDENTIALS")  # JSON одной строкой
+GOOGLE_CREDENTIALS_B64 = os.getenv("GOOGLE_CREDENTIALS_B64", "").strip()  # ключ в base64
 CREDENTIALS_FILE = os.path.join(BASE_DIR, "credentials.json")
 
 scopes = [
@@ -215,20 +216,31 @@ scopes = [
     "https://www.googleapis.com/auth/drive"
 ]
 
+
+def _load_credentials_info():
+    """Достаёт учётные данные: base64 -> переменная -> файл."""
+    if GOOGLE_CREDENTIALS_B64:
+        return json.loads(base64.b64decode(GOOGLE_CREDENTIALS_B64).decode('utf-8'))
+    if GOOGLE_CREDENTIALS:
+        raw = GOOGLE_CREDENTIALS.strip()
+        if raw.startswith('"') and raw.endswith('"'):
+            raw = raw[1:-1]
+        return json.loads(raw)
+    if os.path.exists(CREDENTIALS_FILE):
+        with open(CREDENTIALS_FILE, encoding='utf-8') as f:
+            return json.load(f)
+    return None
+
+
 if GOOGLE_SPREADSHEET_ID:
     try:
-        if GOOGLE_CREDENTIALS:
-            info = json.loads(GOOGLE_CREDENTIALS)
+        info = _load_credentials_info()
+        if info:
             creds = Credentials.from_service_account_info(info, scopes=scopes)
             GS_CLIENT = gspread.authorize(creds)
-            print("✅ Google Таблицы подключены (из переменной GOOGLE_CREDENTIALS)")
-        elif os.path.exists(CREDENTIALS_FILE):
-            creds = Credentials.from_service_account_file(
-                CREDENTIALS_FILE, scopes=scopes)
-            GS_CLIENT = gspread.authorize(creds)
-            print("✅ Google Таблицы подключены (из файла credentials.json)")
+            print("✅ Google Таблицы подключены")
         else:
-            print("⚠️ Нет ни GOOGLE_CREDENTIALS, ни credentials.json — таблицы отключены")
+            print("⚠️ Нет ключа (B64 / переменная / файл) — таблицы отключены")
     except Exception as e:
         print(f"❌ Ошибка подключения к Google Sheets: {e}")
         GS_CLIENT = None
@@ -469,7 +481,8 @@ def register():
         return jsonify({"error": "Имя не пустое, пароль от 4 символов"}), 400
 
     if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
-        return jsonify({"error": "База пользователей недоступна"}), 500
+        return jsonify({"error": "База пользователей недоступна: "
+                                  "Google Таблицы не подключены"}), 500
 
     try:
         sheet = get_sheet()
@@ -484,7 +497,9 @@ def register():
         return jsonify({"status": "ok", "username": username})
     except Exception as e:
         print(f"⚠️ Ошибка регистрации: {e}")
-        return jsonify({"error": "Ошибка регистрации"}), 500
+        # ВРЕМЕННО для отладки: показываем суть ошибки на сайте.
+        # После починки верни на место: "Ошибка регистрации"
+        return jsonify({"error": "Ошибка регистрации: " + str(e)[:200]}), 500
 
 
 @app.route('/api/login', methods=['POST'])
