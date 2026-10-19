@@ -431,7 +431,7 @@ textarea:not(#userText) { min-height: 80px; resize: vertical; }
     }
     .hero-title { font-size: 1.2rem; }
 }
-
+.verdict-badge.sporno { background: #FFEDD5; color: #9A3412; }
 /* ---------- Крупные экраны ---------- */
 @media (min-width: 1024px) {
     .app-container { max-width: 640px; }
