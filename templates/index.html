@@ -123,7 +123,8 @@
             hello:  "Привет! Я <b>Вера</b> — медицинский фактчекер команды «Единый пульс». Напишите сомнительное утверждение — я разберу его на миф и правду!",
             true:   "Разоблачено — правда! Всё проверено, спи спокойно 💚",
             false:  "Осторожно, это миф! Я нашла подтверждение, что так думать не стоит 🚫",
-            unsure: "Честно? Точного ответа у меня нет — лучше уточнить у специалиста 🤔"
+            unsure: "Честно? Точного ответа у меня нет — лучше уточнить у специалиста 🤔",
+            sporno: "Данные противоречивы — разберём нюансы честно 🤔"
         };
 
         function setMascotImage(name) {
@@ -140,6 +141,10 @@
                 setMascotImage('vera_false');
                 mascot.classList.add('mood-false'); mascot.classList.remove('mood-true');
                 speech.innerHTML = PHRASES.false;
+            } else if (v.includes('СПОРНО')) {
+                setMascotImage('vera_hello');
+                mascot.classList.remove('mood-true', 'mood-false');
+                speech.innerHTML = PHRASES.sporno;
             } else {
                 setMascotImage('vera_hello');
                 mascot.classList.remove('mood-true', 'mood-false');
@@ -180,6 +185,7 @@
                 badge.className = 'verdict-badge';
                 if (verdict.includes('ПРАВДА')) badge.classList.add('pravda');
                 else if (verdict.includes('МИФ')) badge.classList.add('mif');
+                else if (verdict.includes('СПОРНО')) badge.classList.add('sporno');
                 else badge.classList.add('neznayu');
 
                 document.getElementById('claimText').textContent = text;
