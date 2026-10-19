@@ -212,6 +212,7 @@ button#checkBtn:disabled { opacity: 0.6; cursor: wait; }
 }
 .verdict-badge.pravda  { background: #D1FAE5; color: #065F46; }
 .verdict-badge.mif     { background: #FEE2E2; color: #991B1B; }
+.verdict-badge.sporno  { background: #FFEDD5; color: #9A3412; }
 .verdict-badge.neznayu { background: #E0E7FF; color: #4338CA; }
 
 .claim-text {
@@ -415,7 +416,7 @@ textarea:not(#userText) { min-height: 80px; resize: vertical; }
     letter-spacing: 0.5px;
 }
 
-/* ---------- Утилites ---------- */
+/* ---------- Утилиты ---------- */
 .hidden { display: none !important; }
 
 /* ---------- Мобильная версия ---------- */
@@ -431,7 +432,7 @@ textarea:not(#userText) { min-height: 80px; resize: vertical; }
     }
     .hero-title { font-size: 1.2rem; }
 }
-.verdict-badge.sporno { background: #FFEDD5; color: #9A3412; }
+
 /* ---------- Крупные экраны ---------- */
 @media (min-width: 1024px) {
     .app-container { max-width: 640px; }
