@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Перепроверим — Не верь, а проверь</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=2">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -69,11 +69,10 @@
             </div>
 
             <div class="review-section">
-                <h3>✍️ Оставить отзыв</h3>
-                <p class="review-subtitle">Расскажи, что можно улучшить</p>
-                <input type="text" id="reviewName" placeholder="Твоё имя">
-                <textarea id="reviewText" placeholder="Твой отзыв..."></textarea>
-                <button class="btn-secondary" onclick="sendReview()">Отправить отзыв</button>
+                <h3>🛠 Сообщить об ошибке</h3>
+                <p class="review-subtitle">Нашли опечатку или неточность? Напишите нам!</p>
+                <textarea id="errorText" placeholder="Опишите ошибку: где увидели и что не так..."></textarea>
+                <button class="btn-secondary" onclick="sendError()">Отправить</button>
             </div>
 
             <div class="auth-section">
@@ -118,6 +117,9 @@
         const mascot = document.getElementById('mascot');
         const mascotImage = document.getElementById('mascotImage');
         const speech = document.getElementById('mascotSpeech');
+
+        // Имя вошедшего пользователя (сохраняется после входа/регистрации)
+        const currentUser = localStorage.getItem('veraUser') || null;
 
         const PHRASES = {
             hello:  "Привет! Я <b>Вера</b> — медицинский фактчекер команды «Единый пульс». Напишите сомнительное утверждение — я разберу его на миф и правду!",
@@ -217,21 +219,22 @@
             });
         });
 
-        // ---------- Отзыв ----------
-        function sendReview() {
-            const name = document.getElementById('reviewName').value.trim() || 'Гость';
-            const text = document.getElementById('reviewText').value.trim();
+        // ---------- Сообщить об ошибке ----------
+        function sendError() {
+            const text = document.getElementById('errorText').value.trim();
             if (!text) return;
-            fetch('/api/review', {
+            fetch('/api/error', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: name, review: text })
+                body: JSON.stringify({ text: text })
             })
             .then(function () {
-                document.getElementById('reviewText').value = '';
-                speech.innerHTML = 'Спасибо за отзыв! Это очень помогает 💙';
+                document.getElementById('errorText').value = '';
+                speech.innerHTML = 'Спасибо, сообщение об ошибке отправлено! Разберёмся 💙';
             })
-            .catch(function () {});
+            .catch(function () {
+                speech.innerHTML = 'Не получилось отправить сообщение 📡';
+            });
         }
 
         // ---------- Профиль ----------
@@ -263,6 +266,7 @@
             .then(function (data) {
                 if (data.status === 'ok') {
                     status.textContent = '';
+                    localStorage.setItem('veraUser', username);
                     document.getElementById('authBox').classList.add('hidden');
                     document.getElementById('userBox').classList.remove('hidden');
                     document.getElementById('userChip').textContent = '👋 ' + username;
@@ -278,6 +282,7 @@
         }
 
         function logout() {
+            localStorage.removeItem('veraUser');
             document.getElementById('userBox').classList.add('hidden');
             document.getElementById('authBox').classList.remove('hidden');
             document.getElementById('authUsername').value = '';
@@ -286,7 +291,10 @@
 
         // ---------- Обсуждение ----------
         function sendComment() {
-            const name = document.getElementById('commentName').value.trim() || 'Гость';
+            const name = currentUser
+                || localStorage.getItem('veraUser')
+                || document.getElementById('commentName').value.trim()
+                || 'Гость';
             const text = document.getElementById('commentText').value.trim();
             if (!text) return;
             fetch('/api/review', {
