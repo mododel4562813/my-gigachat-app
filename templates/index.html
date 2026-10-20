@@ -98,7 +98,7 @@
             </div>
 
             <div class="comments-section">
-                <h3>💬Коментарии</h3>
+                <h3>💬 Комментарии</h3>
                 <p class="comments-subtitle">Что думают другие?</p>
                 <input type="text" id="commentName" placeholder="Твоё имя">
                 <textarea id="commentText" placeholder="Твой комментарий..." style="height:80px;"></textarea>
@@ -118,8 +118,9 @@
         const mascotImage = document.getElementById('mascotImage');
         const speech = document.getElementById('mascotSpeech');
 
-        // Имя вошедшего пользователя (сохраняется после входа/регистрации)
-        const currentUser = localStorage.getItem('veraUser') || null;
+        // Имя вошедшего пользователя. Читается динамически,
+        // чтобы после входа без перезагрузки страницы имя подставлялось в комментарии
+        let currentUser = localStorage.getItem('veraUser') || null;
 
         const PHRASES = {
             hello:  "Привет! Я <b>Вера</b> — медицинский фактчекер команды «Единый пульс». Напишите сомнительное утверждение — я разберу его на миф и правду!",
@@ -155,6 +156,13 @@
         }
 
         speech.innerHTML = PHRASES.hello;
+
+        // Если пользователь уже вошёл — сразу показываем его профиль
+        if (currentUser) {
+            document.getElementById('authBox').classList.add('hidden');
+            document.getElementById('userBox').classList.remove('hidden');
+            document.getElementById('userChip').textContent = '👋 ' + currentUser;
+        }
 
         // ---------- Проверка факта ----------
         let lastClaim = '';
@@ -266,6 +274,7 @@
             .then(function (data) {
                 if (data.status === 'ok') {
                     status.textContent = '';
+                    currentUser = username;
                     localStorage.setItem('veraUser', username);
                     document.getElementById('authBox').classList.add('hidden');
                     document.getElementById('userBox').classList.remove('hidden');
@@ -282,6 +291,7 @@
         }
 
         function logout() {
+            currentUser = null;
             localStorage.removeItem('veraUser');
             document.getElementById('userBox').classList.add('hidden');
             document.getElementById('authBox').classList.remove('hidden');
@@ -292,7 +302,6 @@
         // ---------- Обсуждение ----------
         function sendComment() {
             const name = currentUser
-                || localStorage.getItem('veraUser')
                 || document.getElementById('commentName').value.trim()
                 || 'Гость';
             const text = document.getElementById('commentText').value.trim();
