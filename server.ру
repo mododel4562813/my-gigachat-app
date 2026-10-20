@@ -16,7 +16,8 @@ from google.oauth2.service_account import Credentials
 try:
     from facts import find_fact
 except ImportError:
-    def find_fact(text): return None
+    def find_fact(text):
+        return None
 
 # ---------- Пути и Конфигурация ----------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -114,16 +115,10 @@ def _normalize_verdict(raw):
     return "НЕЗНАЮ"
 
 def _is_absurd_myth(verdict, explanation):
-    """
-    Фильтр абсурда.
-    Если вердикт МИФ, но объяснение звучит как 'научно опровергнуто' для очевидных вещей (гигиена, вода, воздух),
-    мы считаем это ошибкой ИИ и меняем вердикт на СПОРНО или ПРАВДА.
-    """
     if verdict != "МИФ":
         return False
     
     exp_lower = explanation.lower()
-    # Ключевые триггеры абсурда
     absurd_triggers = [
         "научно опровергнуто",
         "не работает",
@@ -131,7 +126,6 @@ def _is_absurd_myth(verdict, explanation):
         "не имеет смысла"
     ]
     
-    # Темы, которые ИИ часто ошибочно называет мифами
     sensitive_topics = [
         "гигиена", "мыть руки", "чистота", "дезинфекция", 
         "пить воду", "воздух", "сон", "еда"
@@ -192,12 +186,10 @@ def ask_gigachat(user_text):
             explanation = str(result.get("explanation", ""))
             verdict = _normalize_verdict(result.get("verdict", "НЕЗНАЮ"))
 
-            # --- ГЛАВНЫЙ ФИЛЬТР ОТ АБСУРДА ---
             if _is_absurd_myth(verdict, explanation):
                 print("⚠️ Обнаружен абсурдный ответ от ИИ. Исправляем вердикт на СПОРНО.")
                 verdict = "СПОРНО"
                 explanation = "Существуют научные данные, подтверждающие важность этого фактора, однако степень влияния может варьироваться. Не следует считать это полностью опровергнутым."
-            # ---------------------------------
 
             return {
                 "source": "gigachat",
@@ -280,10 +272,6 @@ def _stem(word):
     return word
 
 def search_sheets(user_text):
-    """
-    Безопасный поиск в Google Sheets.
-    Теперь проверяет наличие листа и колонок, чтобы избежать list index out of range.
-    """
     if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
         return None
     
@@ -297,7 +285,6 @@ def search_sheets(user_text):
         return None
 
     try:
-        # get_all_records() вернет пустой список , если лист пуст, ошибки не будет
         records = ws.get_all_records()
         if not records:
             return None
@@ -313,13 +300,11 @@ def search_sheets(user_text):
         best_score = 0
         
         for row in records:
-            # Безопасное получение колонки 'Утверждение'
             claim = str(row.get('Утверждение', '')).lower()
             if not claim:
                 continue
                 
             score = 0
-            # Подсчет совпадений
             claim_stems = [_stem(w) for w in claim.split()]
             for qs in query_stems:
                 for cs in claim_stems:
@@ -390,7 +375,6 @@ def check_claim():
 
     text_lower = user_text.lower()
 
-    # Приоритет: 1. Локальная база -> 2. Google Таблица -> 3. GigaChat
     result = find_fact(text_lower)
     
     if not result:
@@ -410,7 +394,6 @@ def check_claim():
 
     result["verdict"] = _normalize_verdict(result.get("verdict", "НЕЗНАЮ"))
     
-    # Финальная проверка на абсурд (на случай если GigaChat вернул что-то странное после парсинга)
     if _is_absurd_myth(result["verdict"], result["explanation"]):
         result["verdict"] = "СПОРНО"
         result["explanation"] = "Утверждение имеет под собой научную основу, но требует уточнения контекста. Не является полностью опровергнутым."
@@ -487,13 +470,18 @@ def submit_error():
 
 @app.route('/api/reviews')
 def get_reviews():
+    # ИСПРАВЛЕНО: теперь всегда возвращается валидный JSON
     if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
         return jsonify({"reviews": })
+    
     try:
         sheet = get_sheet()
-        if not sheet: return jsonify({"reviews": })
+        if not sheet:
+            return jsonify({"reviews": })
+        
         ws = ensure_worksheet(sheet, "Reviews")
-        if not ws: return jsonify({"reviews": })
+        if not ws:
+            return jsonify({"reviews": })
         
         records = ws.get_all_records()
         reviews = 
@@ -516,7 +504,6 @@ def register():
     if not username or len(password) < 4:
         return jsonify({"error": "Имя не пустое, пароль от 4 символов"}), 400
 
-    # ЖЕСТКАЯ ПРОВЕРКА: если Sheets нет, регистрация невозможна
     if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
         return jsonify({"error": "База пользователей недоступна: Google Таблицы не подключены. Проверьте переменные окружения."}), 500
 
@@ -529,7 +516,6 @@ def register():
         if not ws:
             return jsonify({"error": "Не удалось создать или найти лист 'Users'. Проверьте права редактора."}), 500
 
-        # Получаем все записи безопасно
         records = ws.get_all_records()
         existing = [str(r.get('Логин', '')).lower() for r in records if r.get('Логин')]
         
@@ -555,10 +541,12 @@ def login():
 
     try:
         sheet = get_sheet()
-        if not sheet: return jsonify({"error": "Таблица не найдена"}), 500
+        if not sheet:
+            return jsonify({"error": "Таблица не найдена"}), 500
         
         ws = ensure_worksheet(sheet, "Users")
-        if not ws: return jsonify({"error": "Лист Users не найден"}), 500
+        if not ws:
+            return jsonify({"error": "Лист Users не найден"}), 500
 
         records = ws.get_all_records()
         for r in records:
@@ -604,7 +592,7 @@ def debug_gigachat():
     except Exception as e:
         info["status"] = "нет ответа"
         info["answer"] = str(e)[:300]
-        info["result"] = "Запрос не дошёл."
+        info["result"] "Запрос не дошёл."
 
     return jsonify(info)
 
