@@ -448,9 +448,31 @@ def submit_review():
     return jsonify({"status": "ok"})
 
 
+@app.route('/api/error', methods=['POST'])
+def submit_error():
+    data = request.get_json() or {}
+    error_text = str(data.get('text', '')).strip()
+
+    if not error_text:
+        return jsonify({"error": "Пустое сообщение"}), 400
+
+    if GS_CLIENT:
+        try:
+            sheet = get_sheet()
+            ensure_worksheet(sheet, "Errors").append_row(
+                [error_text, datetime.now().strftime("%Y-%m-%d %H:%M")])
+            return jsonify({"status": "ok"})
+        except Exception:
+            print("⚠️ Ошибка записи сообщения об ошибке:")
+            traceback.print_exc()
+            return jsonify({"status": "ok", "warning": "Не записано"})
+    print(f"🛠 [ОШИБКА НА САЙТЕ] {error_text}")
+    return jsonify({"status": "ok"})
+
+
 @app.route('/api/reviews')
 def get_reviews():
-    """Отдаёт последние 10 отзывов для блока «Ваши комментарии»."""
+    """Отдаёт последние 10 отзывов для блока «Обсуждение»."""
     if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
         return jsonify({"reviews": []})
     try:
