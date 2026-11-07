@@ -4,8 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Перепроверим — Не верь, а проверь</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=2">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=3">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        // Применяем тему до отрисовки — защита от «мигания» светлым
+        const t = localStorage.getItem('theme');
+        if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark-preload');
+        }
+    </script>
 </head>
 <body>
     <div class="background-blobs">
@@ -13,6 +20,18 @@
         <div class="blob blob-2"></div>
         <div class="blob blob-3"></div>
     </div>
+
+    <!-- Фиксированные кнопки: меню, тема, профиль -->
+    <button class="menu-btn" id="menuBtn" aria-label="Открыть меню">⋮</button>
+    <nav class="menu" id="menu">
+        <a href="#checker">🔍 Проверка мифов</a>
+        <a href="#game">🎮 Миф vs Правда</a>
+        <a href="#suggest">✨ Предложить миф</a>
+        <a href="#reviews">💬 Обсуждение</a>
+        <a href="#report">⚠️ Сообщить об ошибке</a>
+        <a href="#profile">👤 Аккаунт</a>
+    </nav>
+    <button class="theme-btn" id="themeBtn" aria-label="Переключить тему">🌙</button>
 
     <div class="app-container">
         <header>
@@ -29,7 +48,7 @@
             <p><span class="warn-icon">⚠️</span> <strong>Внимание!</strong> Это не медицинская консультация. При проблемах со здоровьем обязательно обратитесь к врачу.</p>
         </div>
 
-        <main class="glass-card">
+        <main class="glass-card" id="checker">
             <!-- Маскот Вера -->
             <div class="mascot" id="mascot">
                 <img id="mascotImage"
@@ -66,16 +85,41 @@
                     </div>
                     <p class="rating-message" id="ratingMessage"></p>
                 </div>
+
+                <!-- Оспорить Веру -->
+                <button class="btn-ghost" id="challengeOpen" hidden>⚔️ Оспорить ответ</button>
+
+                <div class="challenge" id="challengeBlock" hidden>
+                    <h3>Не согласны с Верой? Оспорьте её!</h3>
+                    <textarea id="challengeReason" maxlength="500"
+                        placeholder="Напишите, почему вы не согласны — Вера перепроверит факт..."></textarea>
+                    <button class="btn-secondary" id="challengeSend">Отправить на перепроверку</button>
+                    <div class="challenge-result" id="challengeResult" hidden></div>
+                </div>
             </div>
 
-            <div class="review-section">
+            <!-- Предложить свой миф -->
+            <div class="suggest-section" id="suggest">
+                <h3>✨ Знаете миф, которого у нас нет?</h3>
+                <p class="review-subtitle">Предложите его — мы проверим и добавим в базу!</p>
+                <form id="suggestForm">
+                    <input type="text" id="suggestName" placeholder="Как вас зовут?">
+                    <input type="text" id="suggestMyth" placeholder="Например: «от фото на телефон мутнеет зрение»" required>
+                    <button type="submit" class="btn-secondary">Предложить миф</button>
+                </form>
+                <p class="suggest-status" id="suggestStatus"></p>
+            </div>
+
+            <!-- Сообщить об ошибке -->
+            <div class="review-section" id="report">
                 <h3>🛠 Сообщить об ошибке</h3>
                 <p class="review-subtitle">Нашли опечатку или неточность? Напишите нам!</p>
                 <textarea id="errorText" placeholder="Опишите ошибку: где увидели и что не так..."></textarea>
                 <button class="btn-secondary" onclick="sendError()">Отправить</button>
             </div>
 
-            <div class="auth-section">
+            <!-- Профиль / вход -->
+            <div class="auth-section" id="profile">
                 <h3>👤 Профиль</h3>
                 <div id="authBox">
                     <div class="auth-tabs">
@@ -97,13 +141,42 @@
                 </div>
             </div>
 
-            <div class="comments-section">
+            <!-- Обсуждение -->
+            <div class="comments-section" id="reviews">
                 <h3>💬 Комментарии</h3>
                 <p class="comments-subtitle">Что думают другие?</p>
                 <input type="text" id="commentName" placeholder="Твоё имя">
                 <textarea id="commentText" placeholder="Твой комментарий..." style="height:80px;"></textarea>
                 <button class="btn-secondary" onclick="sendComment()">Отправить</button>
                 <div id="commentsList" style="margin-top:20px;"></div>
+            </div>
+
+            <!-- Игра Миф vs Правда -->
+            <div class="game-section" id="game">
+                <h3>🎮 Миф vs Правда</h3>
+                <p class="game-subtitle">Проверьте свою интуицию — знаете ли вы, где миф, а где правда?</p>
+
+                <div class="game-card">
+                    <div class="game-level" id="gameLevel">Уровень: 🌱 Новичок</div>
+                    <p class="game-statement" id="gameStatement">Загружаем вопрос…</p>
+
+                    <div class="game-buttons">
+                        <button class="btn-myth" id="btnMyth">❌ Миф</button>
+                        <button class="btn-truth" id="btnTruth">✅ Правда</button>
+                    </div>
+
+                    <div class="game-feedback" id="gameFeedback" hidden>
+                        <p class="game-verdict" id="gameVerdict"></p>
+                        <p class="game-explain" id="gameExplain"></p>
+                    </div>
+
+                    <div class="game-score">
+                        <span>Счёт: <b id="gameScore">0</b></span>
+                        <span>Серия: <b id="gameStreak">0</b> 🔥</span>
+                    </div>
+
+                    <button class="btn-secondary" id="btnNext" hidden>Следующий миф →</button>
+                </div>
             </div>
         </main>
 
@@ -113,6 +186,50 @@
     </div>
 
     <script>
+        // ---------- Тема ----------
+        const themeBtn = document.getElementById('themeBtn');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        function applyTheme(theme) {
+            document.body.classList.toggle('dark', theme === 'dark');
+            document.documentElement.classList.remove('dark-preload');
+            if (themeBtn) themeBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
+        }
+
+        applyTheme(localStorage.getItem('theme') || (prefersDark ? 'dark' : 'light'));
+
+        themeBtn.addEventListener('click', function () {
+            const newTheme = document.body.classList.contains('dark') ? 'light' : 'dark';
+            applyTheme(newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
+
+        // ---------- Меню с тремя точками ----------
+        const menuBtn = document.getElementById('menuBtn');
+        const menu = document.getElementById('menu');
+
+        menuBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            menu.classList.toggle('open');
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') menu.classList.remove('open');
+        });
+        document.addEventListener('click', function (e) {
+            if (!menu.contains(e.target) && !menuBtn.contains(e.target)) {
+                menu.classList.remove('open');
+            }
+        });
+        // Клик по пункту меню — закрываем меню и плавно прокручиваем
+        menu.querySelectorAll('a').forEach(function (link) {
+            link.addEventListener('click', function () {
+                menu.classList.remove('open');
+                const target = document.querySelector(link.getAttribute('href'));
+                if (target) target.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+
         // ---------- Маскот ----------
         const mascot = document.getElementById('mascot');
         const mascotImage = document.getElementById('mascotImage');
@@ -166,6 +283,7 @@
 
         // ---------- Проверка факта ----------
         let lastClaim = '';
+        let lastVerdictFull = '';
 
         function sendCheck() {
             const text = document.getElementById('userText').value.trim();
@@ -183,11 +301,12 @@
             fetch('/api/check', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: text })
+                body: JSON.stringify({ text: text, username: currentUser || '' })
             })
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 lastClaim = text;
+                lastVerdictFull = (data.verdict || 'НЕЗНАЮ') + '. ' + (data.explanation || '');
                 document.getElementById('result').classList.remove('hidden');
                 const badge = document.getElementById('verdictBadge');
                 const verdict = (data.verdict || 'НЕЗНАЮ').toUpperCase();
@@ -201,6 +320,9 @@
                 document.getElementById('claimText').textContent = text;
                 document.getElementById('explanationText').textContent = data.explanation || data.answer || '';
                 react(data.verdict || '');
+
+                // Показываем кнопку «Оспорить» — теперь есть что оспаривать
+                document.getElementById('challengeOpen').hidden = false;
             })
             .catch(function () {
                 speech.innerHTML = 'Ой, кажется связь с сервером пропала 📡';
@@ -222,8 +344,90 @@
                 fetch('/api/rate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ claim: lastClaim, rating: Number(val) })
+                    body: JSON.stringify({ claim: lastClaim, rating: Number(val), username: currentUser || '' })
                 }).catch(function () {});
+            });
+        });
+
+        // ---------- Оспорить Веру ----------
+        const challengeOpen = document.getElementById('challengeOpen');
+        const challengeBlock = document.getElementById('challengeBlock');
+        const challengeSend = document.getElementById('challengeSend');
+        const challengeReason = document.getElementById('challengeReason');
+        const challengeResult = document.getElementById('challengeResult');
+
+        challengeOpen.addEventListener('click', function () {
+            challengeBlock.hidden = !challengeBlock.hidden;
+        });
+
+        challengeSend.addEventListener('click', function () {
+            const reason = challengeReason.value.trim();
+            if (reason.length < 5) {
+                challengeResult.hidden = false;
+                challengeResult.textContent = 'Опишите чуть подробнее, почему вы не согласны 🙂';
+                return;
+            }
+
+            challengeSend.disabled = true;
+            challengeSend.textContent = 'Вера перепроверяет...';
+            challengeResult.hidden = true;
+
+            fetch('/api/challenge', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    claim: lastClaim || '',
+                    verdict: lastVerdictFull || '',
+                    reason: reason
+                })
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                challengeResult.hidden = false;
+                challengeResult.textContent = data.answer || data.error || 'Не получилось получить ответ.';
+            })
+            .catch(function () {
+                challengeResult.hidden = false;
+                challengeResult.textContent = 'Сервис перепроверки недоступен. Попробуйте позже!';
+            })
+            .finally(function () {
+                challengeSend.disabled = false;
+                challengeSend.textContent = 'Отправить на перепроверку';
+            });
+        });
+
+        // ---------- Предложить свой миф ----------
+        const suggestForm = document.getElementById('suggestForm');
+
+        suggestForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const status = document.getElementById('suggestStatus');
+            const btn = suggestForm.querySelector('button');
+
+            btn.disabled = true;
+            btn.textContent = 'Отправляем...';
+
+            fetch('/api/suggest', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: currentUser
+                        || document.getElementById('suggestName').value.trim()
+                        || 'Аноним',
+                    myth: document.getElementById('suggestMyth').value.trim()
+                })
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                status.textContent = data.message || data.error || 'Спасибо! Мы проверим ваш миф 💜';
+                if (!data.error) suggestForm.reset();
+            })
+            .catch(function () {
+                status.textContent = 'Не получилось отправить. Попробуйте ещё раз!';
+            })
+            .finally(function () {
+                btn.disabled = false;
+                btn.textContent = 'Предложить миф';
             });
         });
 
@@ -345,6 +549,157 @@
             .catch(function () {});
         }
         loadComments();
+
+        // ---------- Игра «Миф vs Правда» с уровнями ----------
+        const QUESTIONS_FALLBACK = [
+            { statement: 'От долгого чтения в темноте портится зрение', truth: false, difficulty: 1,
+              explain: 'В темноте глаза устают быстрее, но зрение от этого не портится.' },
+            { statement: 'Свежий воздух помогает при простуде', truth: true, difficulty: 1,
+              explain: 'Проветривание снижает концентрацию вирусов в помещении.' },
+            { statement: 'Соль в больших количествах вредит здоровью', truth: true, difficulty: 1,
+              explain: 'ВОЗ рекомендует не более 5 г соли в день — избыток повышает давление.' },
+            { statement: 'Морковка улучшает зрение', truth: false, difficulty: 1,
+              explain: 'Морковь полезна, но вернуть остроту зрения не может — миф времён британской пропаганды.' },
+            { statement: 'Регулярная физическая активность снижает риск сердечных болезней', truth: true, difficulty: 2,
+              explain: 'Одна из самых доказанных истин в медицине.' },
+            { statement: 'От холодной погоды можно простудиться напрямую', truth: false, difficulty: 2,
+              explain: 'Простуду вызывают вирусы, а не мороз — холод лишь ослабляет местный иммунитет носа.' },
+            { statement: 'Приём витамина C предотвращает простуду у всех людей', truth: false, difficulty: 3,
+              explain: 'Исследования показывают лишь небольшое сокращение длительности болезни, но не профилактику.' },
+            { statement: 'Недостаток сна влияет на иммунитет', truth: true, difficulty: 3,
+              explain: 'Хронический недосып снижает выработку защитных клеток крови.' }
+        ];
+
+        const LEVELS = [
+            { name: '🌱 Новичок',   emoji: '🌱', correctNeeded: 0,  maxDifficulty: 1 },
+            { name: '🔥 Знаток',    emoji: '🔥', correctNeeded: 8,  maxDifficulty: 2 },
+            { name: '👑 Профессор', emoji: '👑', correctNeeded: 15, maxDifficulty: 3 }
+        ];
+
+        let gameScore = 0;
+        let gameStreak = 0;
+        let correctTotal = 0;
+        let levelIndex = 0;
+        let gameQueue = [];
+        let currentQuestion = null;
+        let gameLoaded = false;
+
+        const gameStatement = document.getElementById('gameStatement');
+        const gameFeedback = document.getElementById('gameFeedback');
+        const gameVerdict = document.getElementById('gameVerdict');
+        const gameExplain = document.getElementById('gameExplain');
+        const gameScoreEl = document.getElementById('gameScore');
+        const gameStreakEl = document.getElementById('gameStreak');
+        const gameLevelEl = document.getElementById('gameLevel');
+        const btnNext = document.getElementById('btnNext');
+        const btnMyth = document.getElementById('btnMyth');
+        const btnTruth = document.getElementById('btnTruth');
+
+        function shuffle(arr) {
+            const a = [...arr];
+            for (let i = a.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [a[i], a[j]] = [a[j], a[i]];
+            }
+            return a;
+        }
+
+        function currentLevel() {
+            return LEVELS[levelIndex];
+        }
+
+        // Проверяем после каждого ответа, не пора ли повысить уровень
+        function maybeLevelUp() {
+            const next = LEVELS[levelIndex + 1];
+            if (next && correctTotal >= next.correctNeeded) {
+                levelIndex++;
+                showLevelUp();
+            }
+        }
+
+        function showLevelUp() {
+            const lvl = currentLevel();
+            gameLevelEl.textContent = 'Уровень: ' + lvl.emoji + ' ' + lvl.name;
+            gameLevelEl.classList.remove('levelup');
+            void gameLevelEl.offsetWidth;   // перезапуск CSS-анимации
+            gameLevelEl.classList.add('levelup');
+        }
+
+        // Подбор вопроса по текущему уровню сложности
+        function pickNextQuestion() {
+            const maxDiff = currentLevel().maxDifficulty;
+            const allowed = gameQueue.filter(function (q) { return (q.difficulty || 1) <= maxDiff; });
+            // лёгкие кончились — берём любые, чтобы игра не вставала
+            const pool = allowed.length ? allowed : gameQueue;
+            if (!pool.length) {
+                return QUESTIONS_FALLBACK[Math.floor(Math.random() * QUESTIONS_FALLBACK.length)];
+            }
+            return pool[Math.floor(Math.random() * pool.length)];
+        }
+
+        function nextQuestion() {
+            currentQuestion = pickNextQuestion();
+            gameStatement.textContent = currentQuestion.statement;
+            gameFeedback.hidden = true;
+            btnNext.hidden = true;
+            btnMyth.disabled = false;
+            btnTruth.disabled = false;
+        }
+
+        function answer(userSaysTruth) {
+            const correct = userSaysTruth === currentQuestion.truth;
+            btnMyth.disabled = true;
+            btnTruth.disabled = true;
+
+            if (correct) {
+                gameScore++;
+                gameStreak++;
+                correctTotal++;
+            } else {
+                gameStreak = 0;
+            }
+            gameScoreEl.textContent = gameScore;
+            gameStreakEl.textContent = gameStreak;
+
+            maybeLevelUp();
+
+            gameVerdict.textContent = correct ? 'Верно! 🎉' : 'Мимо 😅';
+            gameVerdict.className = 'game-verdict ' + (correct ? 'right' : 'wrong');
+
+            const realVerdict = currentQuestion.truth ? 'Это правда' : 'Это миф';
+            gameExplain.textContent = realVerdict + '. ' + currentQuestion.explain;
+
+            gameFeedback.hidden = false;
+            btnNext.hidden = false;
+        }
+
+        function loadGameQuestions() {
+            fetch('/api/game/questions')
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                gameQueue = (data.questions && data.questions.length) ? data.questions : QUESTIONS_FALLBACK;
+                showLevelUp();
+                nextQuestion();
+            })
+            .catch(function () {
+                gameQueue = QUESTIONS_FALLBACK;   // сервер недоступен — играем на запасном наборе
+                showLevelUp();
+                nextQuestion();
+            });
+        }
+
+        btnMyth.addEventListener('click', function () { answer(false); });
+        btnTruth.addEventListener('click', function () { answer(true); });
+        btnNext.addEventListener('click', nextQuestion);
+
+        // Подгружаем вопросы, когда пользователь долистал до игры
+        const gameSection = document.getElementById('game');
+        gameSection.addEventListener('click', function () {
+            if (!gameLoaded) {
+                gameLoaded = true;
+                loadGameQuestions();
+            }
+        });
     </script>
 </body>
 </html>
