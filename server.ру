@@ -5,8 +5,9 @@ import base64
 import uuid
 import time
 import hashlib
+import random
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, render_template
 from dotenv import load_dotenv
 import gspread
@@ -51,7 +52,44 @@ ALLOWED_VERDICTS = ("МИФ", "ПРАВДА", "СПОРНО", "НЕЗНАЮ")
 AMBULANCE_NOTE = ("Немедленно вызовите скорую помощь: 103 (с мобильного) "
                   "или 112 (единый номер экстренных служб).")
 
+# ============================================================
+# НОВОЕ: КЭШ ПОВТОРНЫХ ЗАПРОСОВ (экономия токенов GigaChat)
+# ============================================================
+CACHE_MAX_SIZE = 500
+_answer_cache = {}  # normalized claim -> {"verdict":..., "explanation":..., "ts":...}
 
+
+def normalize_text(text):
+    """Приводит запрос к одному виду: нижний регистр, без пунктуации, без лишних пробелов."""
+    import re
+    text = str(text).lower().strip()
+    text = re.sub(r"[^\w\s]", " ", text, flags=re.UNICODE)  # убрать пунктуацию
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+def cache_get(key):
+    record = _answer_cache.get(key)
+    if record is None:
+        return None
+    # кэш живёт 3 часа, потом обновим через ИИ
+    if time.time() - record["ts"] > 3 * 3600:
+        _answer_cache.pop(key, None)
+        return None
+    return record
+
+
+def cache_put(key, verdict, explanation):
+    if len(_answer_cache) >= CACHE_MAX_SIZE:
+        # выбрасываем самую старую запись
+        oldest = min(_answer_cache, key=lambda k: _answer_cache[k]["ts"])
+        _answer_cache.pop(oldest, None)
+    _answer_cache[key] = {"verdict": verdict, "explanation": explanation, "ts": time.time()}
+
+
+# ============================================================
+# GigaChat: авторизация
+# ============================================================
 def _gigachat_verify():
     return CERT_PATH if os.path.exists(CERT_PATH) else False
 
@@ -131,6 +169,23 @@ def _normalize_verdict(raw):
     return "НЕЗНАЮ"
 
 
+def _log_usage(prompt_tokens, completion_tokens, purpose):
+    """НОВОЕ: пишем расход токенов в лист Usage — статистика стоимости вопросов."""
+    if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
+        return
+    try:
+        sheet = get_sheet()
+        if sheet is None:
+            return
+        ws = ensure_worksheet(sheet, "Usage")
+        if ws is None:
+            return
+        ws.append_row([purpose, prompt_tokens, completion_tokens,
+                       datetime.now().strftime("%Y-%m-%d %H:%M")])
+    except Exception:
+        pass  # статистика не должна ломать ответы
+
+
 def ask_gigachat(user_text):
     token = get_gigachat_token()
     if not token:
@@ -162,7 +217,8 @@ def ask_gigachat(user_text):
     payload = {
         "model": "GigaChat",
         "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.1
+        "temperature": 0.1,
+        "max_tokens": 400  # НОВОЕ: ограничение длины — меньше токенов на ответ
     }
 
     try:
@@ -175,7 +231,17 @@ def ask_gigachat(user_text):
             timeout=30
         )
         response.raise_for_status()
-        content = response.json()['choices'][0]['message']['content']
+        data = response.json()
+
+        # НОВОЕ: считаем расход токенов
+        usage = data.get("usage") or {}
+        try:
+            _log_usage(usage.get("prompt_tokens", 0),
+                       usage.get("completion_tokens", 0), "check")
+        except Exception:
+            pass
+
+        content = data['choices'][0]['message']['content']
         content = _extract_json(content)
 
         try:
@@ -200,6 +266,77 @@ def ask_gigachat(user_text):
     except Exception as e:
         print(f"❌ Ошибка запроса к GigaChat: {e!r}")
         return None
+
+
+# ============================================================
+# НОВОЕ: ФУНКЦИЯ «ОСПОРИТЬ ВЕРУ» — отдельный вызов GigaChat
+# ============================================================
+CHALLENGE_PROMPT = """Ты — Вера, фактчекер проекта «Перепроверим».
+Утверждение пользователя: {claim}
+Твой прежний вердикт: {verdict}
+Пользователь не согласен и пишет: {reason}
+
+Перепроверь утверждение. Ровно два исхода:
+1) Ты ошиблась. Тогда честно признай: "Признаю, я ошиблась — исправила ответ!",
+   дай новый вердикт (МИФ, ПРАВДА, СПОРНО) и краткое объяснение с опорой
+   на проверенные источники (ВОЗ, Минздрав, научные исследования).
+2) Ты права. Тогда вежливо приведи 2-3 аргумента с опорой на медицинские
+   источники. Без наездов и снисходительности.
+Если утверждение касается экстренного состояния, обязательно упомяни:
+«Немедленно вызовите скорую помощь: 103 (с мобильного) или 112».
+Отвечай по-русски, тепло и по делу, не длиннее 150 слов."""
+
+
+def ask_gigachat_challenge(claim, verdict, reason):
+    """Отдельный текстовый вызов (без JSON) — для перепроверки спорного ответа."""
+    token = get_gigachat_token()
+    if not token:
+        return None
+
+    prompt = CHALLENGE_PROMPT.format(claim=claim, verdict=verdict, reason=reason)
+
+    headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': f'Bearer {token}'
+    }
+    payload = {
+        "model": "GigaChat",
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.3,
+        "max_tokens": 400
+    }
+
+    try:
+        response = requests.post(
+            GIGACHAT_API_URL,
+            headers=headers,
+            json=payload,
+            verify=_gigachat_verify(),
+            proxies=proxies,
+            timeout=30
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        usage = data.get("usage") or {}
+        try:
+            _log_usage(usage.get("prompt_tokens", 0),
+                       usage.get("completion_tokens", 0), "challenge")
+        except Exception:
+            pass
+
+        return data['choices'][0]['message']['content']
+    except Exception as e:
+        print(f"❌ Ошибка запроса «Оспорить» к GigaChat: {e!r}")
+        return None
+
+
+# ============================================================
+# НОВОЕ: ПРОСТОЙ АНТИСПАМ ДЛЯ «ОСПОРИТЬ» (1 запрос в минуту на IP)
+# ============================================================
+_challenge_times = {}
+CHALLENGE_COOLDOWN = 60  # секунд
 
 
 # ---------- Google Sheets ----------
@@ -284,6 +421,12 @@ def _stem(word):
     return word
 
 
+# НОВОЕ: стоп-слова, которые не должны влиять на поиск
+STOPWORDS = {"это", "правда", "или", "миф", "на", "самом", "деле",
+             "вредно", "полезно", "есть", "что", "если", "так", "как",
+             "про", "для", "можно", "нужно", "надо", "все", "очень"}
+
+
 def _match_score(query_stems, claim):
     """Сколько ключевых слов запроса реально есть в утверждении."""
     claim_stems = [_stem(w) for w in claim.split()]
@@ -294,6 +437,16 @@ def _match_score(query_stems, claim):
                 score += 1
                 break
     return score
+
+
+def _word_overlap(query_stems, claim):
+    """НОВОЕ: доля пересечения ключевых слов — второй сигнал для поиска."""
+    claim_stems = set(_stem(w) for w in claim.split())
+    if not query_stems or not claim_stems:
+        return 0.0
+    found = sum(1 for qs in query_stems
+                if any(cs.startswith(qs) or qs.startswith(cs) for cs in claim_stems))
+    return found / len(query_stems)
 
 
 def search_sheets(user_text):
@@ -311,7 +464,8 @@ def search_sheets(user_text):
             return None
 
         user_text = user_text.lower().strip()
-        query_words = [w for w in user_text.split() if len(w) > 3]
+        query_words = [w for w in user_text.split()
+                       if len(w) > 3 and w not in STOPWORDS]
         query_stems = [_stem(w) for w in query_words]
         if not query_stems:
             return None
@@ -327,8 +481,13 @@ def search_sheets(user_text):
                 best_score = score
                 best_row = row
 
-        # Отдаём результат, только если совпало хотя бы половина ключевых слов
-        if best_row and best_score >= max(2, len(query_stems) // 2):
+        # НОВОЕ: комбинированный порог — ключевая перекрытость + совпадение слов.
+        # Если совпало хотя бы 60% ключевых слов И их минимум 2 — принимаем.
+        overlap = _word_overlap(query_stems, str(best_row.get('Утверждение', '')).lower()) \
+            if best_row else 0
+        accepted = best_row and best_score >= max(2, len(query_stems) // 2) and overlap >= 0.6
+
+        if accepted:
             return {
                 "source": "google_sheets",
                 "verdict": best_row.get('Вердикт', 'НЕЗНАЮ'),
@@ -359,7 +518,8 @@ def add_fact_to_sheet(user_text, verdict, explanation):
         traceback.print_exc()
 
 
-def log_to_sheet(user_text, verdict):
+def log_to_sheet(user_text, verdict, username=None):
+    """НОВОЕ: лог теперь пишет и имя пользователя — иначе профиль не соберёт статистику."""
     if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
         return
     try:
@@ -370,7 +530,8 @@ def log_to_sheet(user_text, verdict):
         if ws is None:
             return
         ws.append_row([user_text, verdict,
-                       datetime.now().strftime("%Y-%m-%d %H:%M")])
+                       datetime.now().strftime("%Y-%m-%d %H:%M"),
+                       username or "гость"])
     except Exception:
         print("⚠️ Ошибка логирования:")
         traceback.print_exc()
@@ -379,6 +540,40 @@ def log_to_sheet(user_text, verdict):
 # ---------- Пользователи ----------
 def hash_password(password):
     return hashlib.sha256(password.encode('utf-8')).hexdigest()
+
+
+# ============================================================
+# НОВОЕ: РЕЙТИНГ И УРОВНИ ДЛЯ ЛИЧНОГО КАБИНЕТА
+# ============================================================
+LEVELS = [
+    (0, "🌱 Новичок"),
+    (20, "🔍 Доказатель"),
+    (60, "👑 Хранитель истины"),
+]
+
+
+def level_name(points):
+    current = LEVELS[0][1]
+    for threshold, name in LEVELS:
+        if points >= threshold:
+            current = name
+    return current
+
+
+def count_user_rows(ws, username, column_index=0):
+    """Считает строки листа, где в колонке стоит имя пользователя."""
+    if ws is None or not username:
+        return 0
+    try:
+        values = ws.get_all_values()
+        count = 0
+        for row in values[1:]:  # пропускаем шапку, если она есть
+            if len(row) > column_index and str(row[column_index]).strip().lower() \
+                    == username.strip().lower():
+                count += 1
+        return count
+    except Exception:
+        return 0
 
 
 # ---------- Маршруты ----------
@@ -391,31 +586,41 @@ def index():
 def check_claim():
     data = request.get_json() or {}
     user_text = str(data.get('text', '')).strip()
+    username = str(data.get('username', '')).strip()[:50] or None  # НОВОЕ
 
     if not user_text:
         return jsonify({"error": "Пустой запрос"}), 400
 
     text_lower = user_text.lower()
+    norm_key = normalize_text(text_lower)  # НОВОЕ: ключ кэша и нормализации
 
-    # 1. Локальная база -> 2. Google Таблица -> 3. GigaChat
-    result = find_fact(text_lower)
+    # 1. Локальная база -> 2. Кэш -> 3. Google Таблицы -> 4. GigaChat
+    result = find_fact(norm_key)
     if not result:
-        result = search_sheets(text_lower)
+        cached = cache_get(norm_key)  # НОВОЕ: кэш повторов — ноль токенов
+        if cached:
+            result = {"source": "cache",
+                      "verdict": cached["verdict"],
+                      "explanation": cached["explanation"]}
+    if not result:
+        result = search_sheets(norm_key)
     if not result:
         result = ask_gigachat(text_lower)
 
-        # факт из ИИ дописываем в нашу базу с вердиктом
+        # факт из ИИ дописываем в нашу базу с вердиктом и кладём в кэш
         if result and result.get("verdict") not in ("НЕЗНАЮ", None):
             add_fact_to_sheet(text_lower, result["verdict"],
                               result.get("explanation", ""))
+            cache_put(norm_key, result["verdict"], result.get("explanation", ""))
 
     if not result:
         result = {
             "source": "none",
             "verdict": "НЕЗНАЮ",
-            "explanation": ("Информация не найдена. Сервис работает в "
-                            "офлайн-режиме — попробуйте позже или "
-                            "переформулируйте запрос.")
+            "explanation": ("Я не нашла этот факт в проверенной базе, и сейчас не могу "
+                            "подключить нейросеть. Не верьте домыслам — проверьте "
+                            "утверждение на первоисточниках, например на сайтах "
+                            "Минздрава или ВОЗ, или попробуйте позже.")
         }
 
     result["verdict"] = _normalize_verdict(result.get("verdict", "НЕЗНАЮ"))
@@ -428,10 +633,200 @@ def check_claim():
         result["explanation"] = str(result.get("explanation", "")).rstrip(".") + \
             ". " + AMBULANCE_NOTE
 
-    log_to_sheet(text_lower, result.get("verdict", "НЕЗНАЮ"))
+    log_to_sheet(text_lower, result.get("verdict", "НЕЗНАЮ"), username)
     print(f"[LOG] '{text_lower}' -> {result.get('verdict')} "
-          f"({result.get('source')})")
+          f"({result.get('source')}) user={username or 'гость'}")
     return jsonify(result)
+
+
+# ============================================================
+# НОВОЕ: ОСПОРИТЬ ВЕРУ
+# ============================================================
+@app.route('/api/challenge', methods=['POST'])
+def challenge():
+    data = request.get_json() or {}
+    claim = str(data.get('claim', '')).strip()
+    verdict = str(data.get('verdict', '')).strip()
+    reason = str(data.get('reason', '')).strip()
+
+    if not reason:
+        return jsonify({"error": "Напишите, почему вы не согласны"}), 400
+    if len(reason) < 5:
+        return jsonify({"error": "Опишите причину чуть подробнее"}), 400
+    if len(reason) > 500:
+        return jsonify({"error": "Слишком длинное сообщение — уложитесь в 500 символов"}), 400
+
+    # Антиспам: не чаще 1 раза в минуту с одного адреса
+    ip = request.remote_addr or "?"
+    now = time.time()
+    last = _challenge_times.get(ip, 0)
+    if now - last < CHALLENGE_COOLDOWN:
+        wait = int(CHALLENGE_COOLDOWN - (now - last))
+        return jsonify({"error": f"Подождите {wait} сек. перед новой перепроверкой 🙂"}), 429
+    _challenge_times[ip] = now
+
+    # Спор уходит в лист Disputes на модерацию команды
+    try:
+        sheet = get_sheet()
+        if sheet:
+            ws = ensure_worksheet(sheet, "Disputes")
+            if ws:
+                ws.append_row([claim[:200], reason[:500], "новый", "",
+                               datetime.now().strftime("%Y-%m-%d %H:%M")])
+    except Exception:
+        print("⚠️ Не удалось записать спор:")
+        traceback.print_exc()
+
+    answer = ask_gigachat_challenge(claim, verdict, reason)
+    if not answer:
+        return jsonify({"error": "Не удалось перепроверить ответ. Попробуйте позже"}), 503
+    return jsonify({"answer": answer})
+
+
+# ============================================================
+# НОВОЕ: ПРЕДЛОЖИТЬ СВОЙ МИФ
+# ============================================================
+@app.route('/api/suggest', methods=['POST'])
+def suggest():
+    data = request.get_json() or {}
+    name = str(data.get('name', '') or 'Аноним').strip()[:50] or 'Аноним'
+    myth = str(data.get('myth', '')).strip()[:300]
+
+    if not myth:
+        return jsonify({"error": "Опишите миф, который хотите проверить"}), 400
+    if len(myth) < 10:
+        return jsonify({"error": "Опишите миф чуть подробнее (от 10 символов)"}), 400
+
+    try:
+        sheet = get_sheet()
+        if sheet is None:
+            return jsonify({"error": "Сервис предложений временно недоступен. "
+                                     "Попробуйте позже!"}), 500
+        ws = ensure_worksheet(sheet, "Suggestions")
+        if ws is None:
+            return jsonify({"error": "Сервис предложений временно недоступен. "
+                                     "Попробуйте позже!"}), 500
+        ws.append_row([name, myth, "новое", "",
+                       datetime.now().strftime("%Y-%m-%d %H:%M")])
+        return jsonify({"status": "ok",
+                        "message": "Спасибо! Миф ушёл на проверку — скоро Вера сможет "
+                                   "его оценить 💜"})
+    except Exception:
+        print("⚠️ Ошибка записи предложения:")
+        traceback.print_exc()
+        return jsonify({"error": "Сервис предложений временно недоступен. "
+                                 "Попробуйте позже!"}), 500
+
+
+# ============================================================
+# НОВОЕ: ВОПРОСЫ ДЛЯ ИГРЫ «МИФ VS ПРАВДА» С УРОВНЯМИ СЛОЖНОСТИ
+# ============================================================
+@app.route('/api/game/questions')
+def game_questions():
+    """Отдаёт до 24 случайных мифов из листа Facts.
+    В игру попадают только однозначные вердикты (МИФ/ПРАВДА) —
+    СПОРНО и НЕЗНАЮ ломали бы бинарный выбор.
+    Сложность берём из колонки «Сложность» (1/2/3), если она заполнена."""
+    if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
+        return jsonify({"questions": []})
+    try:
+        sheet = get_sheet()
+        if sheet is None:
+            return jsonify({"questions": []})
+        ws = ensure_worksheet(sheet, "Facts")
+        if ws is None:
+            return jsonify({"questions": []})
+        records = ws.get_all_records()
+        if not records:
+            return jsonify({"questions": []})
+
+        items = []
+        for row in records:
+            claim = str(row.get('Утверждение', '')).strip()
+            verdict = _normalize_verdict(row.get('Вердикт', ''))
+            if not claim or verdict not in ("МИФ", "ПРАВДА"):
+                continue
+            try:
+                difficulty = int(row.get('Сложность') or 1)
+            except (TypeError, ValueError):
+                difficulty = 1
+            difficulty = max(1, min(3, difficulty))
+            items.append({
+                "statement": claim,
+                "truth": verdict == "ПРАВДА",
+                "explain": str(row.get('Объяснение', ''))[:300],
+                "difficulty": difficulty
+            })
+
+        random.shuffle(items)
+        return jsonify({"questions": items[:24]})
+    except Exception:
+        print("⚠️ Ошибка сбора вопросов для игры:")
+        traceback.print_exc()
+        return jsonify({"questions": []})
+
+
+# ============================================================
+# НОВОЕ: ЛИЧНЫЙ КАБИНЕТ — СТАТИСТИКА ИЗ ЛОГОВ
+# ============================================================
+@app.route('/api/profile')
+def profile():
+    username = request.args.get('username', '').strip()
+    if not username:
+        return jsonify({"error": "Не передано имя пользователя"}), 400
+
+    if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
+        return jsonify({"checked": 0, "suggested": 0, "points": 0,
+                        "level": "🌱 Новичок", "activity": [0] * 7,
+                        "warning": "Таблицы не подключены"})
+
+    try:
+        sheet = get_sheet()
+        if sheet is None:
+            return jsonify({"checked": 0, "suggested": 0, "points": 0,
+                            "level": "🌱 Новичок", "activity": [0] * 7,
+                            "warning": "Таблица недоступна"})
+
+        logs_ws = ensure_worksheet(sheet, "Logs")
+        suggest_ws = ensure_worksheet(sheet, "Suggestions")
+
+        checked = count_user_rows(logs_ws, username, column_index=3)   # колонка «Логин»
+        suggested = count_user_rows(suggest_ws, username, column_index=0)
+
+        # Активность за последние 7 дней
+        activity = [0] * 7
+        try:
+            today = datetime.now().date()
+            values = logs_ws.get_all_values() if logs_ws else []
+            for row in values[1:]:
+                if len(row) < 4:
+                    continue
+                if str(row[3]).strip().lower() != username.strip().lower():
+                    continue
+                try:
+                    row_date = datetime.strptime(str(row[2])[:10], "%Y-%m-%d").date()
+                except ValueError:
+                    continue
+                days_ago = (today - row_date).days
+                if 0 <= days_ago < 7:
+                    activity[6 - days_ago] += 1
+        except Exception:
+            pass
+
+        points = checked * 2 + suggested * 5   # предложение мифа ценнее
+        return jsonify({
+            "checked": checked,
+            "suggested": suggested,
+            "points": points,
+            "level": level_name(points),
+            "activity": activity
+        })
+    except Exception:
+        print("⚠️ Ошибка сборки профиля:")
+        traceback.print_exc()
+        return jsonify({"checked": 0, "suggested": 0, "points": 0,
+                        "level": "🌱 Новичок", "activity": [0] * 7,
+                        "warning": "Ошибка подсчёта статистики"})
 
 
 @app.route('/api/rate', methods=['POST'])
@@ -439,6 +834,7 @@ def rate_answer():
     data = request.get_json() or {}
     claim = data.get('claim')
     rating = data.get('rating')
+    username = str(data.get('username', '')).strip()[:50] or None  # НОВОЕ
 
     if not claim or rating is None:
         return jsonify({"error": "Нужны поля 'claim' и 'rating'"}), 400
@@ -448,7 +844,7 @@ def rate_answer():
             sheet = get_sheet()
             ws = ensure_worksheet(sheet, "Ratings")
             if sheet and ws:
-                ws.append_row([claim, rating,
+                ws.append_row([claim, rating, username or "гость",
                                datetime.now().strftime("%Y-%m-%d %H:%M")])
                 return jsonify({"status": "ok"})
             return jsonify({"status": "ok", "warning": "Оценка не записана"})
