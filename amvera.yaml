@@ -1,1 +1,3 @@
-
+git add amvera.yaml
+git commit -m "Add amvera config"
+git push
