@@ -1,6 +1,9 @@
 meta:
   version: "1.0"
   description: "Bot for Google Sheets and GigaChat"
+  toolchain:
+    language: "python"
+    version: "3.10"
 
 application:
   name: "pereproverim-bot"
