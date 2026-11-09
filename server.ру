@@ -2,13 +2,14 @@ import os
 import json
 import traceback
 import base64
+import io
 import uuid
 import time
 import hashlib
 import random
 import requests
-from datetime import datetime, timedelta
-from flask import Flask, request, jsonify, render_template
+from datetime import datetime, timedelta, date
+from flask import Flask, request, jsonify, render_template, Response
 from dotenv import load_dotenv
 import gspread
 from google.oauth2.service_account import Credentials
@@ -51,6 +52,25 @@ _token_cache = {"token": None, "time": 0}
 ALLOWED_VERDICTS = ("МИФ", "ПРАВДА", "СПОРНО", "НЕЗНАЮ")
 AMBULANCE_NOTE = ("Немедленно вызовите скорую помощь: 103 (с мобильного) "
                   "или 112 (единый номер экстренных служб).")
+
+# ============================================================
+# НОВОЕ: АВАТАРЫ И СЕРИЯ ДНЕЙ — настройки и кэш
+# ============================================================
+try:
+    from PIL import Image
+    PIL_OK = True
+except ImportError:
+    PIL_OK = False
+    print("⚠️ Pillow не установлен — сжатие аватарок отключено "
+          "(pip install Pillow), принимаются только маленькие файлы")
+
+AVATAR_MAX_UPLOAD = 2 * 1024 * 1024   # не больше 2 МБ на входе
+AVATAR_SIDE = 256                      # сжимаем до 256x256
+AVATAR_JPEG_QUALITY = 80
+
+# Кэш аватарок в памяти: username -> (bytes, mime, версия)
+# Не переживай о памяти: 256px JPEG — это ~10-20 КБ на человека
+_avatar_cache = {}
 
 # ============================================================
 # КЭШ ПОВТОРНЫХ ЗАПРОСОВ (экономия токенов GigaChat)
@@ -555,6 +575,247 @@ def hash_password(password):
 
 
 # ============================================================
+# НОВОЕ: ПОЛЬЗОВАТЕЛИ В ТАБЛИЦЕ — серия дней и аватары
+# ============================================================
+# В лист Users добавляются колонки (сами, при первом обращении):
+#   «Последний визит» | «Серия» | «Лучшая серия» | «Всего дней» | «Аватар (base64)»
+USER_EXTRA_HEADERS = ["Последний визит", "Серия", "Лучшая серия",
+                      "Всего дней", "Аватар (base64)"]
+
+
+def _users_colmap(ws):
+    """Проверяет/создаёт шапку листа Users и возвращает {имя колонки: номер (с 1)}."""
+    if ws is None:
+        return None
+    try:
+        values = ws.get_all_values()
+        header = values[0] if values else []
+        colmap = {}
+        for i, name in enumerate(header):
+            colmap[str(name).strip()] = i + 1
+        for extra in USER_EXTRA_HEADERS:
+            if extra not in colmap:
+                new_idx = len(header) + 1
+                ws.update_cell(1, new_idx, extra)
+                colmap[extra] = new_idx
+                header.append(extra)
+        return colmap
+    except Exception:
+        print("⚠️ Ошибка чтения шапки Users:")
+        traceback.print_exc()
+        return None
+
+
+def _find_user(ws, colmap, username):
+    """Ищет пользователя по логину. Возвращает (номер_строки, значения_строки) или (None, None).
+    Номер строки — с учётом шапки, как этого ждёт update_cell."""
+    if ws is None or not username:
+        return None, None
+    try:
+        values = ws.get_all_values()
+        target = username.strip().lower()
+        for i, row in enumerate(values[1:]):
+            if row and str(row[0]).strip().lower() == target:
+                return i + 2, row  # +2: шапка в строке 1, список с нуля
+        return None, None
+    except Exception:
+        print("⚠️ Ошибка поиска пользователя:")
+        traceback.print_exc()
+        return None, None
+
+
+def _cell_int(row, col_idx, default=0):
+    try:
+        raw = str(row[col_idx - 1]).strip()
+        return int(float(raw)) if raw else default
+    except (ValueError, IndexError):
+        return default
+
+
+def _cell_str(row, col_idx):
+    try:
+        return str(row[col_idx - 1]).strip()
+    except IndexError:
+        return ""
+
+
+def avatar_url_for(username):
+    return f"/api/avatar/{username}"
+
+
+def get_user_streak_info(username):
+    """Читает серию пользователя из листа Users (без записи). Возвращает словарь."""
+    empty = {"streak": 0, "best_streak": 0, "total_days": 0, "avatar": None}
+    if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID or not username:
+        return empty
+    try:
+        sheet = get_sheet()
+        if sheet is None:
+            return empty
+        ws = ensure_worksheet(sheet, "Users")
+        if ws is None:
+            return empty
+        colmap = _users_colmap(ws)
+        if not colmap:
+            return empty
+        row_idx, row = _find_user(ws, colmap, username)
+        if row_idx is None:
+            return empty
+        return {
+            "streak": _cell_int(row, colmap.get("Серия", 3)),
+            "best_streak": _cell_int(row, colmap.get("Лучшая серия", 4)),
+            "total_days": _cell_int(row, colmap.get("Всего дней", 5)),
+            "avatar": avatar_url_for(username) if _cell_str(row, colmap.get("Аватар (base64)", 6)) else None
+        }
+    except Exception:
+        print("⚠️ Ошибка чтения серии пользователя:")
+        traceback.print_exc()
+        return empty
+
+
+def update_streak_in_sheet(username):
+    """
+    НОВОЕ: серверная серия дней. Вызывается ТОЛЬКО для зарегистрированных
+    пользователей (есть в листе Users). Логика: зашёл сегодня впервые —
+    если был вчера, серия +1, иначе серия обнуляется до 1.
+    Возвращает словарь со свежими данными или None (нет пользователя/таблицы).
+    """
+    if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID or not username:
+        return None
+    try:
+        sheet = get_sheet()
+        if sheet is None:
+            return None
+        ws = ensure_worksheet(sheet, "Users")
+        if ws is None:
+            return None
+        colmap = _users_colmap(ws)
+        if not colmap:
+            return None
+
+        row_idx, row = _find_user(ws, colmap, username)
+        if row_idx is None:
+            return None  # только зарегистрированные копят серию
+
+        today = date.today().isoformat()
+        yesterday = (date.today() - timedelta(days=1)).isoformat()
+
+        c_last = colmap.get("Последний визит", 2)
+        c_streak = colmap.get("Серия", 3)
+        c_best = colmap.get("Лучшая серия", 4)
+        c_total = colmap.get("Всего дней", 5)
+
+        last_visit = _cell_str(row, c_last)
+        streak = _cell_int(row, c_streak)
+        best = _cell_int(row, c_best)
+        total = _cell_int(row, c_total)
+
+        if last_visit != today:
+            streak = streak + 1 if last_visit == yesterday else 1
+            total += 1
+            best = max(best, streak)
+            ws.update_cell(row_idx, c_last, today)
+            ws.update_cell(row_idx, c_streak, streak)
+            ws.update_cell(row_idx, c_best, best)
+            ws.update_cell(row_idx, c_total, total)
+
+        avatar_cell = _cell_str(row, colmap.get("Аватар (base64)", 6))
+        return {
+            "streak": streak,
+            "best_streak": best,
+            "total_days": total,
+            "avatar": avatar_url_for(username) if avatar_cell else None
+        }
+    except Exception:
+        print("⚠️ Ошибка обновления серии:")
+        traceback.print_exc()
+        return None
+
+
+def _save_avatar_b64(username, data_bytes, mime):
+    """Сохраняет аватар в лист Users (base64) и сбрасывает кэш."""
+    if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
+        return False
+    try:
+        sheet = get_sheet()
+        if sheet is None:
+            return False
+        ws = ensure_worksheet(sheet, "Users")
+        if ws is None:
+            return False
+        colmap = _users_colmap(ws)
+        if not colmap:
+            return False
+        row_idx, _row = _find_user(ws, colmap, username)
+        if row_idx is None:
+            return False
+        encoded = base64.b64encode(data_bytes).decode('ascii')
+        # лимит ячейки Google Sheets — 50 000 символов
+        if len(encoded) > 45000:
+            return False
+        ws.update_cell(row_idx, colmap.get("Аватар (base64)", 6), encoded)
+        version = hashlib.md5(data_bytes).hexdigest()[:8]
+        _avatar_cache[username.lower()] = (data_bytes, mime, version)
+        return True
+    except Exception:
+        print("⚠️ Ошибка сохранения аватара:")
+        traceback.print_exc()
+        return False
+
+
+def _load_avatar_bytes(username):
+    """Достаёт аватар из кэша или из таблицы. Возвращает (bytes, mime, version) или None."""
+    key = (username or "").strip().lower()
+    if not key:
+        return None
+    if key in _avatar_cache:
+        return _avatar_cache[key]
+    if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
+        return None
+    try:
+        sheet = get_sheet()
+        if sheet is None:
+            return None
+        ws = ensure_worksheet(sheet, "Users")
+        if ws is None:
+            return None
+        colmap = _users_colmap(ws)
+        if not colmap:
+            return None
+        row_idx, row = _find_user(ws, colmap, key)
+        if row_idx is None:
+            return None
+        encoded = _cell_str(row, colmap.get("Аватар (base64)", 6))
+        if not encoded:
+            return None
+        data = base64.b64decode(encoded)
+        record = (data, "image/jpeg", hashlib.md5(data).hexdigest()[:8])
+        _avatar_cache[key] = record
+        return record
+    except Exception:
+        print("⚠️ Ошибка чтения аватара:")
+        traceback.print_exc()
+        return None
+
+
+def _shrink_image(raw_bytes):
+    """Сжимает картинку до квадрата 256px JPEG. Возвращает (bytes, mime) или None."""
+    if not PIL_OK:
+        return None
+    try:
+        img = Image.open(io.BytesIO(raw_bytes))
+        img = img.convert("RGB")
+        img.thumbnail((AVATAR_SIDE, AVATAR_SIDE))
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=AVATAR_JPEG_QUALITY)
+        return buf.getvalue(), "image/jpeg"
+    except Exception:
+        print("⚠️ Не удалось обработать изображение:")
+        traceback.print_exc()
+        return None
+
+
+# ============================================================
 # РЕЙТИНГ И УРОВНИ ДЛЯ ЛИЧНОГО КАБИНЕТА
 # ============================================================
 LEVELS = [
@@ -649,6 +910,82 @@ def check_claim():
     print(f"[LOG] '{text_lower}' -> {result.get('verdict')} "
           f"({result.get('source')}) user={username or 'гость'}")
     return jsonify(result)
+
+
+# ============================================================
+# НОВОЕ: ОТМЕТКА ВИЗИТА — серверная серия дней
+# ============================================================
+@app.route('/api/visit', methods=['POST'])
+def api_visit():
+    """Регистрирует визит сегодня. Серия копится ТОЛЬКО у пользователей
+    из листа Users — у гостей запрос вежливо отклоняется."""
+    data = request.get_json() or {}
+    username = str(data.get('username', '')).strip()[:50]
+    if not username:
+        return jsonify({"error": "Серия копится только у зарегистрированных"}), 400
+
+    if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
+        return jsonify({"error": "База пользователей недоступна"}), 503
+
+    info = update_streak_in_sheet(username)
+    if info is None:
+        return jsonify({"error": "Пользователь не найден — "
+                                 "серия копится только после регистрации"}), 404
+    return jsonify({"status": "ok", **info})
+
+
+# ============================================================
+# НОВОЕ: АВАТАР — загрузка (свой) и просмотр (любой)
+# ============================================================
+@app.route('/api/avatar', methods=['POST'])
+def upload_avatar():
+    username = str(request.form.get('username', '')).strip()[:50]
+    if not username:
+        return jsonify({"error": "Сначала войдите в аккаунт"}), 400
+    if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
+        return jsonify({"error": "База пользователей недоступна"}), 503
+
+    file = request.files.get('avatar')
+    if not file or not file.filename:
+        return jsonify({"error": "Файл не выбран"}), 400
+
+    raw = file.read()
+    if len(raw) > AVATAR_MAX_UPLOAD:
+        return jsonify({"error": "Файл больше 2 МБ"}), 400
+
+    if PIL_OK:
+        processed = _shrink_image(raw)
+        if not processed:
+            return jsonify({"error": "Это не похоже на изображение"}), 400
+        data_bytes, mime = processed
+    else:
+        # без Pillow принимаем только маленькие файлы, чтобы влезть в ячейку
+        if len(raw) > 40000:
+            return jsonify({"error": "Установите Pillow на сервере или "
+                                     "выберите картинку поменьше (до 40 КБ)"}), 400
+        data_bytes, mime = raw, file.mimetype or "image/png"
+
+    if not _save_avatar_b64(username, data_bytes, mime):
+        return jsonify({"error": "Не удалось сохранить аватар"}), 500
+
+    version = hashlib.md5(data_bytes).hexdigest()[:8]
+    print(f"🖼 Аватар обновлён: {username} ({len(data_bytes)} байт)")
+    return jsonify({"status": "ok",
+                    "avatar": f"{avatar_url_for(username)}?v={version}"})
+
+
+@app.route('/api/avatar/<username>')
+def get_avatar(username):
+    """Аватар любого пользователя — его видят все, например в комментариях."""
+    record = _load_avatar_bytes(username)
+    if record is None:
+        return jsonify({"error": "Аватар не найден"}), 404
+    data, mime, version = record
+    resp = Response(data, mimetype=mime)
+    # кэшируем в браузере на сутки + версия в URL позволяет обновлять мгновенно
+    resp.headers["Cache-Control"] = "public, max-age=86400"
+    resp.headers["ETag"] = version
+    return resp
 
 
 # ============================================================
@@ -782,7 +1119,7 @@ def game_questions():
 
 
 # ============================================================
-# ЛИЧНЫЙ КАБИНЕТ — СТАТИСТИКА ИЗ ЛОГОВ
+# ЛИЧНЫЙ КАБИНЕТ — СТАТИСТИКА ИЗ ЛОГОВ (+ НОВОЕ: серия и аватар)
 # ============================================================
 @app.route('/api/profile')
 def profile():
@@ -790,17 +1127,19 @@ def profile():
     if not username:
         return jsonify({"error": "Не передано имя пользователя"}), 400
 
+    base = {"checked": 0, "suggested": 0, "points": 0,
+            "level": "🌱 Новичок", "activity": [0] * 7,
+            "streak": 0, "best_streak": 0, "total_days": 0, "avatar": None}
+
     if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
-        return jsonify({"checked": 0, "suggested": 0, "points": 0,
-                        "level": "🌱 Новичок", "activity": [0] * 7,
-                        "warning": "Таблицы не подключены"})
+        base["warning"] = "Таблицы не подключены"
+        return jsonify(base)
 
     try:
         sheet = get_sheet()
         if sheet is None:
-            return jsonify({"checked": 0, "suggested": 0, "points": 0,
-                            "level": "🌱 Новичок", "activity": [0] * 7,
-                            "warning": "Таблица недоступна"})
+            base["warning"] = "Таблица недоступна"
+            return jsonify(base)
 
         logs_ws = ensure_worksheet(sheet, "Logs")
         suggest_ws = ensure_worksheet(sheet, "Suggestions")
@@ -829,19 +1168,26 @@ def profile():
             pass
 
         points = checked * 2 + suggested * 5   # предложение мифа ценнее
+
+        # НОВОЕ: серия дней и аватар из листа Users
+        streak_info = get_user_streak_info(username)
+
         return jsonify({
             "checked": checked,
             "suggested": suggested,
             "points": points,
             "level": level_name(points),
-            "activity": activity
+            "activity": activity,
+            "streak": streak_info.get("streak", 0),
+            "best_streak": streak_info.get("best_streak", 0),
+            "total_days": streak_info.get("total_days", 0),
+            "avatar": streak_info.get("avatar")
         })
     except Exception:
         print("⚠️ Ошибка сборки профиля:")
         traceback.print_exc()
-        return jsonify({"checked": 0, "suggested": 0, "points": 0,
-                        "level": "🌱 Новичок", "activity": [0] * 7,
-                        "warning": "Ошибка подсчёта статистики"})
+        base["warning"] = "Ошибка подсчёта статистики"
+        return jsonify(base)
 
 
 @app.route('/api/rate', methods=['POST'])
@@ -923,7 +1269,9 @@ def submit_error():
 
 @app.route('/api/reviews')
 def get_reviews():
-    """Отдаёт последние 10 отзывов для блока «Обсуждение»."""
+    """Отдаёт последние 10 отзывов для блока «Обсуждение».
+    НОВОЕ: к каждому отзыву прикладываем ссылку на аватар автора,
+    если он зарегистрирован и загрузил картинку."""
     if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
         return jsonify({"reviews": []})
     try:
@@ -936,10 +1284,15 @@ def get_reviews():
         records = ws.get_all_records()
         reviews = []
         for r in records[-10:]:
+            name = str(r.get('Имя', 'Аноним') or 'Аноним')
+            avatar = None
+            if _load_avatar_bytes(name):
+                avatar = avatar_url_for(name)
             reviews.append({
-                "name": str(r.get('Имя', 'Аноним') or 'Аноним'),
+                "name": name,
                 "text": str(r.get('Отзыв', '')),
-                "date": str(r.get('Дата', ''))
+                "date": str(r.get('Дата', '')),
+                "avatar": avatar
             })
         return jsonify({"reviews": reviews})
     except Exception:
@@ -977,8 +1330,18 @@ def register():
         if username.lower() in existing:
             return jsonify({"error": "Такое имя уже занято"}), 400
 
+        # НОВОЕ: при регистрации сразу пишем стартовые значения серии,
+        # чтобы колонки существовали с первого дня
         ws.append_row([username, hash_password(password),
                        datetime.now().strftime("%Y-%m-%d %H:%M")])
+
+        # И сразу засчитываем первый день серии
+        try:
+            _users_colmap(ws)
+            update_streak_in_sheet(username)
+        except Exception:
+            pass  # серия не критична для успешной регистрации
+
         print(f"👤 Новый пользователь: {username}")
         return jsonify({"status": "ok", "username": username})
     except Exception as e:
