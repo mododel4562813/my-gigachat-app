@@ -219,10 +219,10 @@ async function loadReviews() {
         list.innerHTML = data.reviews.map(r => `
             <div class="comment">
                 <div class="comment-header">
-                    <span class="comment-author">${r.name}</span>
-                    <span class="comment-date">${r.date}</span>
+                    <span class="comment-author">\${r.name}</span>
+                    <span class="comment-date">\${r.date}</span>
                 </div>
-                <p class="comment-text">${r.text}</p>
+                <p class="comment-text">\${r.text}</p>
             </div>
         `).join('');
     } catch (e) {
@@ -348,7 +348,7 @@ let gameScore = 0;
 let gameStreak = 0;
 let correctTotal = 0;
 let levelIndex = 0;
-let gameQueue = [];
+let gameQueue = ;
 let currentQuestion = null;
 let gameLoaded = false;
 
@@ -492,7 +492,7 @@ async function loadProfile(username) {
 
         // Полоски активности за 7 дней
         activityBars.innerHTML = '';
-        const maxCount = Math.max(...(data.activity || [0]), 1);
+        const maxCount = Math.max(...(data.activity ||), 1);
         (data.activity || [0, 0, 0, 0, 0, 0, 0]).forEach(count => {
             const bar = document.createElement('div');
             bar.className = 'activity-bar';
