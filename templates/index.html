@@ -3,360 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Перепроверим — Не верь, а проверь</title>
+    <title>Перепроверим</title>
+    <!-- ИСПРАВЛЕНО: Используем url_for для корректной работы на сервере -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script>
-        // Защита от мерцания темы
-        const t = localStorage.getItem('theme');
-        if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        }
-    </script>
 </head>
 <body>
-    <!-- Фон -->
-    <div class="background-blobs">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
-        <div class="blob blob-3"></div>
-    </div>
+    
+    <!-- Кнопка переключения темы -->
+    <button id="theme-toggle" class="theme-btn" title="Сменить тему">🌙</button>
 
-    <!-- Кнопки управления -->
-    <button class="menu-btn" id="menuBtn" aria-label="Открыть меню" onclick="toggleMenu()">⋮</button>
-    <nav class="menu" id="menu">
-        <a href="#" onclick="switchTab('home')" class="active">🔍 Проверка мифов</a>
-        <a href="#" onclick="switchTab('game')">🎮 Миф vs Правда</a>
-        <a href="#" onclick="switchTab('suggest')">✨ Предложить миф</a>
-        <a href="#" onclick="switchTab('reviews')">💬 Обсуждение</a>
-        <a href="#" onclick="switchTab('report')">⚠️ Сообщить об ошибке</a>
-        <a href="#" onclick="switchTab('profile')">👤 Аккаунт</a>
+    <!-- Гамбургер меню -->
+    <button class="menu-toggle" id="menu-btn">☰ Меню</button>
+
+    <!-- Само меню (скрыто по умолчанию в CSS) -->
+    <nav class="mobile-menu" id="mobile-menu">
+        <a href="#">Проверка мифов</a>
+        <a href="#">Миф vs Правда</a>
+        <a href="#">Предложить миф</a>
+        <a href="#">Обсуждение</a>
+        <a href="#">Сообщить об ошибке</a>
+        <a href="#">Аккаунт</a>
     </nav>
-    <button class="theme-btn" id="themeBtn" aria-label="Переключить тему" onclick="toggleTheme()">🌙</button>
 
-    <div class="app-container">
+    <main>
         <header>
-            <div class="logo">
-                <span class="logo-icon">✨</span>
-                <h1>Перепроверим</h1>
-                <span class="logo-icon">✨</span>
-            </div>
-            <p class="slogan">Не верь, а проверь</p>
+            <h1>Перепроверим</h1>
+            <p>НЕ ВЕРЬ, А ПРОВЕРЬ</p>
         </header>
 
-        <!-- Дисклеймер -->
-        <div class="disclaimer">
-            <p><span class="warn-icon">⚠️</span> <strong>Внимание!</strong> Это не медицинская консультация. При проблемах со здоровьем обязательно обратитесь к врачу.</p>
+        <div class="warning-box">
+            <strong>Внимание!</strong> Это не медицинская консультация. При проблемах со здоровьем обязательно обратитесь к врачу.
         </div>
 
-        <main class="glass-card">
+        <div class="hero-section">
+            <!-- Сюда можно добавить картинку через url_for, если нужно -->
+            <h2>Не уверен, правда это или миф?</h2>
+            <p>Введи сомнительное медицинское утверждение — Вера разберёт его с опорой на надёжные источники.</p>
             
-            <!-- ВКЛАДКА 1: ГЛАВНАЯ (Проверка + Предложение) -->
-            <div class="tab-panel active" id="panelHome">
-                <div class="mascot" id="mascot">
-                    <!-- Замени src на путь к твоей картинке Веры -->
-                    <img id="mascotImage" src="{{ url_for('static', filename='vera_hello.png') }}" alt="Вера">
-                    <div class="mascot-speech" id="mascotSpeech">Привет! Я Вера. Напиши мне любой медицинский миф, который тебя смущает, и я всё разберу!</div>
-                </div>
+            <input type="text" placeholder="Например: вакцины вызывают аутизм..." class="search-input">
+            <button class="primary-btn">Проверить факт</button>
+        </div>
 
-                <div class="hero-section">
-                    <h2 class="hero-title">Не уверен, правда это или миф?</h2>
-                    <p class="hero-subtitle">Введи сомнительное медицинское утверждение — Вера разберёт его с опорой на надёжные источники.</p>
-                </div>
-
-                <textarea id="userText" placeholder="Например: вакцины вызывают аутизм..."></textarea>
-                <button id="checkBtn" onclick="sendCheck()">
-                    <span id="btnText">Проверить факт</span>
-                </button>
-
-                <div id="result" class="result hidden">
-                    <div class="verdict-badge" id="verdictBadge"></div>
-                    <h3 class="claim-text" id="claimText"></h3>
-                    <div class="explanation-box">
-                        <p id="explanationText"></p>
-                    </div>
-
-                    <div class="rating-section">
-                        <p>Насколько полезен ответ?</p>
-                        <div class="hearts">
-                            <span class="heart" data-value="1">❤️</span>
-                            <span class="heart" data-value="2">❤️</span>
-                            <span class="heart" data-value="3">❤️</span>
-                            <span class="heart" data-value="4">❤️</span>
-                            <span class="heart" data-value="5">❤️</span>
-                        </div>
-                        <p class="rating-message" id="ratingMessage"></p>
-                    </div>
-                </div>
-
-                <div class="suggest-section" id="suggest">
-                    <h3>✨ Знаете миф, которого у нас нет?</h3>
-                    <p class="review-subtitle">Предложите его — мы проверим и добавим в базу!</p>
-                    <form id="suggestForm" onsubmit="sendSuggest(event)">
-                        <input type="text" id="suggestName" placeholder="Как вас зовут?">
-                        <input type="text" id="suggestMyth" placeholder="Например: «от фото на телефон мутнеет зрение»" required>
-                        <button type="submit" class="btn-secondary">Предложить миф</button>
-                    </form>
-                    <p class="suggest-status" id="suggestStatus"></p>
-                </div>
-            </div>
-
-            <!-- ВКЛАДКА 2: ИГРА -->
-            <div class="tab-panel" id="panelGame">
-                <div class="game-section">
-                    <h3>🎮 Миф vs Правда</h3>
-                    <p class="game-subtitle">Проверьте свою интуицию — знаете ли вы, где миф, а где правда?</p>
-                    <div class="game-card">
-                        <div class="game-level" id="gameLevel">Уровень: 🌱 Новичок</div>
-                        <p class="game-statement" id="gameStatement">Загружаем вопрос…</p>
-                        <div class="game-buttons">
-                            <button class="btn-myth" id="btnMyth" onclick="checkAnswer('myth')">❌ Миф</button>
-                            <button class="btn-truth" id="btnTruth" onclick="checkAnswer('truth')">✅ Правда</button>
-                        </div>
-                        <div class="game-feedback" id="gameFeedback" hidden>
-                            <p class="game-verdict" id="gameVerdict"></p>
-                            <p class="game-explain" id="gameExplain"></p>
-                        </div>
-                        <div class="game-score">
-                            <span>Счёт: <b id="gameScore">0</b></span>
-                            <span>Серия: <b id="gameStreak">0</b> 🔥</span>
-                        </div>
-                        <button class="btn-secondary" id="btnNext" hidden onclick="nextQuestion()">Следующий миф →</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ВКЛАДКА 3: ОБСУЖДЕНИЕ -->
-            <div class="tab-panel" id="panelReviews">
-                <div class="comments-section" style="border-top:none; padding-top:0; margin-top:0;">
-                    <h3>💬 Комментарии</h3>
-                    <p class="comments-subtitle">Что думают другие?</p>
-                    <input type="text" id="commentName" placeholder="Твоё имя">
-                    <textarea id="commentText" placeholder="Твой комментарий..." style="height:80px;"></textarea>
-                    <button class="btn-secondary" onclick="sendComment()">Отправить</button>
-                    <div id="commentsList" style="margin-top:20px;"></div>
-                </div>
-            </div>
-
-            <!-- ВКЛАДКА 4: ОШИБКИ -->
-            <div class="tab-panel" id="panelReport">
-                <div class="review-section" style="border-top:none; padding-top:0; margin-top:0;">
-                    <h3>🛠 Сообщить об ошибке</h3>
-                    <p class="review-subtitle">Нашли опечатку или неточность? Напишите нам!</p>
-                    <textarea id="errorText" placeholder="Опишите ошибку: где увидели и что не так..."></textarea>
-                    <button class="btn-secondary" onclick="sendError()">Отправить</button>
-                </div>
-            </div>
-
-            <!-- ВКЛАДКА 5: ПРОФИЛЬ -->
-            <div class="tab-panel" id="panelProfile">
-                <div class="auth-section" style="border-top:none; padding-top:0; margin-top:0;">
-                    <h3>👤 Профиль</h3>
-                    <div id="authBox">
-                        <div class="auth-tabs">
-                            <button id="tabLogin" class="active" onclick="switchTabAuth('login')">Вход</button>
-                            <button id="tabRegister" onclick="switchTabAuth('register')">Регистрация</button>
-                        </div>
-                        <div class="auth-fields">
-                            <input type="text" id="authUsername" placeholder="Имя пользователя">
-                            <input type="password" id="authPassword" placeholder="Пароль (от 4 символов)">
-                        </div>
-                        <div class="auth-btn-wrapper">
-                            <button id="authBtn" class="btn-secondary" onclick="doAuth()">Войти</button>
-                        </div>
-                        <p id="authStatus" class="auth-status"></p>
-                    </div>
-                    <div id="userBox" class="hidden">
-                        <span class="user-chip" id="userChip"></span>
-                        <button class="btn-secondary" style="margin-top:12px;" onclick="logout()">Выйти</button>
-                    </div>
-                </div>
-            </div>
-
-        </main>
-
-        <footer class="project-footer">
+        <footer>
             <p>©2026 Проект «Перепроверим» для чемпионата «Медицина 2050»</p>
         </footer>
-    </div>
+    </main>
 
-    <script>
-        // --- Логика переключения вкладок ---
-        function switchTab(tabName) {
-            // Скрываем все панели
-            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-            // Убираем активный класс у ссылок меню
-            document.querySelectorAll('.menu a').forEach(a => a.classList.remove('active'));
-            
-            // Показываем нужную
-            document.getElementById('panel' + tabName).classList.add('active');
-            
-            // Подсветка кнопки в меню (упрощенно)
-            const menuLinks = document.querySelectorAll('.menu a');
-            menuLinks.forEach((link, index) => {
-                if(index === 0 && tabName === 'home') link.classList.add('active');
-                if(index === 1 && tabName === 'game') link.classList.add('active');
-                if(index === 2 && tabName === 'suggest') link.classList.add('active');
-                if(index === 3 && tabName === 'reviews') link.classList.add('active');
-                if(index === 4 && tabName === 'report') link.classList.add('active');
-                if(index === 5 && tabName === 'profile') link.classList.add('active');
-            });
-            
-            closeMenu();
-        }
-
-        function toggleMenu() {
-            const menu = document.getElementById('menu');
-            menu.classList.toggle('open');
-        }
-
-        function closeMenu() {
-            document.getElementById('menu').classList.remove('open');
-        }
-
-        function toggleTheme() {
-            document.documentElement.classList.toggle('dark');
-            localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
-        }
-
-        // --- Логика проверки факта (Заглушка) ---
-        function sendCheck() {
-            const text = document.getElementById('userText').value.trim();
-            if (!text) return alert('Введите утверждение!');
-            
-            const btn = document.getElementById('checkBtn');
-            const resultDiv = document.getElementById('result');
-            const btnText = document.getElementById('btnText');
-            
-            btn.disabled = true;
-            btnText.innerText = 'Вера думает... 🧠';
-            resultDiv.classList.remove('hidden');
-
-            // Имитация ответа API (через 1.5 сек)
-            setTimeout(() => {
-                const isMyth = Math.random() > 0.5;
-                
-                document.getElementById('verdictBadge').innerText = isMyth ? 'МИФ' : 'ПРАВДА';
-                document.getElementById('verdictBadge').className = `verdict-badge \${isMyth ? 'mif' : 'pravda'}`;
-                document.getElementById('claimText').innerText = text;
-                document.getElementById('explanationText').innerText = isMyth 
-                    ? 'Это распространенное заблуждение. Научных подтверждений этому нет.' 
-                    : 'Это правда. Исследования подтверждают данную связь.';
-                
-                btn.disabled = false;
-                btnText.innerText = 'Проверить факт';
-            }, 1500);
-        }
-
-        // --- Логика предложения мифа ---
-        function sendSuggest(e) {
-            e.preventDefault();
-            const status = document.getElementById('suggestStatus');
-            status.innerText = 'Спасибо! Мы получили ваш миф и проверим его.';
-            status.style.color = '#10B981';
-            document.getElementById('suggestForm').reset();
-        }
-
-        // --- Логика игры (Заглушка) ---
-        function checkAnswer(answer) {
-            const feedback = document.getElementById('gameFeedback');
-            const verdict = document.getElementById('gameVerdict');
-            const explain = document.getElementById('gameExplain');
-            const nextBtn = document.getElementById('btnNext');
-            
-            feedback.hidden = false;
-            nextBtn.hidden = false;
-            
-            if (answer === 'myth') {
-                verdict.innerText = 'Верно! Это миф!';
-                verdict.style.color = '#10B981';
-                explain.innerText = 'На самом деле, это не так работает...';
-                document.getElementById('gameScore').innerText = parseInt(document.getElementById('gameScore').innerText) + 1;
-            } else {
-                verdict.innerText = 'Неверно! Это правда.';
-                verdict.style.color = '#EF4444';
-                explain.innerText = 'Да, исследования подтверждают это.';
-                document.getElementById('gameStreak').innerText = 0;
-            }
-        }
-
-        function nextQuestion() {
-            document.getElementById('gameStatement').innerText = 'Новый вопрос загружается...';
-            document.getElementById('gameFeedback').hidden = true;
-            document.getElementById('btnNext').hidden = true;
-            setTimeout(() => {
-                document.getElementById('gameStatement').innerText = 'Чеснок защищает от вирусов';
-            }, 500);
-        }
-
-        // --- Логика рейтинга (клики по сердцам) ---
-        document.querySelectorAll('.heart').forEach(heart => {
-            heart.addEventListener('click', function() {
-                document.querySelectorAll('.heart').forEach(h => h.classList.remove('active'));
-                this.classList.add('active');
-                document.getElementById('ratingMessage').innerText = 'Спасибо за оценку!';
-            });
-        });
-
-        // --- Логика авторизации (Заглушка) ---
-        function switchTabAuth(type) {
-            const loginBtn = document.getElementById('tabLogin');
-            const regBtn = document.getElementById('tabRegister');
-            const fields = document.querySelectorAll('.auth-fields input');
-            
-            if (type === 'login') {
-                loginBtn.classList.add('active');
-                regBtn.classList.remove('active');
-                fields.placeholder = 'Имя пользователя';
-                fields.placeholder = 'Пароль';
-            } else {
-                loginBtn.classList.remove('active');
-                regBtn.classList.add('active');
-                fields.placeholder = 'Придумайте имя';
-                fields.placeholder = 'Придумайте пароль';
-            }
-        }
-
-        function doAuth() {
-            const user = document.getElementById('authUsername').value;
-            const pass = document.getElementById('authPassword').value;
-            if (!user || !pass) return alert('Заполните поля');
-            
-            document.getElementById('authBox').hidden = true;
-            document.getElementById('userBox').hidden = false;
-            document.getElementById('userChip').innerText = 'Пользователь: ' + user;
-        }
-
-        function logout() {
-            document.getElementById('authBox').hidden = false;
-            document.getElementById('userBox').hidden = true;
-            document.getElementById('authUsername').value = '';
-            document.getElementById('authPassword').value = '';
-        }
-
-        function sendComment() {
-            const name = document.getElementById('commentName').value;
-            const text = document.getElementById('commentText').value;
-            if (!name || !text) return alert('Заполните поля');
-            
-            const list = document.getElementById('commentsList');
-            const div = document.createElement('div');
-            div.className = 'comment';
-            div.innerHTML = `
-                <div class="comment-header">
-                    <span class="comment-author">\${name}</span>
-                    <span>\${new Date().toLocaleTimeString()}</span>
-                </div>
-                <div class="comment-text">\${text}</div>
-            `;
-            list.prepend(div);
-            document.getElementById('commentName').value = '';
-            document.getElementById('commentText').value = '';
-        }
-
-        function sendError() {
-            alert('Сообщение об ошибке отправлено разработчикам!');
-        }
-    </script>
+    <!-- ИСПРАВЛЕНО: Скрипт подключен в конце body -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
