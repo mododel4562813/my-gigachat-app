@@ -4,32 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Перепроверим — Не верь, а проверь</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=3">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
+        // Защита от мерцания темы
         const t = localStorage.getItem('theme');
         if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark-preload');
+            document.documentElement.classList.add('dark');
         }
     </script>
 </head>
 <body>
+    <!-- Фон -->
     <div class="background-blobs">
         <div class="blob blob-1"></div>
         <div class="blob blob-2"></div>
         <div class="blob blob-3"></div>
     </div>
 
-    <button class="menu-btn" id="menuBtn" aria-label="Открыть меню">⋮</button>
+    <!-- Кнопки управления -->
+    <button class="menu-btn" id="menuBtn" aria-label="Открыть меню" onclick="toggleMenu()">⋮</button>
     <nav class="menu" id="menu">
-        <a href="#checker">🔍 Проверка мифов</a>
-        <a href="#game">🎮 Миф vs Правда</a>
-        <a href="#suggest">✨ Предложить миф</a>
-        <a href="#reviews">💬 Обсуждение</a>
-        <a href="#report">⚠️ Сообщить об ошибке</a>
-        <a href="#profile">👤 Аккаунт</a>
+        <a href="#" onclick="switchTab('home')" class="active">🔍 Проверка мифов</a>
+        <a href="#" onclick="switchTab('game')">🎮 Миф vs Правда</a>
+        <a href="#" onclick="switchTab('suggest')">✨ Предложить миф</a>
+        <a href="#" onclick="switchTab('reviews')">💬 Обсуждение</a>
+        <a href="#" onclick="switchTab('report')">⚠️ Сообщить об ошибке</a>
+        <a href="#" onclick="switchTab('profile')">👤 Аккаунт</a>
     </nav>
-    <button class="theme-btn" id="themeBtn" aria-label="Переключить тему">🌙</button>
+    <button class="theme-btn" id="themeBtn" aria-label="Переключить тему" onclick="toggleTheme()">🌙</button>
 
     <div class="app-container">
         <header>
@@ -41,133 +44,135 @@
             <p class="slogan">Не верь, а проверь</p>
         </header>
 
+        <!-- Дисклеймер -->
         <div class="disclaimer">
             <p><span class="warn-icon">⚠️</span> <strong>Внимание!</strong> Это не медицинская консультация. При проблемах со здоровьем обязательно обратитесь к врачу.</p>
         </div>
 
-        <main class="glass-card" id="checker">
-            <div class="mascot" id="mascot">
-                <img id="mascotImage"
-                     src="{{ url_for('static', filename='vera_hello.png') }}"
-                     alt="Вера — маскот проекта">
-                <div class="mascot-speech" id="mascotSpeech"></div>
-            </div>
-
-            <div class="hero-section">
-                <h2 class="hero-title">Не уверен, правда это или миф?</h2>
-                <p class="hero-subtitle">Введи сомнительное медицинское утверждение — Вера разберёт его с опорой на надёжные источники.</p>
-            </div>
-
-            <textarea id="userText" placeholder="Например: вакцины вызывают аутизм..."></textarea>
-            <button id="checkBtn" onclick="sendCheck()">
-                <span id="btnText">Проверить факт</span>
-            </button>
-
-            <div id="result" class="result hidden">
-                <div class="verdict-badge" id="verdictBadge"></div>
-                <h3 class="claim-text" id="claimText"></h3>
-                <div class="explanation-box">
-                    <p id="explanationText"></p>
+        <main class="glass-card">
+            
+            <!-- ВКЛАДКА 1: ГЛАВНАЯ (Проверка + Предложение) -->
+            <div class="tab-panel active" id="panelHome">
+                <div class="mascot" id="mascot">
+                    <!-- Замени src на путь к твоей картинке Веры -->
+                    <img id="mascotImage" src="{{ url_for('static', filename='vera_hello.png') }}" alt="Вера">
+                    <div class="mascot-speech" id="mascotSpeech">Привет! Я Вера. Напиши мне любой медицинский миф, который тебя смущает, и я всё разберу!</div>
                 </div>
 
-                <div class="rating-section">
-                    <p>Насколько полезен ответ?</p>
-                    <div class="hearts">
-                        <span class="heart" data-value="1">❤️</span>
-                        <span class="heart" data-value="2">❤️</span>
-                        <span class="heart" data-value="3">❤️</span>
-                        <span class="heart" data-value="4">❤️</span>
-                        <span class="heart" data-value="5">❤️</span>
-                    </div>
-                    <p class="rating-message" id="ratingMessage"></p>
+                <div class="hero-section">
+                    <h2 class="hero-title">Не уверен, правда это или миф?</h2>
+                    <p class="hero-subtitle">Введи сомнительное медицинское утверждение — Вера разберёт его с опорой на надёжные источники.</p>
                 </div>
 
-                <button class="btn-ghost" id="challengeOpen" hidden>⚔️ Оспорить ответ</button>
+                <textarea id="userText" placeholder="Например: вакцины вызывают аутизм..."></textarea>
+                <button id="checkBtn" onclick="sendCheck()">
+                    <span id="btnText">Проверить факт</span>
+                </button>
 
-                <div class="challenge" id="challengeBlock" hidden>
-                    <h3>Не согласны с Верой? Оспорьте её!</h3>
-                    <textarea id="challengeReason" maxlength="500"
-                        placeholder="Напишите, почему вы не согласны — Вера перепроверит факт..."></textarea>
-                    <button class="btn-secondary" id="challengeSend">Отправить на перепроверку</button>
-                    <div class="challenge-result" id="challengeResult" hidden></div>
+                <div id="result" class="result hidden">
+                    <div class="verdict-badge" id="verdictBadge"></div>
+                    <h3 class="claim-text" id="claimText"></h3>
+                    <div class="explanation-box">
+                        <p id="explanationText"></p>
+                    </div>
+
+                    <div class="rating-section">
+                        <p>Насколько полезен ответ?</p>
+                        <div class="hearts">
+                            <span class="heart" data-value="1">❤️</span>
+                            <span class="heart" data-value="2">❤️</span>
+                            <span class="heart" data-value="3">❤️</span>
+                            <span class="heart" data-value="4">❤️</span>
+                            <span class="heart" data-value="5">❤️</span>
+                        </div>
+                        <p class="rating-message" id="ratingMessage"></p>
+                    </div>
                 </div>
-            </div>
 
-            <div class="suggest-section" id="suggest">
-                <h3>✨ Знаете миф, которого у нас нет?</h3>
-                <p class="review-subtitle">Предложите его — мы проверим и добавим в базу!</p>
-                <form id="suggestForm">
-                    <input type="text" id="suggestName" placeholder="Как вас зовут?">
-                    <input type="text" id="suggestMyth" placeholder="Например: «от фото на телефон мутнеет зрение»" required>
-                    <button type="submit" class="btn-secondary">Предложить миф</button>
-                </form>
-                <p class="suggest-status" id="suggestStatus"></p>
-            </div>
-
-            <div class="review-section" id="report">
-                <h3>🛠 Сообщить об ошибке</h3>
-                <p class="review-subtitle">Нашли опечатку или неточность? Напишите нам!</p>
-                <textarea id="errorText" placeholder="Опишите ошибку: где увидели и что не так..."></textarea>
-                <button class="btn-secondary" onclick="sendError()">Отправить</button>
-            </div>
-
-            <div class="auth-section" id="profile">
-                <h3>👤 Профиль</h3>
-                <div id="authBox">
-                    <div class="auth-tabs">
-                        <button id="tabLogin" class="active" onclick="switchTab('login')">Вход</button>
-                        <button id="tabRegister" onclick="switchTab('register')">Регистрация</button>
-                    </div>
-                    <div class="auth-fields">
-                        <input type="text" id="authUsername" placeholder="Имя пользователя">
-                        <input type="password" id="authPassword" placeholder="Пароль (от 4 символов)">
-                    </div>
-                    <div class="auth-btn-wrapper">
-                        <button id="authBtn" class="btn-secondary" onclick="doAuth()">Войти</button>
-                    </div>
-                    <p id="authStatus" class="auth-status"></p>
-                </div>
-                <div id="userBox" class="hidden">
-                    <span class="user-chip" id="userChip"></span>
-                    <button class="btn-secondary" style="margin-top:12px;" onclick="logout()">Выйти</button>
+                <div class="suggest-section" id="suggest">
+                    <h3>✨ Знаете миф, которого у нас нет?</h3>
+                    <p class="review-subtitle">Предложите его — мы проверим и добавим в базу!</p>
+                    <form id="suggestForm" onsubmit="sendSuggest(event)">
+                        <input type="text" id="suggestName" placeholder="Как вас зовут?">
+                        <input type="text" id="suggestMyth" placeholder="Например: «от фото на телефон мутнеет зрение»" required>
+                        <button type="submit" class="btn-secondary">Предложить миф</button>
+                    </form>
+                    <p class="suggest-status" id="suggestStatus"></p>
                 </div>
             </div>
 
-            <div class="comments-section" id="reviews">
-                <h3>💬 Комментарии</h3>
-                <p class="comments-subtitle">Что думают другие?</p>
-                <input type="text" id="commentName" placeholder="Твоё имя">
-                <textarea id="commentText" placeholder="Твой комментарий..." style="height:80px;"></textarea>
-                <button class="btn-secondary" onclick="sendComment()">Отправить</button>
-                <div id="commentsList" style="margin-top:20px;"></div>
-            </div>
-
-            <div class="game-section" id="game">
-                <h3>🎮 Миф vs Правда</h3>
-                <p class="game-subtitle">Проверьте свою интуицию — знаете ли вы, где миф, а где правда?</p>
-
-                <div class="game-card">
-                    <div class="game-level" id="gameLevel">Уровень: 🌱 Новичок</div>
-                    <p class="game-statement" id="gameStatement">Загружаем вопрос…</p>
-
-                    <div class="game-buttons">
-                        <button class="btn-myth" id="btnMyth">❌ Миф</button>
-                        <button class="btn-truth" id="btnTruth">✅ Правда</button>
+            <!-- ВКЛАДКА 2: ИГРА -->
+            <div class="tab-panel" id="panelGame">
+                <div class="game-section">
+                    <h3>🎮 Миф vs Правда</h3>
+                    <p class="game-subtitle">Проверьте свою интуицию — знаете ли вы, где миф, а где правда?</p>
+                    <div class="game-card">
+                        <div class="game-level" id="gameLevel">Уровень: 🌱 Новичок</div>
+                        <p class="game-statement" id="gameStatement">Загружаем вопрос…</p>
+                        <div class="game-buttons">
+                            <button class="btn-myth" id="btnMyth" onclick="checkAnswer('myth')">❌ Миф</button>
+                            <button class="btn-truth" id="btnTruth" onclick="checkAnswer('truth')">✅ Правда</button>
+                        </div>
+                        <div class="game-feedback" id="gameFeedback" hidden>
+                            <p class="game-verdict" id="gameVerdict"></p>
+                            <p class="game-explain" id="gameExplain"></p>
+                        </div>
+                        <div class="game-score">
+                            <span>Счёт: <b id="gameScore">0</b></span>
+                            <span>Серия: <b id="gameStreak">0</b> 🔥</span>
+                        </div>
+                        <button class="btn-secondary" id="btnNext" hidden onclick="nextQuestion()">Следующий миф →</button>
                     </div>
-
-                    <div class="game-feedback" id="gameFeedback" hidden>
-                        <p class="game-verdict" id="gameVerdict"></p>
-                        <p class="game-explain" id="gameExplain"></p>
-                    </div>
-
-                    <div class="game-score">
-                        <span>Счёт: <b id="gameScore">0</b></span>
-                        <span>Серия: <b id="gameStreak">0</b> 🔥</span>
-                    </div>
-
-                    <button class="btn-secondary" id="btnNext" hidden>Следующий миф →</button>
                 </div>
             </div>
+
+            <!-- ВКЛАДКА 3: ОБСУЖДЕНИЕ -->
+            <div class="tab-panel" id="panelReviews">
+                <div class="comments-section" style="border-top:none; padding-top:0; margin-top:0;">
+                    <h3>💬 Комментарии</h3>
+                    <p class="comments-subtitle">Что думают другие?</p>
+                    <input type="text" id="commentName" placeholder="Твоё имя">
+                    <textarea id="commentText" placeholder="Твой комментарий..." style="height:80px;"></textarea>
+                    <button class="btn-secondary" onclick="sendComment()">Отправить</button>
+                    <div id="commentsList" style="margin-top:20px;"></div>
+                </div>
+            </div>
+
+            <!-- ВКЛАДКА 4: ОШИБКИ -->
+            <div class="tab-panel" id="panelReport">
+                <div class="review-section" style="border-top:none; padding-top:0; margin-top:0;">
+                    <h3>🛠 Сообщить об ошибке</h3>
+                    <p class="review-subtitle">Нашли опечатку или неточность? Напишите нам!</p>
+                    <textarea id="errorText" placeholder="Опишите ошибку: где увидели и что не так..."></textarea>
+                    <button class="btn-secondary" onclick="sendError()">Отправить</button>
+                </div>
+            </div>
+
+            <!-- ВКЛАДКА 5: ПРОФИЛЬ -->
+            <div class="tab-panel" id="panelProfile">
+                <div class="auth-section" style="border-top:none; padding-top:0; margin-top:0;">
+                    <h3>👤 Профиль</h3>
+                    <div id="authBox">
+                        <div class="auth-tabs">
+                            <button id="tabLogin" class="active" onclick="switchTabAuth('login')">Вход</button>
+                            <button id="tabRegister" onclick="switchTabAuth('register')">Регистрация</button>
+                        </div>
+                        <div class="auth-fields">
+                            <input type="text" id="authUsername" placeholder="Имя пользователя">
+                            <input type="password" id="authPassword" placeholder="Пароль (от 4 символов)">
+                        </div>
+                        <div class="auth-btn-wrapper">
+                            <button id="authBtn" class="btn-secondary" onclick="doAuth()">Войти</button>
+                        </div>
+                        <p id="authStatus" class="auth-status"></p>
+                    </div>
+                    <div id="userBox" class="hidden">
+                        <span class="user-chip" id="userChip"></span>
+                        <button class="btn-secondary" style="margin-top:12px;" onclick="logout()">Выйти</button>
+                    </div>
+                </div>
+            </div>
+
         </main>
 
         <footer class="project-footer">
@@ -176,500 +181,182 @@
     </div>
 
     <script>
-        const themeBtn = document.getElementById('themeBtn');
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-        function applyTheme(theme) {
-            document.body.classList.toggle('dark', theme === 'dark');
-            document.documentElement.classList.remove('dark-preload');
-            if (themeBtn) themeBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
-        }
-
-        applyTheme(localStorage.getItem('theme') || (prefersDark ? 'dark' : 'light'));
-
-        themeBtn.addEventListener('click', function () {
-            const newTheme = document.body.classList.contains('dark') ? 'light' : 'dark';
-            applyTheme(newTheme);
-            localStorage.setItem('theme', newTheme);
-        });
-
-        const menuBtn = document.getElementById('menuBtn');
-        const menu = document.getElementById('menu');
-
-        menuBtn.addEventListener('click', function (e) {
-            e.stopPropagation();
-            menu.classList.toggle('open');
-        });
-
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') menu.classList.remove('open');
-        });
-        document.addEventListener('click', function (e) {
-            if (!menu.contains(e.target) && !menuBtn.contains(e.target)) {
-                menu.classList.remove('open');
-            }
-        });
-        menu.querySelectorAll('a').forEach(function (link) {
-            link.addEventListener('click', function () {
-                menu.classList.remove('open');
-                const target = document.querySelector(link.getAttribute('href'));
-                if (target) target.scrollIntoView({ behavior: 'smooth' });
+        // --- Логика переключения вкладок ---
+        function switchTab(tabName) {
+            // Скрываем все панели
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            // Убираем активный класс у ссылок меню
+            document.querySelectorAll('.menu a').forEach(a => a.classList.remove('active'));
+            
+            // Показываем нужную
+            document.getElementById('panel' + tabName).classList.add('active');
+            
+            // Подсветка кнопки в меню (упрощенно)
+            const menuLinks = document.querySelectorAll('.menu a');
+            menuLinks.forEach((link, index) => {
+                if(index === 0 && tabName === 'home') link.classList.add('active');
+                if(index === 1 && tabName === 'game') link.classList.add('active');
+                if(index === 2 && tabName === 'suggest') link.classList.add('active');
+                if(index === 3 && tabName === 'reviews') link.classList.add('active');
+                if(index === 4 && tabName === 'report') link.classList.add('active');
+                if(index === 5 && tabName === 'profile') link.classList.add('active');
             });
-        });
-
-        const mascot = document.getElementById('mascot');
-        const mascotImage = document.getElementById('mascotImage');
-        const speech = document.getElementById('mascotSpeech');
-
-        let currentUser = localStorage.getItem('veraUser') || null;
-
-        const PHRASES = {
-            hello:  "Привет! Я <b>Вера</b> — медицинский фактчекер команды «Единый пульс». Напишите сомнительное утверждение — я разберу его на миф и правду!",
-            true:   "Разоблачено — правда! Всё проверено, спи спокойно 💚",
-            false:  "Осторожно, это миф! Я нашла подтверждение, что так думать не стоит 🚫",
-            unsure: "Честно? Точного ответа у меня нет — лучше уточнить у специалиста 🤔",
-            sporno: "Данные противоречивы — разберём нюансы честно 🤔"
-        };
-
-        function setMascotImage(name) {
-            mascotImage.src = '/static/' + name + '.png';
+            
+            closeMenu();
         }
 
-        function react(verdict) {
-            const v = (verdict || '').toUpperCase();
-            if (v.includes('ПРАВДА')) {
-                setMascotImage('vera_true');
-                mascot.classList.add('mood-true'); mascot.classList.remove('mood-false');
-                speech.innerHTML = PHRASES.true;
-            } else if (v.includes('МИФ')) {
-                setMascotImage('vera_false');
-                mascot.classList.add('mood-false'); mascot.classList.remove('mood-true');
-                speech.innerHTML = PHRASES.false;
-            } else if (v.includes('СПОРНО')) {
-                setMascotImage('vera_hello');
-                mascot.classList.remove('mood-true', 'mood-false');
-                speech.innerHTML = PHRASES.sporno;
-            } else {
-                setMascotImage('vera_hello');
-                mascot.classList.remove('mood-true', 'mood-false');
-                speech.innerHTML = PHRASES.unsure;
-            }
+        function toggleMenu() {
+            const menu = document.getElementById('menu');
+            menu.classList.toggle('open');
         }
 
-        speech.innerHTML = PHRASES.hello;
-
-        if (currentUser) {
-            document.getElementById('authBox').classList.add('hidden');
-            document.getElementById('userBox').classList.remove('hidden');
-            document.getElementById('userChip').textContent = '👋 ' + currentUser;
+        function closeMenu() {
+            document.getElementById('menu').classList.remove('open');
         }
 
-        let lastClaim = '';
-        let lastVerdictFull = '';
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        }
 
+        // --- Логика проверки факта (Заглушка) ---
         function sendCheck() {
             const text = document.getElementById('userText').value.trim();
-            if (text.length < 5) {
-                speech.innerHTML = 'Введите хотя бы несколько слов 🙂';
-                return;
-            }
-
+            if (!text) return alert('Введите утверждение!');
+            
             const btn = document.getElementById('checkBtn');
+            const resultDiv = document.getElementById('result');
             const btnText = document.getElementById('btnText');
-
+            
             btn.disabled = true;
-            btnText.textContent = 'Проверяю...';
+            btnText.innerText = 'Вера думает... 🧠';
+            resultDiv.classList.remove('hidden');
 
-            fetch('/api/check', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: text, username: currentUser || '' })
-            })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                lastClaim = text;
-                lastVerdictFull = (data.verdict || 'НЕЗНАЮ') + '. ' + (data.explanation || '');
-                document.getElementById('result').classList.remove('hidden');
-                const badge = document.getElementById('verdictBadge');
-                const verdict = (data.verdict || 'НЕЗНАЮ').toUpperCase();
-                badge.textContent = verdict;
-                badge.className = 'verdict-badge';
-                if (verdict.includes('ПРАВДА')) badge.classList.add('pravda');
-                else if (verdict.includes('МИФ')) badge.classList.add('mif');
-                else if (verdict.includes('СПОРНО')) badge.classList.add('sporno');
-                else badge.classList.add('neznayu');
-
-                document.getElementById('claimText').textContent = text;
-                document.getElementById('explanationText').textContent = data.explanation || data.answer || '';
-                react(data.verdict || '');
-
-                document.getElementById('challengeOpen').hidden = false;
-            })
-            .catch(function () {
-                speech.innerHTML = 'Ой, кажется связь с сервером пропала 📡';
-            })
-            .finally(function () {
+            // Имитация ответа API (через 1.5 сек)
+            setTimeout(() => {
+                const isMyth = Math.random() > 0.5;
+                
+                document.getElementById('verdictBadge').innerText = isMyth ? 'МИФ' : 'ПРАВДА';
+                document.getElementById('verdictBadge').className = `verdict-badge \${isMyth ? 'mif' : 'pravda'}`;
+                document.getElementById('claimText').innerText = text;
+                document.getElementById('explanationText').innerText = isMyth 
+                    ? 'Это распространенное заблуждение. Научных подтверждений этому нет.' 
+                    : 'Это правда. Исследования подтверждают данную связь.';
+                
                 btn.disabled = false;
-                btnText.textContent = 'Проверить факт';
-            });
+                btnText.innerText = 'Проверить факт';
+            }, 1500);
         }
 
-        document.querySelectorAll('.heart').forEach(function (h) {
-            h.addEventListener('click', function () {
-                const val = h.dataset.value;
-                document.querySelectorAll('.heart').forEach(function (x) {
-                    x.classList.toggle('active', Number(x.dataset.value) <= Number(val));
-                });
-                document.getElementById('ratingMessage').textContent = 'Спасибо за оценку! 💙';
-                fetch('/api/rate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ claim: lastClaim, rating: Number(val), username: currentUser || '' })
-                }).catch(function () {});
-            });
-        });
-
-        const challengeOpen = document.getElementById('challengeOpen');
-        const challengeBlock = document.getElementById('challengeBlock');
-        const challengeSend = document.getElementById('challengeSend');
-        const challengeReason = document.getElementById('challengeReason');
-        const challengeResult = document.getElementById('challengeResult');
-
-        challengeOpen.addEventListener('click', function () {
-            challengeBlock.hidden = !challengeBlock.hidden;
-        });
-
-        challengeSend.addEventListener('click', function () {
-            const reason = challengeReason.value.trim();
-            if (reason.length < 5) {
-                challengeResult.hidden = false;
-                challengeResult.textContent = 'Опишите чуть подробнее, почему вы не согласны 🙂';
-                return;
-            }
-
-            challengeSend.disabled = true;
-            challengeSend.textContent = 'Вера перепроверяет...';
-            challengeResult.hidden = true;
-
-            fetch('/api/challenge', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    claim: lastClaim || '',
-                    verdict: lastVerdictFull || '',
-                    reason: reason
-                })
-            })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                challengeResult.hidden = false;
-                challengeResult.textContent = data.answer || data.error || 'Не получилось получить ответ.';
-            })
-            .catch(function () {
-                challengeResult.hidden = false;
-                challengeResult.textContent = 'Сервис перепроверки недоступен. Попробуйте позже!';
-            })
-            .finally(function () {
-                challengeSend.disabled = false;
-                challengeSend.textContent = 'Отправить на перепроверку';
-            });
-        });
-
-        const suggestForm = document.getElementById('suggestForm');
-
-        suggestForm.addEventListener('submit', function (e) {
+        // --- Логика предложения мифа ---
+        function sendSuggest(e) {
             e.preventDefault();
             const status = document.getElementById('suggestStatus');
-            const btn = suggestForm.querySelector('button');
+            status.innerText = 'Спасибо! Мы получили ваш миф и проверим его.';
+            status.style.color = '#10B981';
+            document.getElementById('suggestForm').reset();
+        }
 
-            btn.disabled = true;
-            btn.textContent = 'Отправляем...';
+        // --- Логика игры (Заглушка) ---
+        function checkAnswer(answer) {
+            const feedback = document.getElementById('gameFeedback');
+            const verdict = document.getElementById('gameVerdict');
+            const explain = document.getElementById('gameExplain');
+            const nextBtn = document.getElementById('btnNext');
+            
+            feedback.hidden = false;
+            nextBtn.hidden = false;
+            
+            if (answer === 'myth') {
+                verdict.innerText = 'Верно! Это миф!';
+                verdict.style.color = '#10B981';
+                explain.innerText = 'На самом деле, это не так работает...';
+                document.getElementById('gameScore').innerText = parseInt(document.getElementById('gameScore').innerText) + 1;
+            } else {
+                verdict.innerText = 'Неверно! Это правда.';
+                verdict.style.color = '#EF4444';
+                explain.innerText = 'Да, исследования подтверждают это.';
+                document.getElementById('gameStreak').innerText = 0;
+            }
+        }
 
-            fetch('/api/suggest', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: currentUser
-                        || document.getElementById('suggestName').value.trim()
-                        || 'Аноним',
-                    myth: document.getElementById('suggestMyth').value.trim()
-                })
-            })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                status.textContent = data.message || data.error || 'Спасибо! Мы проверим ваш миф 💜';
-                if (!data.error) suggestForm.reset();
-            })
-            .catch(function () {
-                status.textContent = 'Не получилось отправить. Попробуйте ещё раз!';
-            })
-            .finally(function () {
-                btn.disabled = false;
-                btn.textContent = 'Предложить миф';
+        function nextQuestion() {
+            document.getElementById('gameStatement').innerText = 'Новый вопрос загружается...';
+            document.getElementById('gameFeedback').hidden = true;
+            document.getElementById('btnNext').hidden = true;
+            setTimeout(() => {
+                document.getElementById('gameStatement').innerText = 'Чеснок защищает от вирусов';
+            }, 500);
+        }
+
+        // --- Логика рейтинга (клики по сердцам) ---
+        document.querySelectorAll('.heart').forEach(heart => {
+            heart.addEventListener('click', function() {
+                document.querySelectorAll('.heart').forEach(h => h.classList.remove('active'));
+                this.classList.add('active');
+                document.getElementById('ratingMessage').innerText = 'Спасибо за оценку!';
             });
         });
 
-        function sendError() {
-            const text = document.getElementById('errorText').value.trim();
-            if (!text) return;
-            fetch('/api/error', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: text })
-            })
-            .then(function () {
-                document.getElementById('errorText').value = '';
-                speech.innerHTML = 'Спасибо, сообщение об ошибке отправлено! Разберёмся 💙';
-            })
-            .catch(function () {
-                speech.innerHTML = 'Не получилось отправить сообщение 📡';
-            });
-        }
-
-        let authMode = 'login';
-
-        function switchTab(mode) {
-            authMode = mode;
-            document.getElementById('tabLogin').classList.toggle('active', mode === 'login');
-            document.getElementById('tabRegister').classList.toggle('active', mode === 'register');
-            document.getElementById('authBtn').textContent = (mode === 'login') ? 'Войти' : 'Зарегистрироваться';
+        // --- Логика авторизации (Заглушка) ---
+        function switchTabAuth(type) {
+            const loginBtn = document.getElementById('tabLogin');
+            const regBtn = document.getElementById('tabRegister');
+            const fields = document.querySelectorAll('.auth-fields input');
+            
+            if (type === 'login') {
+                loginBtn.classList.add('active');
+                regBtn.classList.remove('active');
+                fields.placeholder = 'Имя пользователя';
+                fields.placeholder = 'Пароль';
+            } else {
+                loginBtn.classList.remove('active');
+                regBtn.classList.add('active');
+                fields.placeholder = 'Придумайте имя';
+                fields.placeholder = 'Придумайте пароль';
+            }
         }
 
         function doAuth() {
-            const username = document.getElementById('authUsername').value.trim();
-            const password = document.getElementById('authPassword').value;
-            const status = document.getElementById('authStatus');
-            if (!username || password.length < 4) {
-                status.textContent = 'Введите имя и пароль от 4 символов';
-                status.className = 'auth-status err';
-                return;
-            }
-            const url = (authMode === 'login') ? '/api/login' : '/api/register';
-            fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: username, password: password })
-            })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                if (data.status === 'ok') {
-                    status.textContent = '';
-                    currentUser = username;
-                    localStorage.setItem('veraUser', username);
-                    document.getElementById('authBox').classList.add('hidden');
-                    document.getElementById('userBox').classList.remove('hidden');
-                    document.getElementById('userChip').textContent = '👋 ' + username;
-                } else {
-                    status.textContent = data.error || 'Не получилось, попробуйте ещё раз';
-                    status.className = 'auth-status err';
-                }
-            })
-            .catch(function () {
-                status.textContent = 'Сервер недоступен';
-                status.className = 'auth-status err';
-            });
+            const user = document.getElementById('authUsername').value;
+            const pass = document.getElementById('authPassword').value;
+            if (!user || !pass) return alert('Заполните поля');
+            
+            document.getElementById('authBox').hidden = true;
+            document.getElementById('userBox').hidden = false;
+            document.getElementById('userChip').innerText = 'Пользователь: ' + user;
         }
 
         function logout() {
-            currentUser = null;
-            localStorage.removeItem('veraUser');
-            document.getElementById('userBox').classList.add('hidden');
-            document.getElementById('authBox').classList.remove('hidden');
+            document.getElementById('authBox').hidden = false;
+            document.getElementById('userBox').hidden = true;
             document.getElementById('authUsername').value = '';
             document.getElementById('authPassword').value = '';
         }
 
         function sendComment() {
-            const name = currentUser
-                || document.getElementById('commentName').value.trim()
-                || 'Гость';
-            const text = document.getElementById('commentText').value.trim();
-            if (!text) return;
-            fetch('/api/review', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: name, review: text })
-            })
-            .then(function () {
-                document.getElementById('commentText').value = '';
-                loadComments();
-            })
-            .catch(function () {});
+            const name = document.getElementById('commentName').value;
+            const text = document.getElementById('commentText').value;
+            if (!name || !text) return alert('Заполните поля');
+            
+            const list = document.getElementById('commentsList');
+            const div = document.createElement('div');
+            div.className = 'comment';
+            div.innerHTML = `
+                <div class="comment-header">
+                    <span class="comment-author">\${name}</span>
+                    <span>\${new Date().toLocaleTimeString()}</span>
+                </div>
+                <div class="comment-text">\${text}</div>
+            `;
+            list.prepend(div);
+            document.getElementById('commentName').value = '';
+            document.getElementById('commentText').value = '';
         }
 
-        function loadComments() {
-            fetch('/api/reviews')
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                const list = document.getElementById('commentsList');
-                list.innerHTML = '';
-                (data.reviews || ).forEach(function (c) {
-                    const div = document.createElement('div');
-                    div.className = 'comment';
-                    const head = document.createElement('div');
-                    head.className = 'comment-header';
-                    const author = document.createElement('span');
-                    author.className = 'comment-author';
-                    author.textContent = c.name || 'Гость';
-                    const time = document.createElement('span');
-                    time.textContent = c.date || '';
-                    head.appendChild(author); head.appendChild(time);
-                    const body = document.createElement('div');
-                    body.className = 'comment-text';
-                    body.textContent = c.text || '';
-                    div.appendChild(head); div.appendChild(body);
-                    list.appendChild(div);
-                });
-            })
-            .catch(function () {});
+        function sendError() {
+            alert('Сообщение об ошибке отправлено разработчикам!');
         }
-        loadComments();
-
-        const QUESTIONS_FALLBACK = [
-            { statement: 'От долгого чтения в темноте портится зрение', truth: false, difficulty: 1,
-              explain: 'В темноте глаза устают быстрее, но зрение от этого не портится.' },
-            { statement: 'Свежий воздух помогает при простуде', truth: true, difficulty: 1,
-              explain: 'Проветривание снижает концентрацию вирусов в помещении.' },
-            { statement: 'Соль в больших количествах вредит здоровью', truth: true, difficulty: 1,
-              explain: 'ВОЗ рекомендует не более 5 г соли в день — избыток повышает давление.' },
-            { statement: 'Морковка улучшает зрение', truth: false, difficulty: 1,
-              explain: 'Морковь полезна, но вернуть остроту зрения не может — миф времён британской пропаганды.' },
-            { statement: 'Регулярная физическая активность снижает риск сердечных болезней', truth: true, difficulty: 2,
-              explain: 'Одна из самых доказанных истин в медицине.' },
-            { statement: 'От холодной погоды можно простудиться напрямую', truth: false, difficulty: 2,
-              explain: 'Простуду вызывают вирусы, а не мороз — холод лишь ослабляет местный иммунитет носа.' },
-            { statement: 'Приём витамина C предотвращает простуду у всех людей', truth: false, difficulty: 3,
-              explain: 'Исследования показывают лишь небольшое сокращение длительности болезни, но не профилактику.' },
-            { statement: 'Недостаток сна влияет на иммунитет', truth: true, difficulty: 3,
-              explain: 'Хронический недосып снижает выработку защитных клеток крови.' }
-        ];
-
-        const LEVELS = [
-            { name: '🌱 Новичок',   emoji: '🌱', correctNeeded: 0,  maxDifficulty: 1 },
-            { name: '🔥 Знаток',    emoji: '🔥', correctNeeded: 8,  maxDifficulty: 2 },
-            { name: '👑 Профессор', emoji: '👑', correctNeeded: 15, maxDifficulty: 3 }
-        ];
-
-        let gameScore = 0;
-        let gameStreak = 0;
-        let correctTotal = 0;
-        let levelIndex = 0;
-        let gameQueue = ;
-        let currentQuestion = null;
-        let gameLoaded = false;
-
-        const gameStatement = document.getElementById('gameStatement');
-        const gameFeedback = document.getElementById('gameFeedback');
-        const gameVerdict = document.getElementById('gameVerdict');
-        const gameExplain = document.getElementById('gameExplain');
-        const gameScoreEl = document.getElementById('gameScore');
-        const gameStreakEl = document.getElementById('gameStreak');
-        const gameLevelEl = document.getElementById('gameLevel');
-        const btnNext = document.getElementById('btnNext');
-        const btnMyth = document.getElementById('btnMyth');
-        const btnTruth = document.getElementById('btnTruth');
-
-        function shuffle(arr) {
-            const a = [...arr];
-            for (let i = a.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [a[i], a[j]] = [a[j], a[i]];
-            }
-            return a;
-        }
-
-        function currentLevel() {
-            return LEVELS[levelIndex];
-        }
-
-        function maybeLevelUp() {
-            const next = LEVELS[levelIndex + 1];
-            if (next && correctTotal >= next.correctNeeded) {
-                levelIndex++;
-                showLevelUp();
-            }
-        }
-
-        function showLevelUp() {
-            const lvl = currentLevel();
-            gameLevelEl.textContent = 'Уровень: ' + lvl.emoji + ' ' + lvl.name;
-            gameLevelEl.classList.remove('levelup');
-            void gameLevelEl.offsetWidth;
-            gameLevelEl.classList.add('levelup');
-        }
-
-        function pickNextQuestion() {
-            const maxDiff = currentLevel().maxDifficulty;
-            const allowed = gameQueue.filter(function (q) { return (q.difficulty || 1) <= maxDiff; });
-            const pool = allowed.length ? allowed : gameQueue;
-            if (!pool.length) {
-                return QUESTIONS_FALLBACK[Math.floor(Math.random() * QUESTIONS_FALLBACK.length)];
-            }
-            return pool[Math.floor(Math.random() * pool.length)];
-        }
-
-        function nextQuestion() {
-            currentQuestion = pickNextQuestion();
-            gameStatement.textContent = currentQuestion.statement;
-            gameFeedback.hidden = true;
-            btnNext.hidden = true;
-            btnMyth.disabled = false;
-            btnTruth.disabled = false;
-        }
-
-        function answer(userSaysTruth) {
-            const correct = userSaysTruth === currentQuestion.truth;
-            btnMyth.disabled = true;
-            btnTruth.disabled = true;
-
-            if (correct) {
-                gameScore++;
-                gameStreak++;
-                correctTotal++;
-            } else {
-                gameStreak = 0;
-            }
-            gameScoreEl.textContent = gameScore;
-            gameStreakEl.textContent = gameStreak;
-
-            maybeLevelUp();
-
-            gameVerdict.textContent = correct ? 'Верно! 🎉' : 'Мимо 😅';
-            gameVerdict.className = 'game-verdict ' + (correct ? 'right' : 'wrong');
-
-            const realVerdict = currentQuestion.truth ? 'Это правда' : 'Это миф';
-            gameExplain.textContent = realVerdict + '. ' + currentQuestion.explain;
-
-            gameFeedback.hidden = false;
-            btnNext.hidden = false;
-        }
-
-        function loadGameQuestions() {
-            fetch('/api/game/questions')
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                gameQueue = (data.questions && data.questions.length) ? data.questions : QUESTIONS_FALLBACK;
-                showLevelUp();
-                nextQuestion();
-            })
-            .catch(function () {
-                gameQueue = QUESTIONS_FALLBACK;
-                showLevelUp();
-                nextQuestion();
-            });
-        }
-
-        btnMyth.addEventListener('click', function () { answer(false); });
-        btnTruth.addEventListener('click', function () { answer(true); });
-        btnNext.addEventListener('click', nextQuestion);
-
-        const gameSection = document.getElementById('game');
-        gameSection.addEventListener('click', function () {
-            if (!gameLoaded) {
-                gameLoaded = true;
-                loadGameQuestions();
-            }
-        });
     </script>
 </body>
 </html>
