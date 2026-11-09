@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=3">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
-        // Применяем тему до отрисовки — защита от «мигания» светлым
         const t = localStorage.getItem('theme');
         if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark-preload');
@@ -21,7 +20,6 @@
         <div class="blob blob-3"></div>
     </div>
 
-    <!-- Фиксированные кнопки: меню, тема, профиль -->
     <button class="menu-btn" id="menuBtn" aria-label="Открыть меню">⋮</button>
     <nav class="menu" id="menu">
         <a href="#checker">🔍 Проверка мифов</a>
@@ -43,13 +41,11 @@
             <p class="slogan">Не верь, а проверь</p>
         </header>
 
-        <!-- Дисклеймер: значок ВНУТРИ строки с текстом -->
         <div class="disclaimer">
             <p><span class="warn-icon">⚠️</span> <strong>Внимание!</strong> Это не медицинская консультация. При проблемах со здоровьем обязательно обратитесь к врачу.</p>
         </div>
 
         <main class="glass-card" id="checker">
-            <!-- Маскот Вера -->
             <div class="mascot" id="mascot">
                 <img id="mascotImage"
                      src="{{ url_for('static', filename='vera_hello.png') }}"
@@ -86,7 +82,6 @@
                     <p class="rating-message" id="ratingMessage"></p>
                 </div>
 
-                <!-- Оспорить Веру -->
                 <button class="btn-ghost" id="challengeOpen" hidden>⚔️ Оспорить ответ</button>
 
                 <div class="challenge" id="challengeBlock" hidden>
@@ -98,7 +93,6 @@
                 </div>
             </div>
 
-            <!-- Предложить свой миф -->
             <div class="suggest-section" id="suggest">
                 <h3>✨ Знаете миф, которого у нас нет?</h3>
                 <p class="review-subtitle">Предложите его — мы проверим и добавим в базу!</p>
@@ -110,7 +104,6 @@
                 <p class="suggest-status" id="suggestStatus"></p>
             </div>
 
-            <!-- Сообщить об ошибке -->
             <div class="review-section" id="report">
                 <h3>🛠 Сообщить об ошибке</h3>
                 <p class="review-subtitle">Нашли опечатку или неточность? Напишите нам!</p>
@@ -118,7 +111,6 @@
                 <button class="btn-secondary" onclick="sendError()">Отправить</button>
             </div>
 
-            <!-- Профиль / вход -->
             <div class="auth-section" id="profile">
                 <h3>👤 Профиль</h3>
                 <div id="authBox">
@@ -141,7 +133,6 @@
                 </div>
             </div>
 
-            <!-- Обсуждение -->
             <div class="comments-section" id="reviews">
                 <h3>💬 Комментарии</h3>
                 <p class="comments-subtitle">Что думают другие?</p>
@@ -151,7 +142,6 @@
                 <div id="commentsList" style="margin-top:20px;"></div>
             </div>
 
-            <!-- Игра Миф vs Правда -->
             <div class="game-section" id="game">
                 <h3>🎮 Миф vs Правда</h3>
                 <p class="game-subtitle">Проверьте свою интуицию — знаете ли вы, где миф, а где правда?</p>
@@ -186,7 +176,6 @@
     </div>
 
     <script>
-        // ---------- Тема ----------
         const themeBtn = document.getElementById('themeBtn');
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
@@ -204,7 +193,6 @@
             localStorage.setItem('theme', newTheme);
         });
 
-        // ---------- Меню с тремя точками ----------
         const menuBtn = document.getElementById('menuBtn');
         const menu = document.getElementById('menu');
 
@@ -221,7 +209,6 @@
                 menu.classList.remove('open');
             }
         });
-        // Клик по пункту меню — закрываем меню и плавно прокручиваем
         menu.querySelectorAll('a').forEach(function (link) {
             link.addEventListener('click', function () {
                 menu.classList.remove('open');
@@ -230,13 +217,10 @@
             });
         });
 
-        // ---------- Маскот ----------
         const mascot = document.getElementById('mascot');
         const mascotImage = document.getElementById('mascotImage');
         const speech = document.getElementById('mascotSpeech');
 
-        // Имя вошедшего пользователя. Читается динамически,
-        // чтобы после входа без перезагрузки страницы имя подставлялось в комментарии
         let currentUser = localStorage.getItem('veraUser') || null;
 
         const PHRASES = {
@@ -274,14 +258,12 @@
 
         speech.innerHTML = PHRASES.hello;
 
-        // Если пользователь уже вошёл — сразу показываем его профиль
         if (currentUser) {
             document.getElementById('authBox').classList.add('hidden');
             document.getElementById('userBox').classList.remove('hidden');
             document.getElementById('userChip').textContent = '👋 ' + currentUser;
         }
 
-        // ---------- Проверка факта ----------
         let lastClaim = '';
         let lastVerdictFull = '';
 
@@ -321,7 +303,6 @@
                 document.getElementById('explanationText').textContent = data.explanation || data.answer || '';
                 react(data.verdict || '');
 
-                // Показываем кнопку «Оспорить» — теперь есть что оспаривать
                 document.getElementById('challengeOpen').hidden = false;
             })
             .catch(function () {
@@ -333,7 +314,6 @@
             });
         }
 
-        // ---------- Сердечки ----------
         document.querySelectorAll('.heart').forEach(function (h) {
             h.addEventListener('click', function () {
                 const val = h.dataset.value;
@@ -349,7 +329,6 @@
             });
         });
 
-        // ---------- Оспорить Веру ----------
         const challengeOpen = document.getElementById('challengeOpen');
         const challengeBlock = document.getElementById('challengeBlock');
         const challengeSend = document.getElementById('challengeSend');
@@ -396,7 +375,6 @@
             });
         });
 
-        // ---------- Предложить свой миф ----------
         const suggestForm = document.getElementById('suggestForm');
 
         suggestForm.addEventListener('submit', function (e) {
@@ -431,7 +409,6 @@
             });
         });
 
-        // ---------- Сообщить об ошибке ----------
         function sendError() {
             const text = document.getElementById('errorText').value.trim();
             if (!text) return;
@@ -449,7 +426,6 @@
             });
         }
 
-        // ---------- Профиль ----------
         let authMode = 'login';
 
         function switchTab(mode) {
@@ -503,7 +479,6 @@
             document.getElementById('authPassword').value = '';
         }
 
-        // ---------- Обсуждение ----------
         function sendComment() {
             const name = currentUser
                 || document.getElementById('commentName').value.trim()
@@ -528,7 +503,7 @@
             .then(function (data) {
                 const list = document.getElementById('commentsList');
                 list.innerHTML = '';
-                (data.reviews || []).forEach(function (c) {
+                (data.reviews || ).forEach(function (c) {
                     const div = document.createElement('div');
                     div.className = 'comment';
                     const head = document.createElement('div');
@@ -550,7 +525,6 @@
         }
         loadComments();
 
-        // ---------- Игра «Миф vs Правда» с уровнями ----------
         const QUESTIONS_FALLBACK = [
             { statement: 'От долгого чтения в темноте портится зрение', truth: false, difficulty: 1,
               explain: 'В темноте глаза устают быстрее, но зрение от этого не портится.' },
@@ -580,7 +554,7 @@
         let gameStreak = 0;
         let correctTotal = 0;
         let levelIndex = 0;
-        let gameQueue = [];
+        let gameQueue = ;
         let currentQuestion = null;
         let gameLoaded = false;
 
@@ -608,7 +582,6 @@
             return LEVELS[levelIndex];
         }
 
-        // Проверяем после каждого ответа, не пора ли повысить уровень
         function maybeLevelUp() {
             const next = LEVELS[levelIndex + 1];
             if (next && correctTotal >= next.correctNeeded) {
@@ -621,15 +594,13 @@
             const lvl = currentLevel();
             gameLevelEl.textContent = 'Уровень: ' + lvl.emoji + ' ' + lvl.name;
             gameLevelEl.classList.remove('levelup');
-            void gameLevelEl.offsetWidth;   // перезапуск CSS-анимации
+            void gameLevelEl.offsetWidth;
             gameLevelEl.classList.add('levelup');
         }
 
-        // Подбор вопроса по текущему уровню сложности
         function pickNextQuestion() {
             const maxDiff = currentLevel().maxDifficulty;
             const allowed = gameQueue.filter(function (q) { return (q.difficulty || 1) <= maxDiff; });
-            // лёгкие кончились — берём любые, чтобы игра не вставала
             const pool = allowed.length ? allowed : gameQueue;
             if (!pool.length) {
                 return QUESTIONS_FALLBACK[Math.floor(Math.random() * QUESTIONS_FALLBACK.length)];
@@ -682,7 +653,7 @@
                 nextQuestion();
             })
             .catch(function () {
-                gameQueue = QUESTIONS_FALLBACK;   // сервер недоступен — играем на запасном наборе
+                gameQueue = QUESTIONS_FALLBACK;
                 showLevelUp();
                 nextQuestion();
             });
@@ -692,7 +663,6 @@
         btnTruth.addEventListener('click', function () { answer(true); });
         btnNext.addEventListener('click', nextQuestion);
 
-        // Подгружаем вопросы, когда пользователь долистал до игры
         const gameSection = document.getElementById('game');
         gameSection.addEventListener('click', function () {
             if (!gameLoaded) {
