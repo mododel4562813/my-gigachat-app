@@ -1,12 +1,11 @@
 /* ========================================================
-   ПЕРЕКЛЮЧЕНИЕ ТЕМЫ (должно идти первым — сразу применяем)
+   ПЕРЕКЛЮЧЕНИЕ ТЕМЫ
    ======================================================== */
 const themeBtn = document.getElementById('themeBtn');
 const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
 function applyTheme(theme) {
     document.body.classList.toggle('dark', theme === 'dark');
-    document.documentElement.classList.remove('dark-preload');
     if (themeBtn) themeBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
 }
 
@@ -29,7 +28,6 @@ const menuEl = document.getElementById('menu');
 if (menuBtn && menuEl) {
     menuBtn.addEventListener('click', () => menuEl.classList.toggle('open'));
 
-    // Закрытие по Escape и по клику мимо меню
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') menuEl.classList.remove('open');
     });
@@ -109,7 +107,6 @@ function logout() {
 }
 
 // ---------- Проверка факта ----------
-// НОВОЕ: запоминаем последний факт и вердикт — они нужны функции «Оспорить»
 window.lastCheckedClaim = null;
 window.lastVerdict = null;
 
@@ -127,7 +124,6 @@ async function sendCheck() {
     checkBtn.disabled = true;
 
     try {
-        // НОВОЕ: передаём имя пользователя — без него у профиля не будет статистики
         const response = await fetch('/api/check', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -145,14 +141,13 @@ async function sendCheck() {
 
         resultDiv.classList.remove('hidden');
 
-        // НОВОЕ: сохраняем для «Оспорить» и показываем кнопку
         window.lastCheckedClaim = userText;
         window.lastVerdict = data.verdict + '. ' + data.explanation;
         const challengeOpen = document.getElementById('challengeOpen');
         if (challengeOpen) challengeOpen.hidden = false;
     } catch (error) {
-        alert('Ошибка при проверке факта');
         console.error(error);
+        alert('Ошибка при проверке факта. Проверьте консоль и соединение с API.');
     } finally {
         btnText.classList.remove('hidden');
         spinner.classList.add('hidden');
@@ -172,7 +167,6 @@ async function rate(value) {
     });
 
     try {
-        // НОВОЕ: username — для будущей статистики оценок в профиле
         await fetch('/api/rate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -231,7 +225,7 @@ async function loadReviews() {
 }
 
 /* ========================================================
-   НОВОЕ: ОСПОРИТЬ ВЕРУ
+   ОСПОРИТЬ ВЕРУ
    ======================================================== */
 const challengeOpen = document.getElementById('challengeOpen');
 const challengeBlock = document.getElementById('challengeBlock');
@@ -282,7 +276,7 @@ if (challengeSend) {
 }
 
 /* ========================================================
-   НОВОЕ: ПРЕДЛОЖИТЬ СВОЙ МИФ
+   ПРЕДЛОЖИТЬ СВОЙ МИФ
    ======================================================== */
 const suggestForm = document.getElementById('suggestForm');
 
@@ -317,7 +311,7 @@ if (suggestForm) {
 }
 
 /* ========================================================
-   НОВОЕ: ИГРА «МИФ VS ПРАВДА» С УРОВНЯМИ
+   ИГРА «МИФ VS ПРАВДА» С УРОВНЯМИ
    ======================================================== */
 const QUESTIONS_FALLBACK = [
     { statement: 'От долгого чтения в темноте портится зрение', truth: false, difficulty: 1,
@@ -374,7 +368,6 @@ function currentLevel() {
     return LEVELS[levelIndex];
 }
 
-// Проверяем после каждого ответа, не пора ли повысить уровень
 function maybeLevelUp() {
     const next = LEVELS[levelIndex + 1];
     if (next && correctTotal >= next.correctNeeded) {
@@ -388,15 +381,13 @@ function showLevelUp() {
     const lvl = currentLevel();
     gameLevelEl.textContent = `Уровень: ${lvl.emoji} ${lvl.name}`;
     gameLevelEl.classList.remove('levelup');
-    void gameLevelEl.offsetWidth;          // перезапуск CSS-анимации
+    void gameLevelEl.offsetWidth;
     gameLevelEl.classList.add('levelup');
 }
 
-// Подбор вопроса по текущему уровню сложности
 function pickNextQuestion() {
     const maxDiff = currentLevel().maxDifficulty;
     const allowed = gameQueue.filter(q => (q.difficulty || 1) <= maxDiff);
-    // лёгкие кончились — берём любые, чтобы игра не вставала
     const pool = allowed.length ? allowed : gameQueue;
     if (!pool.length) {
         return QUESTIONS_FALLBACK[Math.floor(Math.random() * QUESTIONS_FALLBACK.length)];
@@ -421,7 +412,7 @@ function answer(userSaysTruth) {
     if (correct) {
         gameScore++;
         gameStreak++;
-        correctTotal++;          // счётчик для уровней
+        correctTotal++;
     } else {
         gameStreak = 0;
     }
@@ -446,7 +437,7 @@ async function loadGameQuestions() {
         const data = await res.json();
         gameQueue = data.questions && data.questions.length ? data.questions : QUESTIONS_FALLBACK;
     } catch {
-        gameQueue = QUESTIONS_FALLBACK;   // сервер недоступен — играем на запасном наборе
+        gameQueue = QUESTIONS_FALLBACK;
     }
     showLevelUp();
     nextQuestion();
@@ -460,7 +451,6 @@ if (btnMythEl && btnTruthEl) {
     btnTruthEl.addEventListener('click', () => answer(true));
     btnNext.addEventListener('click', nextQuestion);
 
-    // Подгружаем вопросы, когда пользователь долистал до игры
     const gameSection = document.getElementById('game');
     gameSection.addEventListener('click', () => {
         if (!gameLoaded) { gameLoaded = true; loadGameQuestions(); }
@@ -468,7 +458,7 @@ if (btnMythEl && btnTruthEl) {
 }
 
 /* ========================================================
-   НОВОЕ: ЛИЧНЫЙ КАБИНЕТ — загрузка статистики
+   ЛИЧНЫЙ КАБИНЕТ — загрузка статистики
    ======================================================== */
 async function loadProfile(username) {
     const statChecked = document.getElementById('statChecked');
@@ -478,7 +468,7 @@ async function loadProfile(username) {
     const activityBars = document.getElementById('activityBars');
     const profileName = document.getElementById('profileName');
 
-    if (!statChecked) return;   // на этой странице профиля нет — пропускаем
+    if (!statChecked) return;
 
     try {
         const resp = await fetch('/api/profile?username=' + encodeURIComponent(username));
@@ -490,7 +480,6 @@ async function loadProfile(username) {
         statPoints.innerText = data.points ?? 0;
         profileLevel.innerText = 'Уровень: ' + (data.level || '🌱 Новичок');
 
-        // Полоски активности за 7 дней
         activityBars.innerHTML = '';
         const maxCount = Math.max(...(data.activity ||), 1);
         (data.activity || [0, 0, 0, 0, 0, 0, 0]).forEach(count => {
@@ -504,7 +493,6 @@ async function loadProfile(username) {
     }
 }
 
-// Загружаем профиль при входе на страницу, если пользователь вошёл
 if (currentUser && document.getElementById('statChecked')) {
     loadProfile(currentUser);
 }
