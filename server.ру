@@ -53,7 +53,7 @@ AMBULANCE_NOTE = ("Немедленно вызовите скорую помощ
                   "или 112 (единый номер экстренных служб).")
 
 # ============================================================
-# НОВОЕ: КЭШ ПОВТОРНЫХ ЗАПРОСОВ (экономия токенов GigaChat)
+# КЭШ ПОВТОРНЫХ ЗАПРОСОВ (экономия токенов GigaChat)
 # ============================================================
 CACHE_MAX_SIZE = 500
 _answer_cache = {}  # normalized claim -> {"verdict":..., "explanation":..., "ts":...}
@@ -170,7 +170,7 @@ def _normalize_verdict(raw):
 
 
 def _log_usage(prompt_tokens, completion_tokens, purpose):
-    """НОВОЕ: пишем расход токенов в лист Usage — статистика стоимости вопросов."""
+    """Пишем расход токенов в лист Usage — статистика стоимости вопросов."""
     if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
         return
     try:
@@ -218,7 +218,7 @@ def ask_gigachat(user_text):
         "model": "GigaChat",
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.1,
-        "max_tokens": 400  # НОВОЕ: ограничение длины — меньше токенов на ответ
+        "max_tokens": 400  # ограничение длины — меньше токенов на ответ
     }
 
     try:
@@ -233,7 +233,7 @@ def ask_gigachat(user_text):
         response.raise_for_status()
         data = response.json()
 
-        # НОВОЕ: считаем расход токенов
+        # считаем расход токенов
         usage = data.get("usage") or {}
         try:
             _log_usage(usage.get("prompt_tokens", 0),
@@ -269,7 +269,7 @@ def ask_gigachat(user_text):
 
 
 # ============================================================
-# НОВОЕ: ФУНКЦИЯ «ОСПОРИТЬ ВЕРУ» — отдельный вызов GigaChat
+# ФУНКЦИЯ «ОСПОРИТЬ ВЕРУ» — отдельный вызов GigaChat
 # ============================================================
 CHALLENGE_PROMPT = """Ты — Вера, фактчекер проекта «Перепроверим».
 Утверждение пользователя: {claim}
@@ -333,7 +333,7 @@ def ask_gigachat_challenge(claim, verdict, reason):
 
 
 # ============================================================
-# НОВОЕ: ПРОСТОЙ АНТИСПАМ ДЛЯ «ОСПОРИТЬ» (1 запрос в минуту на IP)
+# ПРОСТОЙ АНТИСПАМ ДЛЯ «ОСПОРИТЬ» (1 запрос в минуту на IP)
 # ============================================================
 _challenge_times = {}
 CHALLENGE_COOLDOWN = 60  # секунд
@@ -421,7 +421,7 @@ def _stem(word):
     return word
 
 
-# НОВОЕ: стоп-слова, которые не должны влиять на поиск
+# Стоп-слова, которые не должны влиять на поиск
 STOPWORDS = {"это", "правда", "или", "миф", "на", "самом", "деле",
              "вредно", "полезно", "есть", "что", "если", "так", "как",
              "про", "для", "можно", "нужно", "надо", "все", "очень"}
@@ -440,7 +440,7 @@ def _match_score(query_stems, claim):
 
 
 def _word_overlap(query_stems, claim):
-    """НОВОЕ: доля пересечения ключевых слов — второй сигнал для поиска."""
+    """Доля пересечения ключевых слов — второй сигнал для поиска."""
     claim_stems = set(_stem(w) for w in claim.split())
     if not query_stems or not claim_stems:
         return 0.0
@@ -473,6 +473,10 @@ def search_sheets(user_text):
         best_row = None
         best_score = 0
         for row in records:
+            # ИСПРАВЛЕНО: факты, добавленные ИИ (источник "ai"), в поиске не участвуют,
+            # пока их не проверят руками (нужно поменять "ai" на "ok" в колонке «Источник»)
+            if str(row.get('Источник', '')).strip().lower() == "ai":
+                continue
             claim = str(row.get('Утверждение', '')).lower()
             score = _match_score(query_stems, claim)
             if user_text in claim:
@@ -481,11 +485,15 @@ def search_sheets(user_text):
                 best_score = score
                 best_row = row
 
-        # НОВОЕ: комбинированный порог — ключевая перекрытость + совпадение слов.
-        # Если совпало хотя бы 60% ключевых слов И их минимум 2 — принимаем.
-        overlap = _word_overlap(query_stems, str(best_row.get('Утверждение', '')).lower()) \
-            if best_row else 0
-        accepted = best_row and best_score >= max(2, len(query_stems) // 2) and overlap >= 0.6
+        if best_row is None:
+            return None
+
+        # ИСПРАВЛЕНО: строгий порог. Короткие запросы (до 3 ключевых слов)
+        # должны совпасть по ВСЕМ словам — иначе «оспа убивает людей»
+        # находила «микоплазмы убивают людей».
+        overlap = _word_overlap(query_stems, str(best_row.get('Утверждение', '')).lower())
+        threshold = 0.99 if len(query_stems) <= 3 else 0.8
+        accepted = best_score >= 2 and overlap >= threshold
 
         if accepted:
             return {
@@ -500,7 +508,9 @@ def search_sheets(user_text):
 
 
 def add_fact_to_sheet(user_text, verdict, explanation):
-    """Новое непроверенное утверждение попадает в нашу базу с вердиктом ИИ."""
+    """Новое непроверенное утверждение попадает в базу с пометкой «ai».
+    Пока стоит «ai», факт не используется в поиске. Проверишь руками —
+    поменяй «ai» на «ok» в колонке «Источник»."""
     if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
         return
     try:
@@ -511,15 +521,17 @@ def add_fact_to_sheet(user_text, verdict, explanation):
         if ws is None:
             return
         ws.append_row([user_text, verdict, explanation,
-                       datetime.now().strftime("%Y-%m-%d %H:%M")])
-        print(f"📚 Новое утверждение добавлено в базу: '{user_text}' -> {verdict}")
+                       datetime.now().strftime("%Y-%m-%d %H:%M"),
+                       "ai"])
+        print(f"📚 Новое утверждение добавлено в базу (непроверенное): "
+              f"'{user_text}' -> {verdict}")
     except Exception:
         print("⚠️ Ошибка добавления факта:")
         traceback.print_exc()
 
 
 def log_to_sheet(user_text, verdict, username=None):
-    """НОВОЕ: лог теперь пишет и имя пользователя — иначе профиль не соберёт статистику."""
+    """Лог пишет и имя пользователя — иначе профиль не соберёт статистику."""
     if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
         return
     try:
@@ -543,7 +555,7 @@ def hash_password(password):
 
 
 # ============================================================
-# НОВОЕ: РЕЙТИНГ И УРОВНИ ДЛЯ ЛИЧНОГО КАБИНЕТА
+# РЕЙТИНГ И УРОВНИ ДЛЯ ЛИЧНОГО КАБИНЕТА
 # ============================================================
 LEVELS = [
     (0, "🌱 Новичок"),
@@ -586,18 +598,18 @@ def index():
 def check_claim():
     data = request.get_json() or {}
     user_text = str(data.get('text', '')).strip()
-    username = str(data.get('username', '')).strip()[:50] or None  # НОВОЕ
+    username = str(data.get('username', '')).strip()[:50] or None
 
     if not user_text:
         return jsonify({"error": "Пустой запрос"}), 400
 
     text_lower = user_text.lower()
-    norm_key = normalize_text(text_lower)  # НОВОЕ: ключ кэша и нормализации
+    norm_key = normalize_text(text_lower)
 
     # 1. Локальная база -> 2. Кэш -> 3. Google Таблицы -> 4. GigaChat
     result = find_fact(norm_key)
     if not result:
-        cached = cache_get(norm_key)  # НОВОЕ: кэш повторов — ноль токенов
+        cached = cache_get(norm_key)
         if cached:
             result = {"source": "cache",
                       "verdict": cached["verdict"],
@@ -607,7 +619,7 @@ def check_claim():
     if not result:
         result = ask_gigachat(text_lower)
 
-        # факт из ИИ дописываем в нашу базу с вердиктом и кладём в кэш
+        # факт из ИИ дописываем в базу с пометкой «ai» и кладём в кэш
         if result and result.get("verdict") not in ("НЕЗНАЮ", None):
             add_fact_to_sheet(text_lower, result["verdict"],
                               result.get("explanation", ""))
@@ -640,7 +652,7 @@ def check_claim():
 
 
 # ============================================================
-# НОВОЕ: ОСПОРИТЬ ВЕРУ
+# ОСПОРИТЬ ВЕРУ
 # ============================================================
 @app.route('/api/challenge', methods=['POST'])
 def challenge():
@@ -684,7 +696,7 @@ def challenge():
 
 
 # ============================================================
-# НОВОЕ: ПРЕДЛОЖИТЬ СВОЙ МИФ
+# ПРЕДЛОЖИТЬ СВОЙ МИФ
 # ============================================================
 @app.route('/api/suggest', methods=['POST'])
 def suggest():
@@ -719,13 +731,14 @@ def suggest():
 
 
 # ============================================================
-# НОВОЕ: ВОПРОСЫ ДЛЯ ИГРЫ «МИФ VS ПРАВДА» С УРОВНЯМИ СЛОЖНОСТИ
+# ВОПРОСЫ ДЛЯ ИГРЫ «МИФ VS ПРАВДА» С УРОВНЯМИ СЛОЖНОСТИ
 # ============================================================
 @app.route('/api/game/questions')
 def game_questions():
     """Отдаёт до 24 случайных мифов из листа Facts.
     В игру попадают только однозначные вердикты (МИФ/ПРАВДА) —
     СПОРНО и НЕЗНАЮ ломали бы бинарный выбор.
+    Непроверенные ИИ-факты (Источник = «ai») в игру тоже не попадают.
     Сложность берём из колонки «Сложность» (1/2/3), если она заполнена."""
     if not GS_CLIENT or not GOOGLE_SPREADSHEET_ID:
         return jsonify({"questions": []})
@@ -742,6 +755,8 @@ def game_questions():
 
         items = []
         for row in records:
+            if str(row.get('Источник', '')).strip().lower() == "ai":
+                continue
             claim = str(row.get('Утверждение', '')).strip()
             verdict = _normalize_verdict(row.get('Вердикт', ''))
             if not claim or verdict not in ("МИФ", "ПРАВДА"):
@@ -767,7 +782,7 @@ def game_questions():
 
 
 # ============================================================
-# НОВОЕ: ЛИЧНЫЙ КАБИНЕТ — СТАТИСТИКА ИЗ ЛОГОВ
+# ЛИЧНЫЙ КАБИНЕТ — СТАТИСТИКА ИЗ ЛОГОВ
 # ============================================================
 @app.route('/api/profile')
 def profile():
@@ -834,7 +849,7 @@ def rate_answer():
     data = request.get_json() or {}
     claim = data.get('claim')
     rating = data.get('rating')
-    username = str(data.get('username', '')).strip()[:50] or None  # НОВОЕ
+    username = str(data.get('username', '')).strip()[:50] or None
 
     if not claim or rating is None:
         return jsonify({"error": "Нужны поля 'claim' и 'rating'"}), 400
@@ -1085,4 +1100,5 @@ def debug_sheets():
 if __name__ == '__main__':
     print("🚀 Сервер запущен...")
     port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    # ИСПРАВЛЕНО: debug=False — на сервере отладчик не нужен
+    app.run(host='0.0.0.0', port=port, debug=False)
