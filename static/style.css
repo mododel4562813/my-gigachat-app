@@ -706,6 +706,43 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
     font-weight: 800;
 }
 
+/* ---------- Переключатель языка в меню ---------- */
+.lang-switcher {
+    margin-top: 16px;
+    padding: 8px 12px;
+    background: var(--inner);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+}
+.lang-switcher select {
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 20px;
+    width: 100%;
+}
+.lang-switcher select option { color: #1f2937; background: #ffffff; }
+.lang-switcher::after {
+    content: '▼';
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    pointer-events: none;
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+.lang-switcher:hover select { color: var(--primary); }
+
 /* ---------- Компактная форма «Предложить миф» (необязательная) ----------
    Используется только если заменишь в HTML блок .suggest-section
    на .suggest-compact. Сейчас просто не задействована. */
@@ -745,3 +782,4 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
     border-radius: 8px;
     font-size: 13px;
 }
+
