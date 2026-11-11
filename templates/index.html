@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Перепроверим — Не верь, а проверь</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=7">
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=8">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Sans:wght@400;700&display=swap" rel="stylesheet">
     <script>
         // Применяем тёмный фон до отрисовки — защита от «мигания» светлым
         try {
@@ -25,12 +25,23 @@
 
     <!-- МЕНЮ СЛЕВА -->
     <button class="menu-btn" id="menuBtn" aria-label="Открыть меню">⋮</button>
-    <nav class="menu" id="menu">
+    <nav class="menu" id="menu" role="navigation">
         <a href="#" data-tab="home" class="active">🔍 Проверка мифов</a>
         <a href="#" data-tab="game">🎮 Миф vs Правда</a>
         <a href="#" data-tab="reviews">💬 Обсуждение</a>
         <a href="#" data-tab="report">⚠️ Сообщить об ошибке</a>
         <a href="#" data-tab="profile">👤 Аккаунт</a>
+
+        <!-- Переключатель языка -->
+        <div class="lang-switcher">
+            <span>🌐</span>
+            <select id="langSelect" aria-label="Сменить язык">
+                <option value="ru">Русский</option>
+                <option value="en">English</option>
+                <option value="be">Беларуская</option>
+                <option value="zh">中文</option>
+            </select>
+        </div>
     </nav>
 
     <!-- ТЕМА СПРАВА -->
@@ -270,6 +281,6 @@
         </footer>
     </div>
 
-    <script src="{{ url_for('static', filename='script.js') }}?v=3"></script>
+    <script src="{{ url_for('static', filename='script.js') }}?v=4"></script>
 </body>
 </html>
