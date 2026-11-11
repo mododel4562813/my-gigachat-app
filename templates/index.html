@@ -4,134 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Перепроверим — Не верь, а проверь</title>
-    <style>
-        :root {
-            --primary: #4f46e5;
-            --primary-hover: #4338ca;
-            --bg: #f3f4f6;
-            --surface: #ffffff;
-            --text: #1f2937;
-            --text-muted: #6b7280;
-            --danger: #ef4444;
-            --success: #10b981;
-            --warning: #f59e0b;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-
-        body { background-color: var(--bg); color: var(--text); line-height: 1.6; }
-
-        .container { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
-
-        header {
-            background: var(--surface);
-            padding: 1rem 0;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .header-inner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
-
-        h1 { font-size: 1.5rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
-        h1 span { font-size: 1.1rem; color: var(--text); }
-
-        nav ul { list-style: none; display: flex; gap: 0.5rem; flex-wrap: wrap; }
-        nav a {
-            text-decoration: none; color: var(--text); font-weight: 500;
-            padding: 0.5rem 0.75rem; border-radius: 6px; transition: all 0.2s;
-            cursor: pointer; display: inline-block;
-        }
-        nav a:hover, nav a.active { background-color: var(--primary); color: white; }
-
-        main { padding: 2rem 0; min-height: 60vh; }
-
-        .page-section { display: none; animation: fadeIn 0.3s ease; }
-        .page-section.active { display: block; }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .card {
-            background: var(--surface);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-bottom: 1.5rem;
-        }
-
-        .form-group { margin-bottom: 1rem; }
-        label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text); }
-
-        input[type="text"], input[type="password"], textarea {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border-color 0.2s;
-        }
-        input:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
-
-        button {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        button:hover { background-color: var(--primary-hover); }
-        button:disabled { background-color: var(--text-muted); cursor: not-allowed; }
-        button.secondary {
-            background: transparent; color: var(--primary); border: 1px solid var(--primary);
-        }
-
-        .result-box {
-            margin-top: 1.5rem;
-            padding: 1.5rem;
-            border-radius: 8px;
-            border-left: 5px solid transparent;
-        }
-        .result-myth { border-left-color: var(--danger); background-color: #fee2e2; }
-        .result-truth { border-left-color: var(--success); background-color: #d1fae5; }
-        .result-disputed { border-left-color: var(--warning); background-color: #fef3c7; }
-        .result-unknown { border-left-color: var(--text-muted); background-color: #f3f4f6; }
-
-        .verdict-badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 999px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-        .badge-myth { background-color: #fecaca; color: var(--danger); }
-        .badge-truth { background-color: #a7f3d0; color: var(--success); }
-        .badge-disputed { background-color: #fde68a; color: var(--warning); }
-        .badge-unknown { background-color: #e5e7eb; color: var(--text); }
-
-        .muted { color: var(--text-muted); }
-        .status-ok { color: var(--success); font-weight: 600; }
-        .status-err { color: var(--danger); font-weight: 600; }
-
-        .review-item { border-top: 1px solid #e5e7eb; padding: 0.75rem 0; display: flex; gap: 0.75rem; align-items: flex-start; }
-        .review-item img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #e5e7eb; }
-        .review-item .date { font-size: 0.8rem; color: var(--text-muted); }
-
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 1rem; }
-        .stat-box { background: #f9fafb; border-radius: 8px; padding: 1rem; text-align: center; }
-        .stat-box .num { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
-
-        footer { text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.9rem; }
-
-        @media (max-width: 768px) {
-            .header-inner { flex-direction: column; align-items: flex-start; }
-        }
-    </style>
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 
@@ -175,15 +48,15 @@
                 <h2>Миф или Правда?</h2>
                 <p class="muted">Система предложит утверждение из проверенной базы — угадай, миф это или правда.</p>
 
-                <div id="gameBox" class="card" style="padding: 1.5rem; text-align: center; margin-bottom: 0;">
-                    <p id="gameQuestion" style="font-size: 1.2rem; margin-bottom: 1rem; font-weight: 600;">Загрузка...</p>
-                    <div style="display: flex; gap: 1rem; justify-content: center;">
+                <div id="gameBox" class="card game-inner">
+                    <p id="gameQuestion" class="game-question">Загрузка...</p>
+                    <div class="btn-row-center">
                         <button onclick="guessAnswer(false)">Это МИФ</button>
                         <button onclick="guessAnswer(true)">Это ПРАВДА</button>
                     </div>
-                    <p id="gameFeedback" style="margin-top: 1rem; font-weight: bold;"></p>
-                    <p id="gameScore" class="muted" style="margin-top: 0.5rem;">Счёт: 0 / 0</p>
-                    <button class="secondary" onclick="loadGameQuestions()" style="margin-top: 0.5rem;">🔄 Другое утверждение</button>
+                    <p id="gameFeedback" class="game-feedback"></p>
+                    <p id="gameScore" class="muted">Счёт: 0 / 0</p>
+                    <button class="secondary btn-center" onclick="loadGameQuestions()">🔄 Другое утверждение</button>
                 </div>
             </div>
         </section>
@@ -204,7 +77,7 @@
                 </div>
 
                 <button id="suggestBtn" onclick="submitSuggestion()">Отправить на проверку</button>
-                <div id="suggestStatus" style="margin-top: 1rem;"></div>
+                <div id="suggestStatus" class="status-line"></div>
             </div>
         </section>
 
@@ -223,9 +96,9 @@
                     <textarea id="reviewText" rows="3" placeholder="Что думаете о проекте?"></textarea>
                 </div>
                 <button id="reviewBtn" onclick="submitReview()">Отправить отзыв</button>
-                <div id="reviewStatus" style="margin-top: 0.5rem;"></div>
+                <div id="reviewStatus" class="status-line"></div>
 
-                <h3 style="margin-top: 2rem;">Последние отзывы</h3>
+                <h3 class="reviews-title">Последние отзывы</h3>
                 <div id="reviewsList"><p class="muted">Загрузка...</p></div>
             </div>
         </section>
@@ -244,22 +117,22 @@
                     <label for="authPassword">Пароль</label>
                     <input type="password" id="authPassword" placeholder="От 4 символов">
                 </div>
-                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                <div class="btn-row">
                     <button id="loginBtn" onclick="doLogin()">Войти</button>
                     <button class="secondary" id="registerBtn" onclick="doRegister()">Регистрация</button>
-                    <button class="secondary" id="logoutBtn" onclick="doLogout()" style="display: none;">Выйти</button>
+                    <button class="secondary hidden" id="logoutBtn" onclick="doLogout()">Выйти</button>
                 </div>
-                <div id="authStatus" style="margin-top: 1rem;"></div>
+                <div id="authStatus" class="status-line"></div>
             </div>
 
-            <div class="card" id="profileCard" style="display: none;">
+            <div class="card hidden" id="profileCard">
                 <h2>Ваш профиль</h2>
                 <p id="profileGreeting"></p>
 
-                <div style="margin-top: 1rem; display: flex; align-items: center; gap: 1rem;">
-                    <img id="profileAvatar" src="" alt="Аватар" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover; background: #e5e7eb;">
+                <div class="avatar-row">
+                    <img id="profileAvatar" src="" alt="Аватар">
                     <div>
-                        <input type="file" id="avatarFile" accept="image/*" style="margin-bottom: 0.5rem;">
+                        <input type="file" id="avatarFile" accept="image/*">
                         <button class="secondary" onclick="uploadAvatar()">Загрузить аватар</button>
                     </div>
                 </div>
@@ -279,377 +152,9 @@
 
     <footer>
         <p>©2026 Проект «Перепроверим» для чемпионата «Медицина 2050»</p>
-        <p style="margin-top: 0.5rem; font-size: 0.8rem;">⚠️ Внимание! Это не медицинская консультация. При проблемах со здоровьем обратитесь к врачу.</p>
+        <p class="footer-note">⚠️ Внимание! Это не медицинская консультация. При проблемах со здоровьем обратитесь к врачу.</p>
     </footer>
 
-    <script>
-        // ---------- Общее ----------
-        let currentUser = null;
-        let lastClaim = '';
-        let lastVerdict = '';
-
-        function switchTab(tabId) {
-            document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            document.querySelectorAll('nav a').forEach(el => el.classList.toggle('active', el.dataset.tab === tabId));
-            if (tabId === 'vs') loadGameQuestions();
-            if (tabId === 'discuss') loadReviews();
-            if (tabId === 'account') updateAuthUI();
-        }
-        document.querySelectorAll('nav a').forEach(a => a.addEventListener('click', () => switchTab(a.dataset.tab)));
-
-        // ---------- Проверка мифов ----------
-        function escapeHtml(s) {
-            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-        }
-
-        async function checkClaim() {
-            const input = document.getElementById('claimInput');
-            const btn = document.getElementById('checkBtn');
-            const resultBox = document.getElementById('resultBox');
-
-            const text = input.value.trim();
-            if (!text) { alert('Пожалуйста, введите утверждение для проверки!'); return; }
-
-            btn.disabled = true;
-            btn.textContent = 'Проверяем...';
-            resultBox.style.display = 'none';
-
-            try {
-                const response = await fetch('/api/check', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ text: text, username: currentUser || undefined })
-                });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error || 'Ошибка сервера');
-                renderResult(text, data);
-            } catch (error) {
-                resultBox.className = 'result-box result-unknown';
-                resultBox.innerHTML = '<p class="status-err">Произошла ошибка: ' + escapeHtml(error.message) + '</p>';
-                resultBox.style.display = 'block';
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Проверить факт';
-            }
-        }
-
-        function renderResult(claim, data) {
-            lastClaim = claim;
-            lastVerdict = data.verdict || 'НЕЗНАЮ';
-
-            const resultBox = document.getElementById('resultBox');
-            const verdict = lastVerdict;
-            const explanation = data.explanation || 'Нет объяснения';
-            const source = data.source || 'unknown';
-
-            let boxClass = 'result-unknown', title = 'Неизвестно';
-            if (verdict === 'МИФ') { boxClass = 'result-myth'; title = 'Это МИФ'; }
-            else if (verdict === 'ПРАВДА') { boxClass = 'result-truth'; title = 'Это ПРАВДА'; }
-            else if (verdict === 'СПОРНО') { boxClass = 'result-disputed'; title = 'Спорно'; }
-
-            resultBox.className = 'result-box ' + boxClass;
-            resultBox.innerHTML =
-                '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; flex-wrap:wrap; gap:0.5rem;">' +
-                '<span class="verdict-badge badge-' + boxClass.replace('result-','') + '">' + escapeHtml(verdict) + '</span>' +
-                '<small class="muted">Источник: ' + escapeHtml(source) + '</small></div>' +
-                '<h3>' + title + '</h3><p>' + escapeHtml(explanation) + '</p>' +
-                '<button class="secondary" onclick="startChallenge()" style="margin-top:1rem;">🗣 Оспорить вердикт</button>' +
-                '<div id="challengeBox" style="margin-top:1rem;"></div>';
-            resultBox.style.display = 'block';
-
-            if (currentUser) fetch('/api/visit', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ username: currentUser })
-            }).catch(() => {});
-        }
-
-        // ---------- Оспорить вердикт ----------
-        function startChallenge() {
-            const box = document.getElementById('challengeBox');
-            if (!box) return;
-            box.innerHTML =
-                '<label style="font-weight:600;">Почему вы не согласны?</label>' +
-                '<textarea id="challengeReason" rows="2" style="width:100%; margin-top:0.25rem;" placeholder="Например: я читал другое исследование..."></textarea>' +
-                '<button class="secondary" onclick="sendChallenge()" style="margin-top:0.5rem;">Отправить</button>' +
-                '<div id="challengeStatus" style="margin-top:0.5rem;"></div>';
-        }
-
-        async function sendChallenge() {
-            const reason = document.getElementById('challengeReason').value.trim();
-            const status = document.getElementById('challengeStatus');
-            if (reason.length < 5) { status.innerHTML = '<p class="status-err">Опишите причину чуть подробнее</p>'; return; }
-
-            status.innerHTML = '<p class="muted">Вера перепроверяет...</p>';
-            try {
-                const response = await fetch('/api/challenge', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ claim: lastClaim, verdict: lastVerdict, reason: reason })
-                });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error || 'Ошибка сервера');
-                status.innerHTML = '<p class="status-ok">Ответ Веры:</p><p>' + escapeHtml(data.answer) + '</p>';
-            } catch (error) {
-                status.innerHTML = '<p class="status-err">' + escapeHtml(error.message) + '</p>';
-            }
-        }
-
-        // ---------- Игра «Миф vs Правда» ----------
-        let gameQuestions = [];
-        let currentQuestion = null;
-        let answered = false;
-        let gameScore = { right: 0, total: 0 };
-
-        async function loadGameQuestions() {
-            const qEl = document.getElementById('gameQuestion');
-            qEl.textContent = 'Загрузка...';
-            try {
-                const response = await fetch('/api/game/questions');
-                const data = await response.json();
-                gameQuestions = (data.questions || []).filter(q => q.difficulty <= 1);
-                if (gameQuestions.length === 0) gameQuestions = data.questions || [];
-                nextGameQuestion();
-            } catch (e) {
-                qEl.textContent = 'Не удалось загрузить вопросы. Попробуйте позже.';
-            }
-        }
-
-        function nextGameQuestion() {
-            const feedback = document.getElementById('gameFeedback');
-            feedback.innerHTML = '';
-            answered = false;
-            if (gameQuestions.length === 0) {
-                document.getElementById('gameQuestion').textContent = 'Пока нет вопросов в базе — предложите свой миф!';
-                currentQuestion = null;
-                return;
-            }
-            currentQuestion = gameQuestions[Math.floor(Math.random() * gameQuestions.length)];
-            document.getElementById('gameQuestion').textContent = currentQuestion.statement;
-        }
-
-        function guessAnswer(userSaidTruth) {
-            if (!currentQuestion || answered) return;
-            answered = true;
-            const feedback = document.getElementById('gameFeedback');
-            const correctTruth = currentQuestion.truth;
-            const correctLabel = correctTruth ? 'ПРАВДА' : 'МИФ';
-
-            gameScore.total++;
-            if (userSaidTruth === correctTruth) {
-                gameScore.right++;
-                feedback.innerHTML = '✅ Верно! Это действительно ' + correctLabel + '. ' + escapeHtml(currentQuestion.explain || '');
-                feedback.style.color = 'var(--success)';
-            } else {
-                feedback.innerHTML = '❌ Неверно. Правильный ответ: ' + correctLabel + '. ' + escapeHtml(currentQuestion.explain || '');
-                feedback.style.color = 'var(--danger)';
-            }
-            document.getElementById('gameScore').textContent = 'Счёт: ' + gameScore.right + ' / ' + gameScore.total;
-            setTimeout(nextGameQuestion, 6000);
-        }
-
-        // ---------- Предложить миф ----------
-        async function submitSuggestion() {
-            const text = document.getElementById('suggestInput').value.trim();
-            const status = document.getElementById('suggestStatus');
-            const btn = document.getElementById('suggestBtn');
-
-            if (text.length < 10) {
-                status.innerHTML = '<p class="status-err">Опишите миф чуть подробнее (от 10 символов)</p>';
-                return;
-            }
-
-            btn.disabled = true;
-            status.innerHTML = '<p class="muted">Отправка...</p>';
-            try {
-                const response = await fetch('/api/suggest', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ name: currentUser || (document.getElementById('suggestSource').value.trim() || 'Аноним'), myth: text })
-                });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error || 'Ошибка сервера');
-                status.innerHTML = '<p class="status-ok">✅ ' + escapeHtml(data.message || 'Миф отправлен на проверку!') + '</p>';
-                document.getElementById('suggestInput').value = '';
-                document.getElementById('suggestSource').value = '';
-            } catch (error) {
-                status.innerHTML = '<p class="status-err">' + escapeHtml(error.message) + '</p>';
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        // ---------- Обсуждение ----------
-        async function loadReviews() {
-            const list = document.getElementById('reviewsList');
-            list.innerHTML = '<p class="muted">Загрузка...</p>';
-            try {
-                const response = await fetch('/api/reviews');
-                const data = await response.json();
-                const reviews = data.reviews || [];
-                if (reviews.length === 0) {
-                    list.innerHTML = '<p class="muted">Пока нет отзывов — будьте первым!</p>';
-                    return;
-                }
-                list.innerHTML = reviews.map(r =>
-                    '<div class="review-item">' +
-                    (r.avatar ? '<img src="' + escapeHtml(r.avatar) + '" alt="">' : '<img src="" alt="" style="visibility:hidden;">') +
-                    '<div><strong>' + escapeHtml(r.name) + '</strong> <span class="date">' + escapeHtml(r.date) + '</span>' +
-                    '<p>' + escapeHtml(r.text) + '</p></div></div>'
-                ).join('');
-            } catch (e) {
-                list.innerHTML = '<p class="status-err">Не удалось загрузить отзывы</p>';
-            }
-        }
-
-        async function submitReview() {
-            const nameInput = document.getElementById('reviewName');
-            const textInput = document.getElementById('reviewText');
-            const status = document.getElementById('reviewStatus');
-            const btn = document.getElementById('reviewBtn');
-
-            const name = currentUser || nameInput.value.trim() || 'Аноним';
-            const text = textInput.value.trim();
-            if (!text) { status.innerHTML = '<p class="status-err">Напишите отзыв</p>'; return; }
-
-            btn.disabled = true;
-            try {
-                const response = await fetch('/api/review', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ name: name, review: text })
-                });
-                if (!response.ok) throw new Error('Ошибка сервера');
-                status.innerHTML = '<p class="status-ok">✅ Спасибо за отзыв!</p>';
-                textInput.value = '';
-                loadReviews();
-            } catch (error) {
-                status.innerHTML = '<p class="status-err">' + escapeHtml(error.message) + '</p>';
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        // ---------- Аккаунт ----------
-        async function doRegister() {
-            const username = document.getElementById('authUsername').value.trim();
-            const password = document.getElementById('authPassword').value;
-            const status = document.getElementById('authStatus');
-            if (!username || password.length < 4) {
-                status.innerHTML = '<p class="status-err">Имя не пустое, пароль от 4 символов</p>';
-                return;
-            }
-            try {
-                const response = await fetch('/api/register', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ username: username, password: password })
-                });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error || 'Ошибка регистрации');
-                currentUser = username;
-                try { localStorage.setItem('per_user', username); } catch (e) {}
-                status.innerHTML = '<p class="status-ok">✅ Регистрация успешна!</p>';
-                updateAuthUI();
-                loadProfile();
-            } catch (error) {
-                status.innerHTML = '<p class="status-err">' + escapeHtml(error.message) + '</p>';
-            }
-        }
-
-        async function doLogin() {
-            const username = document.getElementById('authUsername').value.trim();
-            const password = document.getElementById('authPassword').value;
-            const status = document.getElementById('authStatus');
-            if (!username || !password) {
-                status.innerHTML = '<p class="status-err">Введите имя и пароль</p>';
-                return;
-            }
-            try {
-                const response = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ username: username, password: password })
-                });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error || 'Ошибка входа');
-                currentUser = username;
-                try { localStorage.setItem('per_user', username); } catch (e) {}
-                status.innerHTML = '<p class="status-ok">✅ Вы вошли!</p>';
-                updateAuthUI();
-                loadProfile();
-            } catch (error) {
-                status.innerHTML = '<p class="status-err">' + escapeHtml(error.message) + '</p>';
-            }
-        }
-
-        function doLogout() {
-            currentUser = null;
-            try { localStorage.removeItem('per_user'); } catch (e) {}
-            document.getElementById('authStatus').innerHTML = '';
-            updateAuthUI();
-        }
-
-        function updateAuthUI() {
-            const line = document.getElementById('authStatusLine');
-            const logoutBtn = document.getElementById('logoutBtn');
-            const profileCard = document.getElementById('profileCard');
-            if (currentUser) {
-                line.textContent = 'Вы вошли как: ' + currentUser;
-                logoutBtn.style.display = '';
-                profileCard.style.display = '';
-            } else {
-                line.textContent = 'Вы вошли как гость. Зарегистрируйтесь, чтобы копить серию дней и загружать аватар.';
-                logoutBtn.style.display = 'none';
-                profileCard.style.display = 'none';
-            }
-        }
-
-        async function loadProfile() {
-            if (!currentUser) return;
-            try {
-                const response = await fetch('/api/profile?username=' + encodeURIComponent(currentUser));
-                const data = await response.json();
-                document.getElementById('stStreak').textContent = data.streak || 0;
-                document.getElementById('stBest').textContent = data.best_streak || 0;
-                document.getElementById('stChecked').textContent = data.checked || 0;
-                document.getElementById('stSuggested').textContent = data.suggested || 0;
-                document.getElementById('stPoints').textContent = data.points || 0;
-                document.getElementById('stLevel').textContent = data.level || '🌱 Новичок';
-                document.getElementById('profileGreeting').textContent = 'Привет, ' + currentUser + '! 👋';
-                if (data.avatar) {
-                    document.getElementById('profileAvatar').src = data.avatar + '?t=' + Date.now();
-                }
-            } catch (e) {}
-        }
-
-        async function uploadAvatar() {
-            const fileInput = document.getElementById('avatarFile');
-            const file = fileInput.files[0];
-            if (!file) { alert('Сначала выберите картинку'); return; }
-
-            const form = new FormData();
-            form.append('username', currentUser);
-            form.append('avatar', file);
-
-            try {
-                const response = await fetch('/api/avatar', { method: 'POST', body: form });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error || 'Ошибка загрузки');
-                document.getElementById('profileAvatar').src = data.avatar;
-                fileInput.value = '';
-            } catch (error) {
-                alert(error.message);
-            }
-        }
-
-        // ---------- Старт ----------
-        document.addEventListener('DOMContentLoaded', () => {
-            try { currentUser = localStorage.getItem('per_user') || null; } catch (e) {}
-            updateAuthUI();
-            if (currentUser) loadProfile();
-        });
-    </script>
+    <script src="/static/script.js"></script>
 </body>
 </html>
