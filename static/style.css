@@ -1,5 +1,5 @@
 /* ============================================================
-   «ПЕРЕПРОВЕРИМ» — style.css
+   ПЕРЕПРОВЕРИМ — static/style.css
    Команда «Единый пульс» · Чемпионат «Медицина 2050»
    ============================================================ */
 
@@ -698,4 +698,10 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
     .cabinet-stats { grid-template-columns: 1fr; }
     .game-buttons { flex-direction: column; }
     .btn-myth, .btn-truth { width: 100%; }
+}
+
+/* ---------- Имя Веры в приветствии ---------- */
+.vera-name {
+    color: var(--primary);
+    font-weight: 800;
 }
