@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Перепроверим — Не верь, а проверь</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=6">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=7">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
         // Применяем тёмный фон до отрисовки — защита от «мигания» светлым
@@ -375,7 +375,7 @@
         try { currentUser = localStorage.getItem('veraUser') || null; } catch (e) {}
 
         const PHRASES = {
-            hello:  "Привет! Я <b>Вера</b> — медицинский фактчекер команды «Единый пульс». Напишите сомнительное утверждение — я разберу его на миф и правду!",
+            hello:  "Привет! Я <span class=\"vera-name\">Вера</span> — медицинский фактчекер команды «Единый пульс». Напишите сомнительное утверждение — я разберу его на миф и правду!",
             true:   "Разоблачено — правда! Всё проверено, спи спокойно 💚",
             false:  "Осторожно, это миф! Я нашла подтверждение, что так думать не стоит 🚫",
             unsure: "Честно? Точного ответа у меня нет — лучше уточнить у специалиста 🤔",
