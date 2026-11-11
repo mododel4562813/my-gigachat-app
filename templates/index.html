@@ -4,17 +4,160 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Перепроверим — Не верь, а проверь</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=9">
+    <!-- Шрифты -->
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script>
-        // Применяем тёмный фон до отрисовки — защита от «мигания» светлым
-        try {
-            const t = localStorage.getItem('theme');
-            if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                document.documentElement.classList.add('dark-preload');
-            }
-        } catch (e) { /* приватный режим — просто игнорируем */ }
-    </script>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-main: #1a1a1a;
+            --text-sec: #666;
+            --accent: #6c5ce7;
+            --accent-hover: #5649c0;
+            --danger: #ff5e57;
+            --success: #00b894;
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.5);
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1e1e2e;
+            --card-bg: #2a2a40;
+            --text-main: #f0f0f0;
+            --text-sec: #aaa;
+            --glass-bg: rgba(42, 42, 64, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Manrope', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            transition: background 0.3s, color 0.3s;
+            min-height: 100vh;
+        }
+
+        /* Blobs */
+        .background-blobs { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; }
+        .blob { position: absolute; filter: blur(80px); opacity: 0.6; }
+        .blob-1 { top: 10%; left: 10%; width: 300px; height: 300px; background: #ff7675; border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; transform: rotate(-15deg); }
+        .blob-2 { top: 80%; right: 10%; width: 400px; height: 400px; background: #00cec9; border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; transform: rotate(10deg); }
+        .blob-3 { bottom: 20%; left: 20%; width: 350px; height: 350px; background: #a29bfe; border-radius: 50% 50% 60% 40% / 50% 60% 40% 50%; transform: rotate(5deg); }
+
+        /* Layout */
+        .app-container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; margin-bottom: 30px; }
+        .logo { display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .logo h1 { font-weight: 800; font-size: 2.5rem; background: linear-gradient(to right, #6c5ce7, #a29bfe); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .slogan { color: var(--text-sec); margin-top: 10px; }
+
+        /* Glass Card */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        /* Disclaimer */
+        .disclaimer {
+            background: rgba(255, 255, 255, 0.1);
+            border-left: 5px solid var(--danger);
+            padding: 15px;
+            margin-bottom: 30px;
+            border-radius: 0 10px 10px 0;
+        }
+        .disclaimer p { display: flex; align-items: center; gap: 10px; }
+
+        /* Tabs */
+        .tab-panel { display: none; animation: fadeIn 0.4s; }
+        .tab-panel.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Inputs & Buttons */
+        textarea, input[type="text"], input[type="password"] {
+            width: 100%; padding: 15px; margin-bottom: 15px;
+            background: var(--card-bg); border: 1px solid #ddd;
+            border-radius: 10px; font-family: inherit; color: var(--text-main);
+        }
+        [data-theme="dark"] textarea, [data-theme="dark"] input { border-color: #444; }
+        
+        button { cursor: pointer; padding: 12px 24px; border: none; border-radius: 10px; font-weight: 600; transition: 0.2s; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-2px); }
+        .btn-secondary { background: transparent; border: 2px solid var(--accent); color: var(--accent); }
+        .btn-secondary:hover { background: var(--accent); color: white; }
+        .btn-ghost { background: transparent; color: var(--text-main); text-decoration: underline; }
+
+        /* Mascot */
+        .mascot { position: relative; max-width: 300px; margin: 0 auto 30px; }
+        .mascot img { width: 100%; height: auto; display: block; }
+        .mascot-speech {
+            position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%);
+            background: white; padding: 10px 20px; border-radius: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            max-width: 250px; text-align: center;
+        }
+        [data-theme="dark"] .mascot-speech { background: #2a2a40; color: white; border: 1px solid #444; }
+
+        /* Result Box */
+        .result { margin-top: 20px; padding: 20px; background: var(--card-bg); border-radius: 15px; border: 1px solid #eee; }
+        .verdict-badge { padding: 8px 16px; border-radius: 20px; font-weight: bold; display: inline-block; margin-bottom: 15px; }
+        .verdict-badge.pravda { background: #eafef9; color: var(--success); border: 1px solid var(--success); }
+        .verdict-badge.mif { background: #ffeef0; color: var(--danger); border: 1px solid var(--danger); }
+        .verdict-badge.sporno { background: #fff8e1; color: #fdcb6e; border: 1px solid #fdcb6e; }
+
+        /* Hearts Rating */
+        .hearts { display: flex; gap: 5px; margin: 10px 0; }
+        .heart { cursor: pointer; font-size: 1.2rem; opacity: 0.5; }
+        .heart.active { opacity: 1; color: #ff4757; }
+
+        /* Grids */
+        .cards-grid, .badges-grid, .cabinet-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; margin-top: 20px; }
+        .card-evidence, .badge-item {
+            background: var(--card-bg); padding: 20px; border-radius: 15px;
+            text-align: center; border: 1px solid #eee;
+        }
+        .badge-item { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .badge-icon { width: 60px; height: 60px; background: #eee; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 10px; }
+
+        /* Leaderboard */
+        .leaderboard-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .leaderboard-row:last-child { border-bottom: none; }
+
+        /* Cabinet Progress */
+        .cabinet-progress-bar { width: 100%; height: 10px; background: #eee; border-radius: 5px; overflow: hidden; margin-top: 5px; }
+        .cabinet-progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.5s; }
+
+        /* Activity Chart */
+        .activity-bars { display: flex; justify-content: space-between; height: 80px; align-items: flex-end; gap: 5px; }
+        .bar-col { width: 100%; background: #ddd; border-radius: 5px 5px 0 0; transition: height 0.3s; }
+        .bar-col.active { background: var(--accent); }
+
+        /* Menu & Theme */
+        .menu-btn, .theme-btn { position: fixed; top: 20px; z-index: 100; padding: 10px; border-radius: 50%; background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .menu-btn { left: 20px; }
+        .theme-btn { right: 20px; }
+        .menu { position: fixed; top: 70px; left: 20px; width: 220px; background: white; padding: 10px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: none; flex-direction: column; gap: 5px; }
+        .menu.open { display: flex; }
+        .menu a { text-decoration: none; color: var(--text-main); padding: 10px; border-radius: 8px; transition: 0.2s; }
+        .menu a:hover, .menu a.active { background: var(--accent); color: white; }
+
+        /* Hidden Class */
+        .hidden { display: none !important; }
+        .divider { border-top: 1px solid #eee; margin: 30px 0; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .menu { left: 10px; width: calc(100% - 20px); }
+            .glass-card { padding: 15px; }
+            .logo h1 { font-size: 1.8rem; }
+        }
+    </style>
 </head>
 <body>
     <!-- Декоративные пятна на фоне -->
@@ -50,21 +193,17 @@
             <p class="slogan">Не верь, а проверь</p>
         </header>
 
-        <!-- Дисклеймер — виден только на главной -->
+        <!-- Дисклеймер -->
         <div class="disclaimer" id="disclaimerBlock">
             <p><span class="warn-icon">⚠️</span> <strong>Внимание!</strong> Это не медицинская консультация. При проблемах со здоровьем обязательно обратитесь к врачу.</p>
         </div>
 
         <main class="glass-card">
 
-            <!-- ============================================================
-                 ГЛАВНАЯ: проверка факта + предложение мифа
-                 ============================================================ -->
+            <!-- ГЛАВНАЯ -->
             <div class="tab-panel active" id="panelHome">
                 <div class="mascot" id="mascot">
-                    <img id="mascotImage"
-                         src="{{ url_for('static', filename='vera_hello.png') }}"
-                         alt="Вера — маскот проекта">
+                    <img id="mascotImage" src="{{ url_for('static', filename='vera_hello.png') }}" alt="Вера">
                     <div class="mascot-speech" id="mascotSpeech"></div>
                 </div>
 
@@ -74,7 +213,7 @@
                 </div>
 
                 <textarea id="userText" placeholder="Например: вакцины вызывают аутизм..."></textarea>
-                <button id="checkBtn" onclick="sendCheck()">
+                <button id="checkBtn" class="btn-primary" onclick="sendCheck()">
                     <span id="btnText">Проверить факт</span>
                 </button>
 
@@ -97,12 +236,11 @@
                         <p class="rating-message" id="ratingMessage"></p>
                     </div>
 
-                    <button class="btn-ghost" id="challengeOpen" hidden>⚔️ Оспорить ответ</button>
+                    <button class="btn-ghost" id="challengeOpen" hidden onclick="toggleChallenge()">⚔️ Оспорить ответ</button>
 
                     <div class="challenge" id="challengeBlock" hidden>
                         <h3>Не согласны с Верой? Оспорьте её!</h3>
-                        <textarea id="challengeReason" maxlength="500"
-                            placeholder="Напишите, почему вы не согласны — Вера перепроверит факт..."></textarea>
+                        <textarea id="challengeReason" maxlength="500" placeholder="Напишите, почему вы не согласны..."></textarea>
                         <button class="btn-secondary" id="challengeSend">Отправить на перепроверку</button>
                         <div class="challenge-result" id="challengeResult" hidden></div>
                     </div>
@@ -120,46 +258,35 @@
                 </div>
             </div>
 
-            <!-- ============================================================
-                 ИГРА «МИФ VS ПРАВДА»
-                 ============================================================ -->
+            <!-- ИГРА -->
             <div class="tab-panel" id="panelGame">
-                <div class="game-section" style="border-top:none; padding-top:0; margin-top:0;">
+                <div class="game-section">
                     <h3>🎮 Миф vs Правда</h3>
-                    <p class="game-subtitle">Проверьте свою интуицию — знаете ли вы, где миф, а где правда?</p>
-
+                    <p class="game-subtitle">Проверьте свою интуицию!</p>
                     <div class="game-card">
                         <div class="game-level" id="gameLevel">Уровень: 🌱 Новичок</div>
                         <p class="game-statement" id="gameStatement">Загружаем вопрос…</p>
-
                         <div class="game-buttons">
-                            <button class="btn-myth" id="btnMyth">❌ Миф</button>
-                            <button class="btn-truth" id="btnTruth">✅ Правда</button>
+                            <button class="btn-primary" id="btnMyth" onclick="checkGameAnswer('Миф')">❌ Миф</button>
+                            <button class="btn-primary" id="btnTruth" onclick="checkGameAnswer('Правда')">✅ Правда</button>
                         </div>
-
                         <div class="game-feedback" id="gameFeedback" hidden>
                             <p class="game-verdict" id="gameVerdict"></p>
                             <p class="game-explain" id="gameExplain"></p>
                         </div>
-
                         <div class="game-score">
                             <span>Счёт: <b id="gameScore">0</b></span>
                             <span>Серия: <b id="gameStreak">0</b> 🔥</span>
                         </div>
-
                         <button class="btn-secondary" id="btnNext" hidden>Следующий миф →</button>
                     </div>
                 </div>
             </div>
 
-            <!-- ============================================================
-                 ДОКАЗАТЕЛЬНАЯ МЕДИЦИНА
-                 ============================================================ -->
+            <!-- ДОКАЗАТЕЛЬНАЯ МЕДИЦИНА -->
             <div class="tab-panel" id="panelEvidence">
                 <div class="mascot mascot-evidence" id="mascotEvidence">
-                    <img id="evidenceImage"
-                         src="{{ url_for('static', filename='vera_hello.png') }}"
-                         alt="Вера рассказывает про доказательную медицину">
+                    <img id="evidenceImage" src="{{ url_for('static', filename='vera_hello.png') }}" alt="Вера">
                     <div class="mascot-speech speech-bubble">
                         <p id="evidenceIntro">Загружаем рассказ Веры…</p>
                     </div>
@@ -172,24 +299,20 @@
                 </div>
             </div>
 
-            <!-- ============================================================
-                 ОТЗЫВЫ, ОБСУЖДЕНИЯ И ДРУЗЬЯ
-                 ============================================================ -->
+            <!-- ОТЗЫВЫ И ОБСУЖДЕНИЯ -->
             <div class="tab-panel" id="panelReviews">
-
-                <!-- ОТЗЫВЫ: впечатление о проекте -->
-                <div class="reviews-section" style="border-top:none; padding-top:0; margin-top:0;">
+                <div class="reviews-section">
                     <h3>⭐ Отзывы о проекте</h3>
-                    <p class="review-subtitle">Поделись своим впечатлением — оцените «Перепроверим» от 1 до 5 звёзд!</p>
                     <form id="reviewForm">
                         <input type="text" id="reviewName" placeholder="Как тебя зовут?">
-                        <textarea id="reviewText" placeholder="Что понравилось или что стоит улучшить?"></textarea>
+                        <textarea id="reviewText" placeholder="Что понравилось?"></textarea>
                         <div class="stars-rating" id="reviewStarsBox">
-                            <span class="star active" data-val="5">★</span>
-                            <span class="star active" data-val="4">★</span>
-                            <span class="star active" data-val="3">★</span>
-                            <span class="star active" data-val="2">★</span>
-                            <span class="star active" data-val="1">★</span>
+                            <span class="star" data-val="5">★</span>
+                            <span class="star" data-val="4">★</span>
+                            <span class="star" data-val="3">★</span>
+                                                        <span class="star" data-val="3">★</span>
+                            <span class="star" data-val="2">★</span>
+                            <span class="star" data-val="1">★</span>
                         </div>
                         <button type="submit" class="btn-secondary">Отправить отзыв</button>
                     </form>
