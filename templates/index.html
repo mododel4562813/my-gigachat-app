@@ -4,163 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Перепроверим — Не верь, а проверь</title>
-    <!-- Шрифты -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=6">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-color: #f0f2f5;
-            --card-bg: #ffffff;
-            --text-main: #1a1a1a;
-            --text-sec: #666;
-            --accent: #6c5ce7;
-            --accent-hover: #5649c0;
-            --danger: #ff5e57;
-            --success: #00b894;
-            --glass-bg: rgba(255, 255, 255, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.5);
-        }
-
-        [data-theme="dark"] {
-            --bg-color: #1e1e2e;
-            --card-bg: #2a2a40;
-            --text-main: #f0f0f0;
-            --text-sec: #aaa;
-            --glass-bg: rgba(42, 42, 64, 0.8);
-            --glass-border: rgba(255, 255, 255, 0.1);
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Manrope', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            transition: background 0.3s, color 0.3s;
-            min-height: 100vh;
-        }
-
-        /* Blobs */
-        .background-blobs { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; }
-        .blob { position: absolute; filter: blur(80px); opacity: 0.6; }
-        .blob-1 { top: 10%; left: 10%; width: 300px; height: 300px; background: #ff7675; border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; transform: rotate(-15deg); }
-        .blob-2 { top: 80%; right: 10%; width: 400px; height: 400px; background: #00cec9; border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; transform: rotate(10deg); }
-        .blob-3 { bottom: 20%; left: 20%; width: 350px; height: 350px; background: #a29bfe; border-radius: 50% 50% 60% 40% / 50% 60% 40% 50%; transform: rotate(5deg); }
-
-        /* Layout */
-        .app-container { max-width: 1000px; margin: 0 auto; padding: 20px; }
-        header { text-align: center; margin-bottom: 30px; }
-        .logo { display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .logo h1 { font-weight: 800; font-size: 2.5rem; background: linear-gradient(to right, #6c5ce7, #a29bfe); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .slogan { color: var(--text-sec); margin-top: 10px; }
-
-        /* Glass Card */
-        .glass-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        }
-
-        /* Disclaimer */
-        .disclaimer {
-            background: rgba(255, 255, 255, 0.1);
-            border-left: 5px solid var(--danger);
-            padding: 15px;
-            margin-bottom: 30px;
-            border-radius: 0 10px 10px 0;
-        }
-        .disclaimer p { display: flex; align-items: center; gap: 10px; }
-
-        /* Tabs */
-        .tab-panel { display: none; animation: fadeIn 0.4s; }
-        .tab-panel.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Inputs & Buttons */
-        textarea, input[type="text"], input[type="password"] {
-            width: 100%; padding: 15px; margin-bottom: 15px;
-            background: var(--card-bg); border: 1px solid #ddd;
-            border-radius: 10px; font-family: inherit; color: var(--text-main);
-        }
-        [data-theme="dark"] textarea, [data-theme="dark"] input { border-color: #444; }
-        
-        button { cursor: pointer; padding: 12px 24px; border: none; border-radius: 10px; font-weight: 600; transition: 0.2s; }
-        .btn-primary { background: var(--accent); color: white; }
-        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-2px); }
-        .btn-secondary { background: transparent; border: 2px solid var(--accent); color: var(--accent); }
-        .btn-secondary:hover { background: var(--accent); color: white; }
-        .btn-ghost { background: transparent; color: var(--text-main); text-decoration: underline; }
-
-        /* Mascot */
-        .mascot { position: relative; max-width: 300px; margin: 0 auto 30px; }
-        .mascot img { width: 100%; height: auto; display: block; }
-        .mascot-speech {
-            position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%);
-            background: white; padding: 10px 20px; border-radius: 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-            max-width: 250px; text-align: center;
-        }
-        [data-theme="dark"] .mascot-speech { background: #2a2a40; color: white; border: 1px solid #444; }
-
-        /* Result Box */
-        .result { margin-top: 20px; padding: 20px; background: var(--card-bg); border-radius: 15px; border: 1px solid #eee; }
-        .verdict-badge { padding: 8px 16px; border-radius: 20px; font-weight: bold; display: inline-block; margin-bottom: 15px; }
-        .verdict-badge.pravda { background: #eafef9; color: var(--success); border: 1px solid var(--success); }
-        .verdict-badge.mif { background: #ffeef0; color: var(--danger); border: 1px solid var(--danger); }
-        .verdict-badge.sporno { background: #fff8e1; color: #fdcb6e; border: 1px solid #fdcb6e; }
-
-        /* Hearts Rating */
-        .hearts { display: flex; gap: 5px; margin: 10px 0; }
-        .heart { cursor: pointer; font-size: 1.2rem; opacity: 0.5; }
-        .heart.active { opacity: 1; color: #ff4757; }
-
-        /* Grids */
-        .cards-grid, .badges-grid, .cabinet-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; margin-top: 20px; }
-        .card-evidence, .badge-item {
-            background: var(--card-bg); padding: 20px; border-radius: 15px;
-            text-align: center; border: 1px solid #eee;
-        }
-        .badge-item { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-        .badge-icon { width: 60px; height: 60px; background: #eee; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 10px; }
-
-        /* Leaderboard */
-        .leaderboard-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
-        .leaderboard-row:last-child { border-bottom: none; }
-
-        /* Cabinet Progress */
-        .cabinet-progress-bar { width: 100%; height: 10px; background: #eee; border-radius: 5px; overflow: hidden; margin-top: 5px; }
-        .cabinet-progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.5s; }
-
-        /* Activity Chart */
-        .activity-bars { display: flex; justify-content: space-between; height: 80px; align-items: flex-end; gap: 5px; }
-        .bar-col { width: 100%; background: #ddd; border-radius: 5px 5px 0 0; transition: height 0.3s; }
-        .bar-col.active { background: var(--accent); }
-
-        /* Menu & Theme */
-        .menu-btn, .theme-btn { position: fixed; top: 20px; z-index: 100; padding: 10px; border-radius: 50%; background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-        .menu-btn { left: 20px; }
-        .theme-btn { right: 20px; }
-        .menu { position: fixed; top: 70px; left: 20px; width: 220px; background: white; padding: 10px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: none; flex-direction: column; gap: 5px; }
-        .menu.open { display: flex; }
-        .menu a { text-decoration: none; color: var(--text-main); padding: 10px; border-radius: 8px; transition: 0.2s; }
-        .menu a:hover, .menu a.active { background: var(--accent); color: white; }
-
-        /* Hidden Class */
-        .hidden { display: none !important; }
-        .divider { border-top: 1px solid #eee; margin: 30px 0; }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .menu { left: 10px; width: calc(100% - 20px); }
-            .glass-card { padding: 15px; }
-            .logo h1 { font-size: 1.8rem; }
-        }
-    </style>
+    <script>
+        // Применяем тёмный фон до отрисовки — защита от «мигания» светлым
+        try {
+            const t = localStorage.getItem('theme');
+            if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark-preload');
+            }
+        } catch (e) { /* приватный режим — просто игнорируем */ }
+    </script>
 </head>
 <body>
-    <!-- Декоративные пятна на фоне -->
     <div class="background-blobs">
         <div class="blob blob-1"></div>
         <div class="blob blob-2"></div>
@@ -172,10 +28,8 @@
     <nav class="menu" id="menu">
         <a href="#" data-tab="home" class="active">🔍 Проверка мифов</a>
         <a href="#" data-tab="game">🎮 Миф vs Правда</a>
-        <a href="#" data-tab="evidence">🔬 Доказательная медицина</a>
-        <a href="#" data-tab="reviews">💬 Обсуждения и отзывы</a>
-        <a href="#" data-tab="stats">🏆 Ачивки и рейтинг</a>
         <a href="#" data-tab="suggest">✨ Предложить миф</a>
+        <a href="#" data-tab="reviews">💬 Обсуждение</a>
         <a href="#" data-tab="report">⚠️ Сообщить об ошибке</a>
         <a href="#" data-tab="profile">👤 Аккаунт</a>
     </nav>
@@ -193,17 +47,18 @@
             <p class="slogan">Не верь, а проверь</p>
         </header>
 
-        <!-- Дисклеймер -->
-        <div class="disclaimer" id="disclaimerBlock">
+        <div class="disclaimer">
             <p><span class="warn-icon">⚠️</span> <strong>Внимание!</strong> Это не медицинская консультация. При проблемах со здоровьем обязательно обратитесь к врачу.</p>
         </div>
 
         <main class="glass-card">
 
-            <!-- ГЛАВНАЯ -->
+            <!-- ===== ГЛАВНАЯ: проверка + предложение мифа ===== -->
             <div class="tab-panel active" id="panelHome">
                 <div class="mascot" id="mascot">
-                    <img id="mascotImage" src="{{ url_for('static', filename='vera_hello.png') }}" alt="Вера">
+                    <img id="mascotImage"
+                         src="{{ url_for('static', filename='vera_hello.png') }}"
+                         alt="Вера — маскот проекта">
                     <div class="mascot-speech" id="mascotSpeech"></div>
                 </div>
 
@@ -213,7 +68,7 @@
                 </div>
 
                 <textarea id="userText" placeholder="Например: вакцины вызывают аутизм..."></textarea>
-                <button id="checkBtn" class="btn-primary" onclick="sendCheck()">
+                <button id="checkBtn" onclick="sendCheck()">
                     <span id="btnText">Проверить факт</span>
                 </button>
 
@@ -236,11 +91,12 @@
                         <p class="rating-message" id="ratingMessage"></p>
                     </div>
 
-                    <button class="btn-ghost" id="challengeOpen" hidden onclick="toggleChallenge()">⚔️ Оспорить ответ</button>
+                    <button class="btn-ghost" id="challengeOpen" hidden>⚔️ Оспорить ответ</button>
 
                     <div class="challenge" id="challengeBlock" hidden>
                         <h3>Не согласны с Верой? Оспорьте её!</h3>
-                        <textarea id="challengeReason" maxlength="500" placeholder="Напишите, почему вы не согласны..."></textarea>
+                        <textarea id="challengeReason" maxlength="500"
+                            placeholder="Напишите, почему вы не согласны — Вера перепроверит факт..."></textarea>
                         <button class="btn-secondary" id="challengeSend">Отправить на перепроверку</button>
                         <div class="challenge-result" id="challengeResult" hidden></div>
                     </div>
@@ -258,126 +114,49 @@
                 </div>
             </div>
 
-            <!-- ИГРА -->
+            <!-- ===== ИГРА ===== -->
             <div class="tab-panel" id="panelGame">
-                <div class="game-section">
+                <div class="game-section" style="border-top:none; padding-top:0; margin-top:0;">
                     <h3>🎮 Миф vs Правда</h3>
-                    <p class="game-subtitle">Проверьте свою интуицию!</p>
+                    <p class="game-subtitle">Проверьте свою интуицию — знаете ли вы, где миф, а где правда?</p>
+
                     <div class="game-card">
                         <div class="game-level" id="gameLevel">Уровень: 🌱 Новичок</div>
                         <p class="game-statement" id="gameStatement">Загружаем вопрос…</p>
+
                         <div class="game-buttons">
-                            <button class="btn-primary" id="btnMyth" onclick="checkGameAnswer('Миф')">❌ Миф</button>
-                            <button class="btn-primary" id="btnTruth" onclick="checkGameAnswer('Правда')">✅ Правда</button>
+                            <button class="btn-myth" id="btnMyth">❌ Миф</button>
+                            <button class="btn-truth" id="btnTruth">✅ Правда</button>
                         </div>
+
                         <div class="game-feedback" id="gameFeedback" hidden>
                             <p class="game-verdict" id="gameVerdict"></p>
                             <p class="game-explain" id="gameExplain"></p>
                         </div>
+
                         <div class="game-score">
                             <span>Счёт: <b id="gameScore">0</b></span>
                             <span>Серия: <b id="gameStreak">0</b> 🔥</span>
                         </div>
+
                         <button class="btn-secondary" id="btnNext" hidden>Следующий миф →</button>
                     </div>
                 </div>
             </div>
 
-            <!-- ДОКАЗАТЕЛЬНАЯ МЕДИЦИНА -->
-            <div class="tab-panel" id="panelEvidence">
-                <div class="mascot mascot-evidence" id="mascotEvidence">
-                    <img id="evidenceImage" src="{{ url_for('static', filename='vera_hello.png') }}" alt="Вера">
-                    <div class="mascot-speech speech-bubble">
-                        <p id="evidenceIntro">Загружаем рассказ Веры…</p>
-                    </div>
-                </div>
-                <div class="cards-grid" id="evidenceCards">
-                    <div class="card-evidence">
-                        <h4>Загружаем…</h4>
-                        <p>Вера уже готовит материалы 📚</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ОТЗЫВЫ И ОБСУЖДЕНИЯ -->
+            <!-- ===== ОБСУЖДЕНИЕ ===== -->
             <div class="tab-panel" id="panelReviews">
-                <div class="reviews-section">
-                    <h3>⭐ Отзывы о проекте</h3>
-                    <form id="reviewForm">
-                        <input type="text" id="reviewName" placeholder="Как тебя зовут?">
-                        <textarea id="reviewText" placeholder="Что понравилось?"></textarea>
-                        <div class="stars-rating" id="reviewStarsBox">
-                            <span class="star" data-val="5">★</span>
-                            <span class="star" data-val="4">★</span>
-                            <span class="star" data-val="3">★</span>
-                                                        <span class="star" data-val="3">★</span>
-                            <span class="star" data-val="2">★</span>
-                            <span class="star" data-val="1">★</span>
-                        </div>
-                        <button type="submit" class="btn-secondary">Отправить отзыв</button>
-                    </form>
-                    <div id="reviewsList" style="margin-top:20px;"></div>
-                </div>
-
-                <div class="divider"></div>
-
-                <!-- ОБСУЖДЕНИЯ: комментарии с ответами -->
-                <div class="comments-section">
-                    <h3>💬 Обсуждения</h3>
-                    <p class="comments-subtitle">Здесь обсуждают мифы с другими: можно отвечать друг другу и добавлять друзей.</p>
-                    <input type="text" id="commentName" placeholder="Твоё имя (или войдите в аккаунт)">
-                    <textarea id="commentText" placeholder="Твой комментарий..." maxlength="500"></textarea>
+                <div class="comments-section" style="border-top:none; padding-top:0; margin-top:0;">
+                    <h3>💬 Комментарии</h3>
+                    <p class="comments-subtitle">Что думают другие?</p>
+                    <input type="text" id="commentName" placeholder="Твоё имя">
+                    <textarea id="commentText" placeholder="Твой комментарий..."></textarea>
                     <button class="btn-secondary" onclick="sendComment()">Отправить</button>
                     <div id="commentsList" style="margin-top:20px;"></div>
                 </div>
-
-                <div class="divider"></div>
-
-                <!-- ДРУЗЬЯ -->
-                <div class="friends-section">
-                    <h3>🤝 Друзья</h3>
-                    <p class="review-subtitle">Добавьте друга по имени — и обсуждайте мифы вместе.</p>
-                    <div class="friends-add-row">
-                        <input type="text" id="friendName" placeholder="Имя пользователя">
-                        <button class="btn-secondary" onclick="addFriendFromInput()">Добавить</button>
-                    </div>
-                    <div id="friendsList" style="margin-top:14px;"></div>
-                </div>
             </div>
 
-            <!-- ============================================================
-                 АЧИВКИ, РЕЙТИНГ И МИФ ДНЯ
-                 ============================================================ -->
-            <div class="tab-panel" id="panelStats">
-                <div class="stats-header">
-                    <h3>🏆 Твои достижения</h3>
-                    <p class="review-subtitle">Зарабатывай ачивки за проверки, игру, серию дней и обсуждения.</p>
-                </div>
-                <div class="badges-grid" id="badgesList"></div>
-
-                <div class="divider"></div>
-
-                <div class="leaderboard">
-                    <h3>📊 Рейтинг пользователей</h3>
-                    <p class="review-subtitle">Топ-10 самых активных участников: проверки, предложения и игра.</p>
-                    <div id="leaderboardList"></div>
-                </div>
-
-                <div class="divider"></div>
-
-                <div class="myth-of-day">
-                    <h3>🔥 Миф дня</h3>
-                    <p class="review-subtitle">Самый популярный миф — проверь его первым!</p>
-                    <div class="myth-card">
-                        <div class="myth-text" id="mythOfDayText">Загрузка…</div>
-                        <button class="btn-secondary" id="checkMythOfDayBtn">Проверить факт</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ============================================================
-                 СООБЩИТЬ ОБ ОШИБКЕ
-                 ============================================================ -->
+            <!-- ===== СООБЩИТЬ ОБ ОШИБКЕ ===== -->
             <div class="tab-panel" id="panelReport">
                 <div class="review-section" style="border-top:none; padding-top:0; margin-top:0;">
                     <h3>🛠 Сообщить об ошибке</h3>
@@ -387,9 +166,7 @@
                 </div>
             </div>
 
-            <!-- ============================================================
-                 АККАУНТ
-                 ============================================================ -->
+            <!-- ===== АККАУНТ ===== -->
             <div class="tab-panel" id="panelProfile">
 
                 <!-- Экран для НЕ вошедшего пользователя -->
@@ -496,7 +273,7 @@
 
     <script>
         // ========================================================
-        // ТЕМА
+        // ТЕМА (класс вешается на body — так же, как в CSS!)
         // ========================================================
         const themeBtn = document.getElementById('themeBtn');
 
@@ -510,7 +287,7 @@
         try {
             savedTheme = localStorage.getItem('theme') ||
                 (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        } catch (e) { /* приватный режим */ }
+        } catch (e) {}
 
         applyTheme(savedTheme);
 
@@ -523,19 +300,20 @@
         }
 
         // ========================================================
-        // МЕНЮ И ВКЛАДКИ
+        // МЕНЮ (слева) и ВКЛАДКИ
         // ========================================================
         const menuBtn = document.getElementById('menuBtn');
         const menuEl = document.getElementById('menu');
 
         function toggleMenu() { if (menuEl) menuEl.classList.toggle('open'); }
-        function closeMenu()  { if (menuEl) menuEl.classList.remove('open'); }
+        function closeMenu() { if (menuEl) menuEl.classList.remove('open'); }
 
         if (menuBtn && menuEl) {
             menuBtn.addEventListener('click', function (e) {
                 e.stopPropagation();
                 toggleMenu();
             });
+
             document.addEventListener('keydown', function (e) {
                 if (e.key === 'Escape') closeMenu();
             });
@@ -544,15 +322,7 @@
             });
         }
 
-        const PANELS = ['Home', 'Game', 'Evidence', 'Reviews', 'Stats', 'Report', 'Profile'];
-
-        const TAB_LOADERS = {
-            Evidence: loadEvidence,
-            Reviews: function () { loadReviews(); loadComments(); loadFriends(); },
-            Stats: loadStats
-        };
-
-        let previousTab = 'Home';
+        const PANELS = ['Home', 'Game', 'Reviews', 'Report', 'Profile'];
 
         function showPanel(name) {
             PANELS.forEach(function (p) {
@@ -560,11 +330,10 @@
                 if (el) el.classList.toggle('active', p === name);
             });
             document.querySelectorAll('.menu a').forEach(function (a) {
-                a.classList.toggle('active', a.dataset.tab === name.toLowerCase());
+                a.classList.toggle('active',
+                    a.dataset.tab === name ||
+                    (name === 'Home' && a.dataset.tab === 'home'));
             });
-            // Дисклеймер — только на главной
-            const disc = document.getElementById('disclaimerBlock');
-            if (disc) disc.style.display = (name === 'Home') ? '' : 'none';
         }
 
         function switchTab(name) {
@@ -575,20 +344,9 @@
                 if (s) s.scrollIntoView({ behavior: 'smooth' });
                 return;
             }
-            const map = {
-                home: 'Home', game: 'Game', evidence: 'Evidence',
-                reviews: 'Reviews', stats: 'Stats', report: 'Report', profile: 'Profile'
-            };
-            const target = map[name] || 'Home';
-
-            // Уход с игровой вкладки — сохраняем результат
-            if (previousTab === 'Game' && target !== 'Game') saveGameResult();
-
-            showPanel(target);
-            if (target === 'Game') loadGameOnce();
-            if (TAB_LOADERS[target]) TAB_LOADERS[target]();
-
-            previousTab = target;
+            const map = { home: 'Home', game: 'Game', reviews: 'Reviews', report: 'Report', profile: 'Profile' };
+            showPanel(map[name] || 'Home');
+            if (name === 'game') loadGameOnce();
         }
 
         document.querySelectorAll('.menu a').forEach(function (link) {
@@ -599,25 +357,13 @@
         });
 
         // ========================================================
-        // ХЕЛПЕРЫ API
-        // ========================================================
-        function apiFetch(url, opts) {
-            return fetch(url, opts).then(function (r) {
-                return r.json().then(function (d) {
-                    if (!r.ok) throw new Error(d.error || 'Ошибка');
-                    return d;
-                });
-            });
-        }
-
-        // ========================================================
         // МАСКОТ ВЕРА
         // ========================================================
         const mascot = document.getElementById('mascot');
         const mascotImage = document.getElementById('mascotImage');
         const speech = document.getElementById('mascotSpeech');
 
-        // Если картинки маскота нет в static — прячем изображение,
+        // Если картинок маскота нет в static — прячем изображение,
         // чтобы вместо него не висел «сломанный» значок
         if (mascotImage) {
             mascotImage.addEventListener('error', function () {
@@ -667,7 +413,7 @@
         if (speech) speech.innerHTML = PHRASES.hello;
 
         // ========================================================
-        // ПРОВЕРКА ФАКТА (API /api/check)
+        // ПРОВЕРКА ФАКТА (настоящий API /api/check)
         // ========================================================
         let lastClaim = '';
         let lastVerdictFull = '';
@@ -720,7 +466,7 @@
         }
 
         // ========================================================
-        // СЕРДЕЧКИ (API /api/rate)
+        // СЕРДЕЧКИ
         // ========================================================
         document.querySelectorAll('.heart').forEach(function (h) {
             h.addEventListener('click', function () {
@@ -738,7 +484,7 @@
         });
 
         // ========================================================
-        // ОСПОРИТЬ ВЕРУ (API /api/challenge)
+        // ОСПОРИТЬ ВЕРУ
         // ========================================================
         const challengeOpen = document.getElementById('challengeOpen');
         const challengeBlock = document.getElementById('challengeBlock');
@@ -791,7 +537,7 @@
         }
 
         // ========================================================
-        // ПРЕДЛОЖИТЬ СВОЙ МИФ (API /api/suggest)
+        // ПРЕДЛОЖИТЬ СВОЙ МИФ (настоящий API /api/suggest)
         // ========================================================
         const suggestForm = document.getElementById('suggestForm');
 
@@ -830,7 +576,7 @@
         }
 
         // ========================================================
-        // СООБЩИТЬ ОБ ОШИБКЕ (API /api/error)
+        // СООБЩИТЬ ОБ ОШИБКЕ
         // ========================================================
         function sendError() {
             const text = document.getElementById('errorText').value.trim();
@@ -850,7 +596,7 @@
         }
 
         // ========================================================
-        // АККАУНТ (API /api/login и /api/register)
+        // АККАУНТ (настоящий API /api/login и /api/register)
         // ========================================================
         let authMode = 'login';
 
@@ -907,7 +653,7 @@
         }
 
         // ========================================================
-        // ЛИЧНЫЙ КАБИНЕТ
+        // ЛИЧНЫЙ КАБИНЕТ — уровни, прогресс, статистика
         // ========================================================
         const LEVELS_INFO = [
             { name: '🌱 Новичок',            needed: 0,  next: 20 },
@@ -919,9 +665,13 @@
             document.getElementById('authBox').classList.add('hidden');
             document.getElementById('cabinet').classList.remove('hidden');
             document.getElementById('cabinetName').textContent = name;
-            setAvatar(null);   // аватар появится после загрузки профиля
+            // Аватар появится после загрузки профиля; пока — первая буква имени
+            setAvatar(null);
         }
 
+        // ========================================================
+        // СИСТЕМА ДОСТИЖЕНИЙ (серверная серия дней)
+        // ========================================================
         let myVisits = { streak: 0, best_streak: 0, total_days: 0 };
         let myAvatar = null;
 
@@ -1003,7 +753,7 @@
         }
 
         // ========================================================
-        // АВАТАР (API /api/avatar)
+        // АВАТАР
         // ========================================================
         function setAvatar(url) {
             const av = document.getElementById('cabinetAvatar');
@@ -1102,7 +852,7 @@
         }
 
         // ========================================================
-        // ЗАГРУЗКА ПРОФИЛЯ (API /api/profile)
+        // ЗАГРУЗКА ПРОФИЛЯ С СЕРВЕРА
         // ========================================================
         function loadProfile(username) {
             fetch('/api/profile?username=' + encodeURIComponent(username))
@@ -1180,68 +930,46 @@
         }
 
         // ========================================================
-        // ОТЗЫВЫ СО ЗВЁЗДАМИ (API /api/review и /api/reviews)
+        // ОБСУЖДЕНИЕ (настоящий API /api/review и /api/reviews)
         // ========================================================
-        let reviewStars = 5;
-
-        const reviewStarsBox = document.getElementById('reviewStarsBox');
-        if (reviewStarsBox) {
-            reviewStarsBox.querySelectorAll('.star').forEach(function (s) {
-                s.addEventListener('click', function () {
-                    reviewStars = Number(s.dataset.val);
-                    reviewStarsBox.querySelectorAll('.star').forEach(function (x) {
-                        x.classList.toggle('active', Number(x.dataset.val) <= reviewStars);
-                    });
-                });
-            });
+        function sendComment() {
+            const name = currentUser
+                || document.getElementById('commentName').value.trim()
+                || 'Гость';
+            const text = document.getElementById('commentText').value.trim();
+            if (!text) return;
+            fetch('/api/review', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, review: text })
+            })
+            .then(function () {
+                document.getElementById('commentText').value = '';
+                loadComments();
+            })
+            .catch(function () {});
         }
 
-        const reviewForm = document.getElementById('reviewForm');
-        if (reviewForm) {
-            reviewForm.addEventListener('submit', function (e) {
-                e.preventDefault();
-                const name = currentUser
-                    || document.getElementById('reviewName').value.trim()
-                    || 'Аноним';
-                const text = document.getElementById('reviewText').value.trim();
-                if (!text) return alert('Напишите отзыв');
-
-                apiFetch('/api/review', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: name, review: text, rating: reviewStars })
-                })
-                .then(function () {
-                    reviewForm.reset();
-                    loadReviews();
-                })
-                .catch(function (err) { alert(err.message); });
-            });
-        }
-
-        function loadReviews() {
-            const list = document.getElementById('reviewsList');
-            if (!list) return;
-            apiFetch('/api/reviews')
+        function loadComments() {
+            fetch('/api/reviews')
+            .then(function (r) { return r.json(); })
             .then(function (data) {
+                const list = document.getElementById('commentsList');
+                if (!list) return;
                 list.innerHTML = '';
-                const reviews = data.reviews || [];
-                if (!reviews.length) {
-                    list.innerHTML = '<p class="history-empty">Отзывов пока нет — станьте первым! ⭐</p>';
-                    return;
-                }
-                reviews.forEach(function (r) {
+                (data.reviews || []).forEach(function (c) {
                     const div = document.createElement('div');
                     div.className = 'comment';
 
+                    // Аватар автора (если есть)
                     const avat = document.createElement('div');
                     avat.className = 'comment-avatar';
-                    if (r.avatar) {
-                        avat.style.backgroundImage = 'url("' + r.avatar + '")';
+                    if (c.avatar) {
+                        avat.style.backgroundImage = 'url("' + c.avatar + '")';
                         avat.style.backgroundSize = 'cover';
                         avat.style.backgroundPosition = 'center';
                     } else {
-                        avat.textContent = (r.name || 'Г').charAt(0).toUpperCase();
+                        avat.textContent = (c.name || 'Г').charAt(0).toUpperCase();
                     }
                     div.appendChild(avat);
 
@@ -1253,324 +981,26 @@
                     head.className = 'comment-header';
                     const author = document.createElement('span');
                     author.className = 'comment-author';
-                    author.textContent = r.name || 'Аноним';
+                    author.textContent = c.name || 'Гость';
                     const time = document.createElement('span');
-                    time.textContent = r.date || '';
+                    time.textContent = c.date || '';
                     head.appendChild(author); head.appendChild(time);
-
-                    const stars = document.createElement('div');
-                    stars.style.color = '#f59e0b';
-                    stars.style.letterSpacing = '2px';
-                    stars.textContent = '★'.repeat(r.rating || 5) + '☆'.repeat(5 - (r.rating || 5));
 
                     const body = document.createElement('div');
                     body.className = 'comment-text';
-                    body.textContent = r.text || '';
+                    body.textContent = c.text || '';
 
-                    bodyWrap.appendChild(head);
-                    bodyWrap.appendChild(stars);
-                    bodyWrap.appendChild(body);
+                    bodyWrap.appendChild(head); bodyWrap.appendChild(body);
                     div.appendChild(bodyWrap);
                     list.appendChild(div);
                 });
             })
             .catch(function () {});
         }
+        loadComments();
 
         // ========================================================
-        // ОБСУЖДЕНИЯ С ОТВЕТАМИ (API /api/comments)
-        // ========================================================
-        let replyParent = null;
-
-        function buildCommentNode(c, all) {
-            const div = document.createElement('div');
-            div.className = 'comment';
-
-            const avat = document.createElement('div');
-            avat.className = 'comment-avatar';
-            if (c.avatar) {
-                avat.style.backgroundImage = 'url("' + c.avatar + '")';
-                avat.style.backgroundSize = 'cover';
-                avat.style.backgroundPosition = 'center';
-            } else {
-                avat.textContent = (c.author || 'Г').charAt(0).toUpperCase();
-            }
-            div.appendChild(avat);
-
-            const bodyWrap = document.createElement('div');
-            bodyWrap.style.flex = '1';
-            bodyWrap.style.minWidth = '0';
-
-            const head = document.createElement('div');
-            head.className = 'comment-header';
-            const author = document.createElement('span');
-            author.className = 'comment-author';
-            author.textContent = c.author || 'Аноним';
-            const time = document.createElement('span');
-            time.textContent = c.date || '';
-            head.appendChild(author); head.appendChild(time);
-
-            const body = document.createElement('div');
-            body.className = 'comment-text';
-            body.textContent = c.text || '';
-
-            const replyBtn = document.createElement('button');
-            replyBtn.className = 'btn-ghost';
-            replyBtn.style.cssText = 'padding:4px 10px; font-size:0.8rem; margin-top:6px;';
-            replyBtn.textContent = 'Ответить';
-            replyBtn.addEventListener('click', function () {
-                replyParent = c.id;
-                const ta = document.getElementById('commentText');
-                ta.value = (c.author || '') + ', ';
-                ta.focus();
-                ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            });
-
-            bodyWrap.appendChild(head);
-            bodyWrap.appendChild(body);
-            bodyWrap.appendChild(replyBtn);
-
-            // Ответы на этот комментарий (ветки)
-            (all || []).forEach(function (r) {
-                if (r.parent === c.id) bodyWrap.appendChild(buildCommentNode(r, all));
-            });
-
-            div.appendChild(bodyWrap);
-            return div;
-        }
-
-        function loadComments() {
-            const list = document.getElementById('commentsList');
-            if (!list) return;
-            apiFetch('/api/comments')
-            .then(function (data) {
-                list.innerHTML = '';
-                const all = data.comments || [];
-                const roots = all.filter(function (c) { return !c.parent; });
-                if (!roots.length) {
-                    list.innerHTML = '<p class="history-empty">Пока тихо — напишите первый комментарий! 💬</p>';
-                    return;
-                }
-                roots.forEach(function (c) { list.appendChild(buildCommentNode(c, all)); });
-            })
-            .catch(function () {});
-        }
-
-        function sendComment() {
-            const text = document.getElementById('commentText').value.trim();
-            if (!text) return;
-            apiFetch('/api/comments', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: currentUser || 'Аноним',
-                    text: text,
-                    parent: replyParent || ''
-                })
-            })
-            .then(function () {
-                replyParent = null;
-                document.getElementById('commentText').value = '';
-                loadComments();
-            })
-            .catch(function (err) { alert(err.message); });
-        }
-
-        // ========================================================
-        // ДРУЗЬЯ (API /api/friends)
-        // ========================================================
-        function addFriendFromInput() {
-            if (!currentUser) return alert('Войдите в аккаунт, чтобы добавлять друзей');
-            const friend = document.getElementById('friendName').value.trim();
-            if (!friend) return;
-            apiFetch('/api/friends/add', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: currentUser, friend: friend })
-            })
-            .then(function () {
-                document.getElementById('friendName').value = '';
-                loadFriends();
-            })
-            .catch(function (err) { alert(err.message); });
-        }
-
-        function loadFriends() {
-            const box = document.getElementById('friendsList');
-            if (!box) return;
-            if (!currentUser) {
-                box.innerHTML = '<p class="history-empty">Войдите в аккаунт, чтобы добавить друзей 🤝</p>';
-                return;
-            }
-            apiFetch('/api/friends?username=' + encodeURIComponent(currentUser))
-            .then(function (data) {
-                box.innerHTML = '';
-                const friends = data.friends || [];
-                if (!friends.length) {
-                    box.innerHTML = '<p class="history-empty">Пока никого. Добавьте друга по имени!</p>';
-                    return;
-                }
-                friends.forEach(function (f) {
-                    const item = document.createElement('div');
-                    item.className = 'leaderboard-item';
-
-                    const nameSpan = document.createElement('span');
-                    nameSpan.textContent = f.username;
-                    item.appendChild(nameSpan);
-
-                    const del = document.createElement('button');
-                    del.className = 'btn-ghost';
-                    del.style.cssText = 'padding:2px 8px; font-size:0.75rem;';
-                    del.textContent = 'Удалить';
-                    del.addEventListener('click', function () { removeFriend(f.username); });
-                    item.appendChild(del);
-
-                    box.appendChild(item);
-                });
-            })
-            .catch(function () {});
-        }
-
-        function removeFriend(friend) {
-            if (!currentUser) return;
-            apiFetch('/api/friends/remove', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: currentUser, friend: friend })
-            })
-            .then(loadFriends)
-            .catch(function (err) { alert(err.message); });
-        }
-
-        // ========================================================
-        // АЧИВКИ, РЕЙТИНГ И МИФ ДНЯ
-        // (API /api/achievements, /api/leaderboard, /api/myth-of-day)
-        // ========================================================
-        function loadStats() {
-            loadBadges();
-            loadLeaderboard();
-            loadMythOfDay();
-        }
-
-        function loadBadges() {
-            const list = document.getElementById('badgesList');
-            if (!list) return;
-            if (!currentUser) {
-                list.innerHTML = '<p class="history-empty">Войдите в аккаунт, чтобы копить ачивки 💜</p>';
-                return;
-            }
-            apiFetch('/api/achievements?username=' + encodeURIComponent(currentUser))
-            .then(function (d) {
-                list.innerHTML = (d.achievements || []).map(function (a) {
-                    return '<div class="badge ' + (a.unlocked ? 'unlocked' : 'locked') + '" title="' + a.desc + '">' +
-                        '<span class="badge-emoji">' + a.emoji + '</span>' +
-                        '<span class="badge-name">' + a.name + '</span>' +
-                        '<span class="badge-desc">' + a.desc + '</span></div>';
-                }).join('');
-            })
-            .catch(function () {});
-        }
-
-        function loadLeaderboard() {
-            const box = document.getElementById('leaderboardList');
-            if (!box) return;
-            apiFetch('/api/leaderboard')
-            .then(function (d) {
-                const leaders = d.leaders || [];
-                if (!leaders.length) {
-                    box.innerHTML = '<p class="history-empty">Рейтинг пока пуст — станьте первым! 🏁</p>';
-                    return;
-                }
-                box.innerHTML = '';
-                leaders.forEach(function (u, i) {
-                    const item = document.createElement('div');
-                    item.className = 'leaderboard-item fade-in';
-
-                    const left = document.createElement('div');
-                    const rank = document.createElement('span');
-                    rank.className = 'leaderboard-rank';
-                    rank.textContent = (i + 1) + '. ';
-                    left.appendChild(rank);
-                    left.appendChild(document.createTextNode(u.username));
-
-                    const right = document.createElement('div');
-                    right.style.cssText = 'font-size:0.85rem; color:var(--text-muted);';
-                    right.textContent = u.points + ' очков · ' + u.level;
-
-                    item.appendChild(left);
-                    item.appendChild(right);
-                    box.appendChild(item);
-                });
-            })
-            .catch(function () {});
-        }
-
-        function loadMythOfDay() {
-            const el = document.getElementById('mythOfDayText');
-            if (!el) return;
-            apiFetch('/api/myth-of-day')
-            .then(function (d) {
-                if (!d.claim) {
-                    el.textContent = 'Миф дня появится позже — проверяйте факты! 🔥';
-                    return;
-                }
-                el.textContent = '';
-                const claim = document.createElement('b');
-                claim.textContent = '«' + d.claim + '»';
-                const small = document.createElement('small');
-                small.textContent = ' Проверяли ' + d.count + ' раз ' + (d.period || '') +
-                    (d.verdict ? ' · вердикт: ' + d.verdict : '');
-                el.appendChild(claim);
-                el.appendChild(small);
-
-                const btn = document.getElementById('checkMythOfDayBtn');
-                if (btn) {
-                    btn.onclick = function () {
-                        showPanel('Home');
-                        document.getElementById('userText').value = d.claim;
-                        sendCheck();
-                    };
-                }
-            })
-            .catch(function () {
-                el.textContent = 'Миф дня появится позже 🔥';
-            });
-        }
-
-        // ========================================================
-        // ДОКАЗАТЕЛЬНАЯ МЕДИЦИНА (API /api/evidence)
-        // ========================================================
-        let evidenceLoaded = false;
-
-        function loadEvidence() {
-            if (evidenceLoaded) return;
-            apiFetch('/api/evidence')
-            .then(function (d) {
-                evidenceLoaded = true;
-                const intro = document.getElementById('evidenceIntro');
-                if (intro) intro.textContent = d.intro || '';
-
-                const grid = document.getElementById('evidenceCards');
-                if (!grid) return;
-                grid.innerHTML = '';
-                (d.sections || []).forEach(function (s) {
-                    const card = document.createElement('div');
-                    card.className = 'card-evidence fade-in';
-                    const h = document.createElement('h4');
-                    h.textContent = s.title;
-                    const p = document.createElement('p');
-                    p.textContent = s.text;
-                    card.appendChild(h);
-                    card.appendChild(p);
-                    grid.appendChild(card);
-                });
-            })
-            .catch(function () {});
-        }
-
-        // ========================================================
-        // ИГРА «МИФ VS ПРАВДА»
-        // (API /api/game/questions и /api/game/result)
+        // ИГРА «МИФ VS ПРАВДА» С УРОВНЯМИ (настоящий API + запасной набор)
         // ========================================================
         const QUESTIONS_FALLBACK = [
             { statement: 'От долгого чтения в темноте портится зрение', truth: false, difficulty: 1,
@@ -1591,7 +1021,7 @@
               explain: 'Хронический недосып снижает выработку защитных клеток крови.' }
         ];
 
-        const GAME_LEVELS = [
+        const LEVELS = [
             { name: '🌱 Новичок',   emoji: '🌱', correctNeeded: 0,  maxDifficulty: 1 },
             { name: '🔥 Знаток',    emoji: '🔥', correctNeeded: 8,  maxDifficulty: 2 },
             { name: '👑 Профессор', emoji: '👑', correctNeeded: 15, maxDifficulty: 3 }
@@ -1604,7 +1034,6 @@
         let gameQueue = [];
         let currentQuestion = null;
         let gameLoaded = false;
-        let gameResultSaved = false;
 
         const gameStatement = document.getElementById('gameStatement');
         const gameFeedback = document.getElementById('gameFeedback');
@@ -1617,10 +1046,10 @@
         const btnMyth = document.getElementById('btnMyth');
         const btnTruth = document.getElementById('btnTruth');
 
-        function currentGameLevel() { return GAME_LEVELS[levelIndex]; }
+        function currentLevel() { return LEVELS[levelIndex]; }
 
         function maybeLevelUp() {
-            const next = GAME_LEVELS[levelIndex + 1];
+            const next = LEVELS[levelIndex + 1];
             if (next && correctTotal >= next.correctNeeded) {
                 levelIndex++;
                 showLevelUp();
@@ -1629,7 +1058,7 @@
 
         function showLevelUp() {
             if (!gameLevelEl) return;
-            const lvl = currentGameLevel();
+            const lvl = currentLevel();
             gameLevelEl.textContent = 'Уровень: ' + lvl.emoji + ' ' + lvl.name;
             gameLevelEl.classList.remove('levelup');
             void gameLevelEl.offsetWidth;   // перезапуск CSS-анимации
@@ -1637,7 +1066,7 @@
         }
 
         function pickNextQuestion() {
-            const maxDiff = currentGameLevel().maxDifficulty;
+            const maxDiff = currentLevel().maxDifficulty;
             const allowed = gameQueue.filter(function (q) { return (q.difficulty || 1) <= maxDiff; });
             const pool = allowed.length ? allowed : gameQueue;
             if (!pool.length) {
@@ -1654,23 +1083,6 @@
             if (btnNext) btnNext.hidden = true;
             if (btnMyth) btnMyth.disabled = false;
             if (btnTruth) btnTruth.disabled = false;
-        }
-
-        // Сохраняем результат игры на сервер (API /api/game/result)
-        function saveGameResult() {
-            if (!currentUser || correctTotal === 0 || gameResultSaved) return;
-            gameResultSaved = true;
-            apiFetch('/api/game/result', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: currentUser,
-                    score: gameScore,
-                    total: correctTotal
-                })
-            })
-            .then(function () { gameResultSaved = false; })
-            .catch(function () { gameResultSaved = false; });
         }
 
         function answer(userSaysTruth) {
@@ -1699,9 +1111,6 @@
 
             gameFeedback.hidden = false;
             btnNext.hidden = false;
-
-            // Сохраняем результат каждые 10 ответов — для ачивок и рейтинга
-            if (correctTotal % 10 === 0) saveGameResult();
         }
 
         function loadGameQuestions() {
@@ -1729,11 +1138,6 @@
         if (btnMyth) btnMyth.addEventListener('click', function () { answer(false); });
         if (btnTruth) btnTruth.addEventListener('click', function () { answer(true); });
         if (btnNext) btnNext.addEventListener('click', nextQuestion);
-
-        // Сохраняем прогресс, если игрок закрыл страницу посреди игры
-        window.addEventListener('beforeunload', function () {
-            if (previousTab === 'Game') saveGameResult();
-        });
     </script>
 </body>
 </html>
