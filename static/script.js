@@ -69,6 +69,7 @@ function showPanel(name) {
 
 function switchTab(name) {
     closeMenu();
+    if (name !== 'game') saveGameRound();  // ушли с игры — сохраняем партиальный раунд
     if (name === 'suggest') {
         // «Предложить миф» живёт на главной — показываем главную и прокручиваем к форме
         showPanel('Home');
@@ -375,6 +376,7 @@ function doAuth() {
 }
 
 function logout() {
+    saveGameRound();  // если раунд не докончен — сохраняем перед выходом
     currentUser = null;
     try { localStorage.removeItem('veraUser'); } catch (e) {}
     document.getElementById('cabinet').classList.add('hidden');
@@ -559,7 +561,7 @@ function renderHistory() {
     // Пользовательский текст вставляем через textContent — безопасно
     const nodes = list.querySelectorAll('.history-item');
     items.slice(0, 10).forEach(function (h, i) {
-        const item = nodes[i];
+        const item = nodes[i];   // было nodes[I] — из-за большой буквы история ломалась
         if (!item) return;
         const v = (h.verdict || '').toUpperCase();
         const cls = v.includes('ПРАВДА') ? 'pravda'
@@ -771,6 +773,10 @@ let gameQueue = [];
 let currentQuestion = null;
 let gameLoaded = false;
 
+// Раунд для отправки на сервер: копим ответы, каждые 5 — сохраняем
+let roundScore = 0;
+let roundTotal = 0;
+
 const gameStatement = document.getElementById('gameStatement');
 const gameFeedback = document.getElementById('gameFeedback');
 const gameVerdict = document.getElementById('gameVerdict');
@@ -821,6 +827,22 @@ function nextQuestion() {
     if (btnTruth) btnTruth.disabled = false;
 }
 
+// Сохранение результата раунда на сервер (только у зарегистрированных)
+function saveGameRound() {
+    if (!currentUser || roundTotal === 0) return;
+    fetch('/api/game/result', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            username: currentUser,
+            score: roundScore,
+            total: roundTotal
+        })
+    }).catch(function () {});
+    roundScore = 0;
+    roundTotal = 0;
+}
+
 function answer(userSaysTruth) {
     if (!currentQuestion) return;
     const correct = userSaysTruth === currentQuestion.truth;
@@ -836,6 +858,11 @@ function answer(userSaysTruth) {
     }
     gameScoreEl.textContent = gameScore;
     gameStreakEl.textContent = gameStreak;
+
+    // Считаем раунд: каждые 5 ответов — отправляем результат на сервер
+    roundTotal++;
+    if (correct) roundScore++;
+    if (roundTotal >= 5) saveGameRound();
 
     maybeLevelUp();
 
