@@ -9,6 +9,7 @@ import random
 import re
 import traceback
 import requests
+from collections import Counter
 from datetime import datetime, timedelta, date
 from flask import Flask, request, jsonify, render_template, Response
 from dotenv import load_dotenv
@@ -121,6 +122,32 @@ def sheet_append(sheet_title, row):
         ws = ensure_worksheet(sheet, sheet_title)
         if ws is None:
             return
+        ws.append_row(row)
+    except Exception:
+        pass
+
+
+def ensure_headers(ws, headers):
+    """Гарантирует, что в листе есть строка заголовков и нужные колонки."""
+    try:
+        first = ws.row_values(1)
+        if not first or not any(str(c).strip() for c in first):
+            ws.insert_row(headers, 1)
+            return
+        existing = [str(c).strip() for c in first]
+        for h in headers:
+            if h not in existing:
+                ws.update_cell(1, len(existing) + 1, h)
+                existing.append(h)
+    except Exception:
+        pass
+
+
+def append_row_by_headers(ws, data_map):
+    """Пишет строку по заголовкам — колонки не перепутаются."""
+    try:
+        header = [str(c).strip() for c in ws.row_values(1)]
+        row = [data_map.get(h, "") for h in header]
         ws.append_row(row)
     except Exception:
         pass
@@ -342,7 +369,7 @@ _challenge_times = {}
 CHALLENGE_COOLDOWN = 60
 
 # ============================================================
-# ПОИСК В ТАБЛИЦЕ (упрощённый, но с тем же порогом)
+# ПОИСК В ТАБЛИЦЕ
 # ============================================================
 def _stem(word):
     for suf in ("ами", "ями", "ого", "его", "ому", "ему", "ыми", "ими",
@@ -414,6 +441,25 @@ def search_sheets(user_text):
     except Exception:
         print("⚠️ Ошибка чтения Google Sheets:")
         traceback.print_exc()
+    return None
+
+
+def _fact_lookup(claim):
+    """Ищет факт в таблице по почти точному совпадению (для мифа дня)."""
+    sheet = get_sheet()
+    if sheet is None:
+        return None
+    try:
+        ws = ensure_worksheet(sheet, "Facts")
+        if ws is None:
+            return None
+        target = normalize_text(claim)
+        for r in ws.get_all_records():
+            if normalize_text(str(r.get('Утверждение', ''))) == target:
+                return {"verdict": _normalize_verdict(r.get('Вердикт', '')),
+                        "explanation": str(r.get('Объяснение', ''))}
+    except Exception:
+        pass
     return None
 
 
@@ -535,6 +581,46 @@ def update_streak_in_sheet(username):
         return None
 
 
+def read_streak(username):
+    """Читает серию БЕЗ изменений — для ачивок и рейтинга."""
+    empty = {"streak": 0, "best_streak": 0}
+    if not GS_CLIENT or not username:
+        return empty
+    try:
+        sheet = get_sheet()
+        if sheet is None:
+            return empty
+        ws = ensure_worksheet(sheet, "Users")
+        if ws is None:
+            return empty
+        colmap = _users_colmap(ws)
+        if not colmap:
+            return empty
+        _idx, row = _find_user(ws, colmap, username)
+        if row is None:
+            return empty
+        return {"streak": _cell_int(row, colmap.get("Серия", 3)),
+                "best_streak": _cell_int(row, colmap.get("Лучшая серия", 4))}
+    except Exception:
+        return empty
+
+
+def user_exists(username):
+    if not GS_CLIENT or not username:
+        return False
+    try:
+        sheet = get_sheet()
+        if sheet is None:
+            return False
+        ws = ensure_worksheet(sheet, "Users")
+        if ws is None:
+            return False
+        _idx, row = _find_user(ws, None, username)
+        return row is not None
+    except Exception:
+        return False
+
+
 # ============================================================
 # АВАТАРЫ
 # ============================================================
@@ -620,7 +706,7 @@ def _load_avatar_bytes(username):
 
 
 # ============================================================
-# МАРШРУТЫ
+# МАРШРУТЫ — ОСНОВА
 # ============================================================
 @app.route('/')
 def index():
@@ -815,6 +901,34 @@ def game_questions():
         return jsonify({"questions": []})
 
 
+# ============================================================
+# НОВОЕ: РЕЗУЛЬТАТЫ ИГРЫ (для ачивок и рейтинга)
+# ============================================================
+@app.route('/api/game/result', methods=['POST'])
+def game_result():
+    data = request.get_json() or {}
+    username = str(data.get('username', '')).strip()[:50]
+    try:
+        score = max(0, int(data.get('score', 0) or 0))
+        total = max(0, int(data.get('total', 0) or 0))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Некорректный счёт"}), 400
+
+    if not username:
+        return jsonify({"error": "Результат сохраняется только у зарегистрированных"}), 400
+
+    sheet = get_sheet()
+    if sheet is None:
+        return jsonify({"error": "База недоступна"}), 503
+    ws = ensure_worksheet(sheet, "GameScores")
+    if ws is None:
+        return jsonify({"error": "Лист недоступен"}), 503
+    ensure_headers(ws, ["Логин", "Счёт", "Всего", "Дата"])
+    append_row_by_headers(ws, {"Логин": username, "Счёт": score, "Всего": total,
+                               "Дата": datetime.now().strftime("%Y-%m-%d %H:%M")})
+    return jsonify({"status": "ok"})
+
+
 LEVELS = [(0, "🌱 Новичок"), (20, "🔍 Доказатель"), (60, "👑 Хранитель истины")]
 
 
@@ -911,15 +1025,32 @@ def rate_answer():
     return jsonify({"status": "ok"})
 
 
+# ============================================================
+# НОВОЕ: ОТЗЫВЫ СО ЗВЁЗДАМИ
+# ============================================================
 @app.route('/api/review', methods=['POST'])
 def submit_review():
     data = request.get_json() or {}
-    name = data.get('name', 'Аноним') or 'Аноним'
+    name = str(data.get('name', 'Аноним') or 'Аноним').strip()[:50] or 'Аноним'
     review_text = str(data.get('review', '')).strip()
+    try:
+        rating = max(1, min(5, int(data.get('rating', 5))))
+    except (TypeError, ValueError):
+        rating = 5
+
     if not review_text:
         return jsonify({"error": "Пустой отзыв"}), 400
-    sheet_append("Reviews", [name, review_text,
-                             datetime.now().strftime("%Y-%m-%d %H:%M")])
+    if len(review_text) > 1000:
+        return jsonify({"error": "Отзыв слишком длинный (до 1000 символов)"}), 400
+
+    sheet = get_sheet()
+    if sheet is not None:
+        ws = ensure_worksheet(sheet, "Reviews")
+        if ws is not None:
+            ensure_headers(ws, ["Имя", "Отзыв", "Оценка", "Дата"])
+            append_row_by_headers(ws, {"Имя": name, "Отзыв": review_text,
+                                       "Оценка": rating,
+                                       "Дата": datetime.now().strftime("%Y-%m-%d %H:%M")})
     return jsonify({"status": "ok"})
 
 
@@ -948,11 +1079,16 @@ def get_reviews():
         reviews = []
         for r in records[-10:]:
             name = str(r.get('Имя', 'Аноним') or 'Аноним')
+            try:
+                rating = max(1, min(5, int(float(r.get('Оценка') or 5))))
+            except (TypeError, ValueError):
+                rating = 5
             avatar = None
             if _load_avatar_bytes(name):
                 avatar = avatar_url_for(name)
             reviews.append({"name": name,
                             "text": str(r.get('Отзыв', '')),
+                            "rating": rating,
                             "date": str(r.get('Дата', '')),
                             "avatar": avatar})
         return jsonify({"reviews": reviews})
@@ -960,6 +1096,417 @@ def get_reviews():
         return jsonify({"reviews": []})
 
 
+# ============================================================
+# НОВОЕ: КОММЕНТАРИИ (ОБСУЖДЕНИЯ С ОТВЕТАМИ)
+# ============================================================
+_comment_times = {}
+COMMENT_COOLDOWN = 15
+
+
+@app.route('/api/comments', methods=['GET'])
+def get_comments():
+    if not GS_CLIENT:
+        return jsonify({"comments": []})
+    try:
+        sheet = get_sheet()
+        if sheet is None:
+            return jsonify({"comments": []})
+        ws = ensure_worksheet(sheet, "Comments")
+        if ws is None:
+            return jsonify({"comments": []})
+        ensure_headers(ws, ["ID", "Ответ на", "Логин", "Текст", "Дата"])
+        records = ws.get_all_records()
+        comments = []
+        for r in records:
+            text = str(r.get('Текст', '')).strip()
+            if not text:
+                continue
+            author = str(r.get('Логин', 'Аноним') or 'Аноним')
+            avatar = None
+            if _load_avatar_bytes(author):
+                avatar = avatar_url_for(author)
+            comments.append({"id": str(r.get('ID', '')),
+                             "parent": str(r.get('Ответ на', '') or ''),
+                             "author": author,
+                             "text": text,
+                             "date": str(r.get('Дата', '')),
+                             "avatar": avatar})
+        comments.reverse()  # свежие сверху
+        return jsonify({"comments": comments[:200]})
+    except Exception:
+        traceback.print_exc()
+        return jsonify({"comments": []})
+
+
+@app.route('/api/comments', methods=['POST'])
+def add_comment():
+    data = request.get_json() or {}
+    username = str(data.get('username', '')).strip()[:50] or 'Аноним'
+    text = str(data.get('text', '')).strip()
+    parent = str(data.get('parent', '')).strip()[:40]
+
+    if not text:
+        return jsonify({"error": "Пустой комментарий"}), 400
+    if len(text) > 500:
+        return jsonify({"error": "Комментарий слишком длинный (до 500 символов)"}), 400
+
+    # защита от спама: не чаще раза в 15 секунд с одного IP
+    ip = request.remote_addr or "?"
+    now = time.time()
+    if now - _comment_times.get(ip, 0) < COMMENT_COOLDOWN:
+        wait = int(COMMENT_COOLDOWN - (now - _comment_times[ip]))
+        return jsonify({"error": f"Подождите {wait} сек."}), 429
+    _comment_times[ip] = now
+
+    cid = uuid.uuid4().hex[:10]
+    sheet = get_sheet()
+    if sheet is None:
+        return jsonify({"error": "База недоступна"}), 503
+    ws = ensure_worksheet(sheet, "Comments")
+    if ws is None:
+        return jsonify({"error": "Лист недоступен"}), 503
+    ensure_headers(ws, ["ID", "Ответ на", "Логин", "Текст", "Дата"])
+    append_row_by_headers(ws, {"ID": cid, "Ответ на": parent, "Логин": username,
+                               "Текст": text,
+                               "Дата": datetime.now().strftime("%Y-%m-%d %H:%M")})
+    return jsonify({"status": "ok", "id": cid})
+
+
+# ============================================================
+# НОВОЕ: ДРУЗЬЯ
+# ============================================================
+@app.route('/api/friends', methods=['GET'])
+def get_friends():
+    username = request.args.get('username', '').strip()[:50]
+    if not username or not GS_CLIENT:
+        return jsonify({"friends": []})
+    try:
+        sheet = get_sheet()
+        if sheet is None:
+            return jsonify({"friends": []})
+        ws = ensure_worksheet(sheet, "Friends")
+        if ws is None:
+            return jsonify({"friends": []})
+        ensure_headers(ws, ["Логин", "Друг", "Дата"])
+
+        me = username.strip().lower()
+        friends = {}
+        for row in ws.get_all_values()[1:]:
+            if len(row) < 2:
+                continue
+            a, b = str(row[0]).strip().lower(), str(row[1]).strip().lower()
+            if a == me and b != me:
+                friends[b] = True
+            elif b == me and a != me:
+                friends[a] = True
+
+        result = []
+        for name in sorted(friends):
+            avatar = None
+            if _load_avatar_bytes(name):
+                avatar = avatar_url_for(name)
+            result.append({"username": name, "avatar": avatar})
+        return jsonify({"friends": result})
+    except Exception:
+        traceback.print_exc()
+        return jsonify({"friends": []})
+
+
+@app.route('/api/friends/add', methods=['POST'])
+def add_friend():
+    data = request.get_json() or {}
+    username = str(data.get('username', '')).strip()[:50]
+    friend = str(data.get('friend', '')).strip()[:50]
+
+    if not username:
+        return jsonify({"error": "Войдите в аккаунт"}), 400
+    if not friend:
+        return jsonify({"error": "Укажите имя друга"}), 400
+    if friend.lower() == username.lower():
+        return jsonify({"error": "Нельзя добавить в друзья самого себя 🙂"}), 400
+    if not user_exists(friend):
+        return jsonify({"error": "Пользователь с таким именем не найден"}), 404
+
+    sheet = get_sheet()
+    if sheet is None:
+        return jsonify({"error": "База недоступна"}), 503
+    ws = ensure_worksheet(sheet, "Friends")
+    if ws is None:
+        return jsonify({"error": "Лист недоступен"}), 503
+    ensure_headers(ws, ["Логин", "Друг", "Дата"])
+
+    me, fr = username.lower(), friend.lower()
+    for row in ws.get_all_values()[1:]:
+        if len(row) >= 2 and {str(row[0]).strip().lower(),
+                              str(row[1]).strip().lower()} == {me, fr}:
+            return jsonify({"error": "Вы уже друзья"}), 400
+
+    append_row_by_headers(ws, {"Логин": username, "Друг": friend,
+                               "Дата": datetime.now().strftime("%Y-%m-%d %H:%M")})
+    return jsonify({"status": "ok"})
+
+
+@app.route('/api/friends/remove', methods=['POST'])
+def remove_friend():
+    data = request.get_json() or {}
+    username = str(data.get('username', '')).strip()[:50]
+    friend = str(data.get('friend', '')).strip()[:50]
+
+    if not username or not friend:
+        return jsonify({"error": "Нужны имена обоих"}), 400
+
+    sheet = get_sheet()
+    if sheet is None:
+        return jsonify({"error": "База недоступна"}), 503
+    ws = ensure_worksheet(sheet, "Friends")
+    if ws is None:
+        return jsonify({"error": "Лист недоступен"}), 503
+
+    try:
+        me, fr = username.lower(), friend.lower()
+        values = ws.get_all_values()
+        to_delete = []
+        for i, row in enumerate(values[1:], start=2):
+            if len(row) >= 2 and {str(row[0]).strip().lower(),
+                                  str(row[1]).strip().lower()} == {me, fr}:
+                to_delete.append(i)
+        for i in sorted(to_delete, reverse=True):
+            ws.delete_rows(i)
+        return jsonify({"status": "ok"})
+    except Exception:
+        traceback.print_exc()
+        return jsonify({"error": "Не удалось удалить"}), 500
+
+
+# ============================================================
+# НОВОЕ: МИФ ДНЯ (самый популярный)
+# ============================================================
+@app.route('/api/myth-of-day')
+def myth_of_day():
+    fallback = {"claim": None, "verdict": None, "explanation": "",
+                "count": 0, "period": ""}
+    if not GS_CLIENT:
+        return jsonify(fallback)
+    try:
+        sheet = get_sheet()
+        if sheet is None:
+            return jsonify(fallback)
+        ws = ensure_worksheet(sheet, "Logs")
+        if ws is None:
+            return jsonify(fallback)
+
+        values = ws.get_all_values()
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+
+        counts_today, counts_week = Counter(), Counter()
+        verdicts = {}
+        for row in values[1:]:
+            if len(row) < 3 or not str(row[0]).strip():
+                continue
+            claim = str(row[0]).strip()
+            day = str(row[2])[:10]
+            if day == today_str:
+                counts_today[claim] += 1
+            if week_ago <= day <= today_str:
+                counts_week[claim] += 1
+            verdicts[claim] = _normalize_verdict(row[1])
+
+        counts, period = (counts_today, "сегодня") if counts_today \
+            else (counts_week, "за неделю")
+        if not counts:
+            return jsonify(fallback)
+
+        claim = counts.most_common(1)[0][0]
+        info = _fact_lookup(claim) or {}
+        return jsonify({"claim": claim,
+                        "verdict": info.get("verdict") or verdicts.get(claim),
+                        "explanation": info.get("explanation", ""),
+                        "count": counts[claim],
+                        "period": period})
+    except Exception:
+        traceback.print_exc()
+        return jsonify(fallback)
+
+
+# ============================================================
+# НОВОЕ: РЕЙТИНГ ПОЛЬЗОВАТЕЛЕЙ
+# ============================================================
+@app.route('/api/leaderboard')
+def leaderboard():
+    if not GS_CLIENT:
+        return jsonify({"leaders": []})
+    try:
+        sheet = get_sheet()
+        if sheet is None:
+            return jsonify({"leaders": []})
+
+        logs_ws = ensure_worksheet(sheet, "Logs")
+        sugg_ws = ensure_worksheet(sheet, "Suggestions")
+        game_ws = ensure_worksheet(sheet, "GameScores")
+        users_ws = ensure_worksheet(sheet, "Users")
+
+        checked_map, suggested_map, best_score_map = Counter(), Counter(), {}
+
+        if logs_ws:
+            for row in logs_ws.get_all_values()[1:]:
+                if len(row) >= 4 and str(row[3]).strip() and \
+                        str(row[3]).strip().lower() != "гость":
+                    checked_map[str(row[3]).strip().lower()] += 1
+
+        if sugg_ws:
+            for row in sugg_ws.get_all_values()[1:]:
+                if len(row) >= 1 and str(row[0]).strip():
+                    suggested_map[str(row[0]).strip().lower()] += 1
+
+        if game_ws:
+            for row in game_ws.get_all_values()[1:]:
+                if len(row) >= 2 and str(row[0]).strip():
+                    name = str(row[0]).strip().lower()
+                    try:
+                        sc = int(float(row[1] or 0))
+                    except (TypeError, ValueError):
+                        sc = 0
+                    best_score_map[name] = max(best_score_map.get(name, 0), sc)
+
+        leaders = []
+        if users_ws:
+            for r in users_ws.get_all_records():
+                name = str(r.get('Логин', '')).strip()
+                if not name:
+                    continue
+                key = name.lower()
+                points = checked_map.get(key, 0) * 2 \
+                    + suggested_map.get(key, 5) * 5 \
+                    + best_score_map.get(key, 0)
+                leaders.append({"username": name, "points": points,
+                                "level": level_name(points)})
+
+        leaders.sort(key=lambda x: -x["points"])
+        return jsonify({"leaders": leaders[:10]})
+    except Exception:
+        traceback.print_exc()
+        return jsonify({"leaders": []})
+
+
+# ============================================================
+# НОВОЕ: АЧИВКИ
+# ============================================================
+def _user_stats_for_achievements(username):
+    stats = {"checked": 0, "suggested": 0, "games": 0, "best_score": 0,
+             "comments": 0, "streak": 0, "best_streak": 0}
+    if not GS_CLIENT or not username:
+        return stats
+    try:
+        sheet = get_sheet()
+        if sheet is None:
+            return stats
+        stats["checked"] = count_user_rows(ensure_worksheet(sheet, "Logs"),
+                                           username, 3)
+        stats["suggested"] = count_user_rows(ensure_worksheet(sheet, "Suggestions"),
+                                             username, 0)
+
+        game_ws = ensure_worksheet(sheet, "GameScores")
+        if game_ws:
+            for row in game_ws.get_all_values()[1:]:
+                if len(row) >= 4 and row[0].strip().lower() == username.lower():
+                    stats["games"] += 1
+                    try:
+                        stats["best_score"] = max(stats["best_score"],
+                                                  int(float(row[1] or 0)))
+                    except (TypeError, ValueError):
+                        pass
+
+        comm_ws = ensure_worksheet(sheet, "Comments")
+        if comm_ws:
+            stats["comments"] = count_user_rows(comm_ws, username, 2)
+
+        stats.update(read_streak(username))
+    except Exception:
+        traceback.print_exc()
+    return stats
+
+
+ACHIEVEMENTS = [
+    {"id": "first_check", "emoji": "🌱", "name": "Первый шаг",
+     "desc": "Проверить первый миф",
+     "check": lambda s: s["checked"] >= 1},
+    {"id": "ten_checks", "emoji": "🔍", "name": "Доказатель",
+     "desc": "10 проверок фактов",
+     "check": lambda s: s["checked"] >= 10},
+    {"id": "fifty_checks", "emoji": "⭐", "name": "Эксперт",
+     "desc": "50 проверок фактов",
+     "check": lambda s: s["checked"] >= 50},
+    {"id": "first_suggest", "emoji": "💡", "name": "Идея",
+     "desc": "Предложить свой миф",
+     "check": lambda s: s["suggested"] >= 1},
+    {"id": "first_game", "emoji": "🎮", "name": "Игрок",
+     "desc": "Сыграть первый раунд в игру",
+     "check": lambda s: s["games"] >= 1},
+    {"id": "game_master", "emoji": "🏆", "name": "Мастер игры",
+     "desc": "Набрать 10+ очков за игру",
+     "check": lambda s: s["best_score"] >= 10},
+    {"id": "streak_3", "emoji": "🔥", "name": "Огонь",
+     "desc": "Серия входов 3 дня",
+     "check": lambda s: s["best_streak"] >= 3},
+    {"id": "streak_7", "emoji": "🚀", "name": "Неделя силы",
+     "desc": "Серия входов 7 дней",
+     "check": lambda s: s["best_streak"] >= 7},
+    {"id": "chatter", "emoji": "💬", "name": "Собеседник",
+     "desc": "Оставить комментарий в обсуждениях",
+     "check": lambda s: s["comments"] >= 1},
+]
+
+
+@app.route('/api/achievements')
+def achievements():
+    username = request.args.get('username', '').strip()[:50]
+    stats = _user_stats_for_achievements(username)
+    result = [{"id": a["id"], "emoji": a["emoji"], "name": a["name"],
+               "desc": a["desc"], "unlocked": bool(a["check"](stats))}
+              for a in ACHIEVEMENTS]
+    return jsonify({"achievements": result, "stats": stats})
+
+
+# ============================================================
+# НОВОЕ: ДОКАЗАТЕЛЬНАЯ МЕДИЦИНА (тексты Веры)
+# ============================================================
+EVIDENCE_CONTENT = {
+    "intro": ("Привет! Я Вера. Сейчас объясню, почему мы доверяем "
+              "доказательной медицине, и почему это важно именно для тебя."),
+    "sections": [
+        {"title": "Что такое доказательная медицина",
+         "text": ("Это подход, при котором вывод о том, что работает, а что нет, "
+                  "принимается на основе качественных исследований, а не на слухах, "
+                  "рекламе или советах «бабушкиной подруги».")},
+        {"title": "Уровни доказательств — от надёжных к слабым",
+         "text": ("1. Систематические обзоры и метаанализы — сводят десятки "
+                  "исследований в один вывод.\n"
+                  "2. Рандомизированные испытания — «золотой стандарт»: участников "
+                  "случайно делят на группы, чтобы исключить предвзятость.\n"
+                  "3. Наблюдательные исследования — показывают связи, но не "
+                  "доказывают причину.\n"
+                  "4. Мнение экспертов и личный опыт — самые слабые доказательства.")},
+        {"title": "Почему это важно",
+         "text": ("Каждый год появляются «чудо-средства». Без проверок легко "
+                  "потратить деньги и время — или пропустить настоящее лечение. "
+                  "Доказательная медицина защищает и здоровье, и кошелёк.")},
+        {"title": "Как проверить самому",
+         "text": ("Ищите первоисточник: сайты ВОЗ, Минздрава и рецензируемые "
+                  "журналы. Если метод обещает излечение «всего и сразу» — это "
+                  "повод насторожиться. И всегда можно спросить у меня 🙂")}
+    ]
+}
+
+
+@app.route('/api/evidence')
+def evidence():
+    return jsonify(EVIDENCE_CONTENT)
+
+
+# ============================================================
+# РЕГИСТРАЦИЯ И ВХОД
+# ============================================================
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.get_json() or {}
@@ -1059,7 +1606,7 @@ def debug_gigachat():
     return jsonify(info)
 
 
-# Глобальная защита: если где-то всё- случится ошибка — сайт покажет её,
+# Глобальная защита: если где-то случится ошибка — сайт покажет её,
 # но сервер не упадёт целиком.
 @app.errorhandler(Exception)
 def handle_all_errors(e):
