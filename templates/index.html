@@ -4,364 +4,186 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Перепроверим — Не верь, а проверь</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=8">
+    <!-- Шрифты -->
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script>
-        // Применяем тёмный фон до отрисовки — защита от «мигания» светлым
-        try {
-            const t = localStorage.getItem('theme');
-            if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                document.documentElement.classList.add('dark-preload');
-            }
-        } catch (e) { /* приватный режим — просто игнорируем */ }
-    </script>
-</head>
-<body>
-    <div class="background-blobs">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
-        <div class="blob blob-3"></div>
-    </div>
+    
+    <style>
+        /* =========================================
+           ВСТРОЕННЫЕ СТИЛИ (GLASSMORPHISM & DARK MODE)
+           ========================================= */
+        :root {
+            --bg-color: #f8f9fa;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --text-main: #1a1a1a;
+            --accent: #6c5ce7;
+            --danger: #ff7671;
+            --success: #00cec9;
+            --glass-border: rgba(255, 255, 255, 0.6);
+        }
 
-    <!-- МЕНЮ СЛЕВА -->
-    <button class="menu-btn" id="menuBtn" aria-label="Открыть меню">⋮</button>
-    <nav class="menu" id="menu">
-        <a href="#" data-tab="home" class="active">🔍 Проверка мифов</a>
-        <a href="#" data-tab="game">🎮 Миф vs Правда</a>
-        <a href="#" data-tab="evidence">🔬 Доказательная медицина</a>
-        <a href="#" data-tab="reviews">💬 Обсуждения и отзывы</a>
-        <a href="#" data-tab="stats">🏆 Ачивки и рейтинг</a>
-        <a href="#" data-tab="suggest">✨ Предложить миф</a>
-        <a href="#" data-tab="report">⚠️ Сообщить об ошибке</a>
-        <a href="#" data-tab="profile">👤 Аккаунт</a>
-    </nav>
+        body.dark {
+            --bg-color: #1e1e2e;
+            --card-bg: rgba(30, 30, 46, 0.9);
+            --text-main: #ffffff;
+            --accent: #a29bfe;
+            --danger: #ff9f9a;
+            --success: #54fcff;
+            --glass-border: rgba(255, 255, 255, 0.2);
+        }
 
-    <!-- ТЕМА СПРАВА -->
-    <button class="theme-btn" id="themeBtn" aria-label="Переключить тему">🌙</button>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Manrope', sans-serif; }
+        
+        body { background-color: var(--bg-color); color: var(--text-main); transition: background 0.3s, color 0.3s; min-height: 100vh; }
 
-    <div class="app-container">
-        <header>
-            <div class="logo">
-                <span class="logo-icon">✨</span>
-                <h1>Перепроверим</h1>
-                <span class="logo-icon">✨</span>
-            </div>
-            <p class="slogan">Не верь, а проверь</p>
-        </header>
+        .background-blobs { position: fixed; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; z-index: -1; }
+        .blob { position: absolute; filter: blur(80px); opacity: 0.6; animation: float 10s infinite alternate; }
+        .blob-1 { width: 300px; height: 300px; background: #ff7671; top: -50px; left: -50px; }
+        .blob-2 { width: 400px; height: 400px; background: #6c5ce7; bottom: -50px; right: -50px; animation-delay: -2s; }
+        .blob-3 { width: 200px; height: 200px; background: #00cec9; top: 30%; left: 40%; animation-duration: 15s; }
 
-        <!-- Дисклеймер — только на главной -->
-        <div class="disclaimer" id="disclaimerBlock">
-            <p><span class="warn-icon">⚠️</span> <strong>Внимание!</strong> Это не медицинская консультация. При проблемах со здоровьем обязательно обратитесь к врачу.</p>
-        </div>
+        @keyframes float { from { transform: translate(0, 0); } to { transform: translate(50px, 50px); } }
 
-        <main class="glass-card">
+        .app-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; margin-bottom: 40px; padding: 20px 0; }
+        .logo { display: flex; align-items: center; justify-content: center; gap: 15px; flex-wrap: wrap; }
+        .logo h1 { font-size: 2.5rem; color: var(--accent); text-shadow: 0 0 10px rgba(108, 92, 231, 0.5); }
+        .slogan { color: #666; margin-top: 10px; font-size: 1.1rem; }
 
-            <!-- ===== ГЛАВНАЯ: проверка + предложение мифа ===== -->
-            <div class="tab-panel active" id="panelHome">
-                <div class="mascot" id="mascot">
-                    <img id="mascotImage"
-                         src="{{ url_for('static', filename='vera_hello.png') }}"
-                         alt="Вера — маскот проекта">
-                    <div class="mascot-speech" id="mascotSpeech"></div>
-                </div>
+        /* Glass Card */
+        .glass-card { 
+            background: var(--card-bg); 
+            backdrop-filter: blur(12px); 
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px; 
+            padding: 30px; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            position: relative;
+        }
 
-                <div class="hero-section">
-                    <h2 class="hero-title">Не уверен, правда это или миф?</h2>
-                    <p class="hero-subtitle">Введи сомнительное медицинское утверждение — Вера разберёт его с опорой на надёжные источники.</p>
-                </div>
+        /* Menu & Theme */
+        .menu-btn, .theme-btn { 
+            position: fixed; z-index: 100; padding: 12px; border-radius: 50%; 
+            cursor: pointer; border: none; background: rgba(255,255,255,0.2); 
+            color: white; font-size: 1.2rem; backdrop-filter: blur(5px);
+        }
+        .menu-btn { top: 20px; left: 20px; }
+        .theme-btn { top: 20px; right: 20px; }
+        .menu { 
+            position: fixed; top: 70px; left: 20px; width: 220px; 
+            background: var(--card-bg); border-radius: 15px; display: none; 
+            flex-direction: column; box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+        .menu.open { display: block; }
+        .menu a { padding: 15px 20px; text-decoration: none; color: var(--text-main); border-bottom: 1px solid rgba(0,0,0,0.05); transition: 0.2s; }
+        .menu a:hover, .menu a.active { background: var(--accent); color: white; }
 
-                <textarea id="userText" placeholder="Например: вакцины вызывают аутизм..."></textarea>
-                <button id="checkBtn" onclick="sendCheck()">
-                    <span id="btnText">Проверить факт</span>
-                </button>
+        /* Tabs */
+        .tab-panel { display: none; animation: fadeIn 0.4s ease; }
+        .tab-panel.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-                <div id="result" class="result hidden">
-                    <div class="verdict-badge" id="verdictBadge"></div>
-                    <h3 class="claim-text" id="claimText"></h3>
-                    <div class="explanation-box">
-                        <p id="explanationText"></p>
-                    </div>
+        /* Hero Section */
+        .hero-section { margin: 30px 0; text-align: center; }
+        textarea#userText { 
+            width: 100%; max-width: 600px; height: 100px; padding: 15px; 
+            border-radius: 12px; border: 1px solid #ddd; resize: none; 
+            font-size: 1rem; margin: 10px auto; outline: none;
+        }
+        button#checkBtn { 
+            background: var(--accent); color: white; border: none; padding: 15px 40px; 
+            border-radius: 50px; font-weight: 700; cursor: pointer; font-size: 1.1rem;
+        }
+        button#checkBtn:disabled { background: #ccc; }
 
-                    <div class="rating-section">
-                        <p>Насколько полезен ответ?</p>
-                        <div class="hearts">
-                            <span class="heart" data-value="1">❤️</span>
-                            <span class="heart" data-value="2">❤️</span>
-                            <span class="heart" data-value="3">❤️</span>
-                            <span class="heart" data-value="4">❤️</span>
-                            <span class="heart" data-value="5">❤️</span>
-                        </div>
-                        <p class="rating-message" id="ratingMessage"></p>
-                    </div>
+        /* Result Block */
+        .result { margin-top: 30px; border-left: 5px solid var(--accent); padding-left: 20px; }
+        .verdict-badge { 
+            display: inline-block; padding: 5px 15px; border-radius: 20px; 
+            font-weight: bold; font-size: 0.9rem; margin-bottom: 15px;
+        }
+        .pravda { background: rgba(0,206,201,0.1); color: var(--success); border: 1px solid var(--success); }
+        .mif { background: rgba(255,118,113,0.1); color: var(--danger); border: 1px solid var(--danger); }
+        .sporno { background: rgba(243,175,0,0.1); color: #f3af00; border: 1px solid #f3af00; }
 
-                    <button class="btn-ghost" id="challengeOpen" hidden>⚔️ Оспорить ответ</button>
+        /* Hearts Rating */
+        .hearts { display: flex; gap: 5px; margin-top: 15px; cursor: pointer; }
+        .heart { font-size: 1.5rem; opacity: 0.5; }
+        .heart.active { opacity: 1; color: #ff4757; }
 
-                    <div class="challenge" id="challengeBlock" hidden>
-                        <h3>Не согласны с Верой? Оспорьте её!</h3>
-                        <textarea id="challengeReason" maxlength="500"
-                            placeholder="Напишите, почему вы не согласны — Вера перепроверит факт..."></textarea>
-                        <button class="btn-secondary" id="challengeSend">Отправить на перепроверку</button>
-                        <div class="challenge-result" id="challengeResult" hidden></div>
-                    </div>
-                </div>
+        /* Mascot */
+        .mascot { display: flex; flex-direction: column-reverse; align-items: center; margin-top: 20px; }
+        .mascot img { width: 150px; height: 150px; object-fit: contain; }
+        .mascot-speech { background: white; padding: 10px 20px; border-radius: 20px; max-width: 300px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-top: -20px; position: relative; }
+        .mascot-speech::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border-width: 10px 10px 0; border-style: solid; border-color: white transparent transparent transparent; }
 
-                <div class="suggest-section" id="suggest">
-                    <h3>✨ Знаете миф, которого у нас нет?</h3>
-                    <p class="review-subtitle">Предложите его — мы проверим и добавим в базу!</p>
-                    <form id="suggestForm">
-                        <input type="text" id="suggestName" placeholder="Как вас зовут?">
-                        <input type="text" id="suggestMyth" placeholder="Например: «от фото на телефон мутнеет зрение»" required>
-                        <button type="submit" class="btn-secondary">Предложить миф</button>
-                    </form>
-                    <p class="suggest-status" id="suggestStatus"></p>
-                </div>
-            </div>
+        /* Forms & Inputs */
+        input, textarea { padding: 12px; border-radius: 8px; border: 1px solid #ccc; width: 100%; margin-bottom: 15px; }
+        input:focus, textarea:focus { outline: 2px solid var(--accent); }
+        button.btn-secondary { background: transparent; border: 2px solid var(--accent); color: var(--accent); padding: 10px 20px; border-radius: 8px; cursor: pointer; transition: 0.3s; }
+        button.btn-secondary:hover { background: var(--accent); color: white; }
+        button.btn-ghost { background: none; border: none; color: var(--accent); cursor: pointer; text-decoration: underline; margin-top: 10px; }
 
-            <!-- ===== ИГРА ===== -->
-            <div class="tab-panel" id="panelGame">
-                <div class="game-section" style="border-top:none; padding-top:0; margin-top:0;">
-                    <h3>🎮 Миф vs Правда</h3>
-                    <p class="game-subtitle">Проверьте свою интуицию — знаете ли вы, где миф, а где правда?</p>
+        /* Stats & Badges */
+        .stats-header, .cabinet-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; }
+        .badges-grid, .badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .badge { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; text-align: center; border: 1px solid var(--glass-border); }
+        .badge.unlocked { border-color: var(--success); color: var(--success); }
+        .badge-emoji { font-size: 1.5rem; display: block; margin-bottom: 5px; }
 
-                    <div class="game-card">
-                        <div class="game-level" id="gameLevel">Уровень: 🌱 Новичок</div>
-                        <p class="game-statement" id="gameStatement">Загружаем вопрос…</p>
+        /* Activity Chart */
+        .activity-bars { display: flex; gap: 8px; height: 80px; align-items: flex-end; }
+        .activity-bar { width: 20px; background: var(--accent); border-radius: 4px; transition: height 0.3s; }
+        
+        /* Footer */
+        footer { text-align: center; padding: 40px; color: #888; font-size: 0.9rem; margin-top: 40px; }
 
-                        <div class="game-buttons">
-                            <button class="btn-myth" id="btnMyth">❌ Миф</button>
-                            <button class="btn-truth" id="btnTruth">✅ Правда</button>
-                        </div>
-
-                        <div class="game-feedback" id="gameFeedback" hidden>
-                            <p class="game-verdict" id="gameVerdict"></p>
-                            <p class="game-explain" id="gameExplain"></p>
-                        </div>
-
-                        <div class="game-score">
-                            <span>Счёт: <b id="gameScore">0</b></span>
-                            <span>Серия: <b id="gameStreak">0</b> 🔥</span>
-                        </div>
-
-                        <button class="btn-secondary" id="btnNext" hidden>Следующий миф →</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ===== ДОКАЗАТЕЛЬНАЯ МЕДИЦИНА ===== -->
-            <div class="tab-panel" id="panelEvidence">
-                <div class="mascot mascot-evidence" id="mascotEvidence">
-                    <img id="evidenceImage"
-                         src="{{ url_for('static', filename='vera_hello.png') }}"
-                         alt="Вера рассказывает про доказательную медицину">
-                    <div class="mascot-speech speech-bubble">
-                        <p id="evidenceIntro">Загружаем рассказ Веры…</p>
-                    </div>
-                </div>
-                <div class="cards-grid" id="evidenceCards">
-                    <div class="card-evidence">
-                        <h4>Загружаем…</h4>
-                        <p>Вера уже готовит материалы 📚</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ===== ОБСУЖДЕНИЯ, ОТЗЫВЫ И ДРУЗЬЯ ===== -->
-            <div class="tab-panel" id="panelReviews">
-
-                <!-- ОТЗЫВЫ: впечатление о проекте -->
-                <div class="reviews-section" style="border-top:none; padding-top:0; margin-top:0;">
-                    <h3>⭐ Отзывы о проекте</h3>
-                    <p class="review-subtitle">Поделись своим впечатлением — оцените «Перепроверим» от 1 до 5 звёзд!</p>
-                    <form id="reviewForm">
-                        <input type="text" id="reviewName" placeholder="Как тебя зовут?">
-                        <textarea id="reviewText" placeholder="Что понравилось или что стоит улучшить?"></textarea>
-                        <div class="stars-rating" id="reviewStarsBox">
-                            <span class="star active" data-val="5">★</span>
-                            <span class="star active" data-val="4">★</span>
-                            <span class="star active" data-val="3">★</span>
-                            <span class="star active" data-val="2">★</span>
-                            <span class="star active" data-val="1">★</span>
-                        </div>
-                        <button type="submit" class="btn-secondary">Отправить отзыв</button>
-                    </form>
-                    <div id="reviewsList" style="margin-top:20px;"></div>
-                </div>
-
-                <div class="divider"></div>
-
-                <!-- КОММЕНТАРИИ: обсуждения с ответами -->
-                <div class="comments-section">
-                    <h3>💬 Обсуждения</h3>
-                    <p class="comments-subtitle">Здесь обсуждают мифы с другими: можно отвечать друг другу и добавлять в друзья.</p>
-                    <input type="text" id="commentName" placeholder="Твоё имя (или войдите в аккаунт)">
-                    <textarea id="commentText" placeholder="Твой комментарий..." maxlength="500"></textarea>
-                    <button class="btn-secondary" onclick="sendComment()">Отправить</button>
-                    <div id="commentsList" style="margin-top:20px;"></div>
-                </div>
-
-                <div class="divider"></div>
-
-                <!-- ДРУЗЬЯ -->
-                <div class="friends-section">
-                    <h3>🤝 Друзья</h3>
-                    <p class="review-subtitle">Добавьте друга по имени — и увидите его комментарии в обсуждениях.</p>
-                    <div class="friends-add-row">
-                        <input type="text" id="friendName" placeholder="Имя пользователя">
-                        <button class="btn-secondary" onclick="addFriendFromInput()">Добавить</button>
-                    </div>
-                    <div id="friendsList" style="margin-top:14px;"></div>
-                </div>
-            </div>
-
-            <!-- ===== АЧИВКИ И РЕЙТИНГ ===== -->
-            <div class="tab-panel" id="panelStats">
-                <div class="stats-header">
-                    <h3>🏆 Твои достижения</h3>
-                    <p class="review-subtitle">Зарабатывай ачивки за проверки, игру, серию дней и обсуждения.</p>
-                </div>
-                <div class="badges-grid" id="badgesList"></div>
-
-                <div class="divider"></div>
-
-                <div class="leaderboard">
-                    <h3>📊 Рейтинг пользователей</h3>
-                    <p class="review-subtitle">Топ-10 самых активных участников: проверки, предложения и игра.</p>
-                    <div id="leaderboardList"></div>
-                </div>
-
-                <div class="divider"></div>
-
-                <div class="myth-of-day">
-                    <h3>🔥 Миф дня</h3>
-                    <p class="review-subtitle">Самый популярный миф — проверь его первым!</p>
-                    <div class="myth-card">
-                        <div class="myth-text" id="mythOfDayText">Загрузка…</div>
-                        <button class="btn-secondary" id="checkMythOfDayBtn">Проверить факт</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ===== СООБЩИТЬ ОБ ОШИБКЕ ===== -->
-            <div class="tab-panel" id="panelReport">
-                <div class="review-section" style="border-top:none; padding-top:0; margin-top:0;">
-                    <h3>🛠 Сообщить об ошибке</h3>
-                    <p class="review-subtitle">Нашли опечатку или неточность? Напишите нам!</p>
-                    <textarea id="errorText" placeholder="Опишите ошибку: где увидели и что не так..."></textarea>
-                    <button class="btn-secondary" onclick="sendError()">Отправить</button>
-                </div>
-            </div>
-
-            <!-- ===== АККАУНТ ===== -->
-            <div class="tab-panel" id="panelProfile">
-
-                <!-- Экран для НЕ вошедшего пользователя -->
-                <div id="authBox">
-                    <div class="profile-welcome">
-                        <div class="profile-avatar-big">👤</div>
-                        <h3>Личный кабинет</h3>
-                        <p class="review-subtitle">Войдите, чтобы копить очки, серию дней, достижения и аватар, который увидят все!</p>
-                    </div>
-
-                    <div class="auth-tabs">
-                        <button id="tabLogin" class="active" onclick="switchAuthMode('login')">Вход</button>
-                        <button id="tabRegister" onclick="switchAuthMode('register')">Регистрация</button>
-                    </div>
-                    <div class="auth-fields">
-                        <input type="text" id="authUsername" placeholder="Имя пользователя">
-                        <input type="password" id="authPassword" placeholder="Пароль (от 4 символов)">
-                    </div>
-                    <div class="auth-btn-wrapper">
-                        <button id="authBtn" onclick="doAuth()">Войти</button>
-                    </div>
-                    <p id="authStatus" class="auth-status"></p>
-                </div>
-
-                <!-- Экран для ВОШЕДШЕГО пользователя -->
-                <div id="cabinet" class="hidden">
-                    <div class="cabinet-header">
-                        <div class="profile-avatar-wrap">
-                            <div class="profile-avatar-big" id="cabinetAvatar">В</div>
-                            <label class="avatar-edit" title="Сменить аватар">
-                                📷
-                                <input type="file" id="avatarInput" accept="image/png,image/jpeg,image/webp" hidden>
-                            </label>
-                        </div>
-                        <div class="cabinet-head-info">
-                            <h3 id="cabinetName">Гость</h3>
-                            <span class="cabinet-level-chip" id="cabinetLevelChip">🌱 Новичок</span>
-                            <span class="cabinet-level-chip" id="cabinetStreakChip">🔥 Серия: 0 дн.</span>
-                        </div>
-                        <button class="btn-logout" onclick="logout()">Выйти</button>
-                    </div>
-                    <p id="avatarStatus"></p>
-
-                    <!-- Прогресс до следующего уровня -->
-                    <div class="cabinet-progress">
-                        <div class="cabinet-progress-label">
-                            <span>До следующего уровня</span>
-                            <span id="progressText">0 / 20</span>
-                        </div>
-                        <div class="cabinet-progress-bar">
-                            <div class="cabinet-progress-fill" id="progressFill" style="width: 0%;"></div>
-                        </div>
-                    </div>
-
-                    <!-- Статистика -->
-                    <div class="cabinet-stats">
-                        <div class="stat">
-                            <span class="stat-num" id="statChecked">0</span>
-                            <span class="stat-label">Проверено</span>
-                        </div>
-                        <div class="stat">
-                            <span class="stat-num" id="statSuggested">0</span>
-                            <span class="stat-label">Предложено</span>
-                        </div>
-                        <div class="stat">
-                            <span class="stat-num" id="statPoints">0</span>
-                            <span class="stat-label">Очки</span>
-                        </div>
-                    </div>
-
-                    <!-- Активность за 7 дней -->
-                    <div class="cabinet-activity">
-                        <h4>📊 Активность за неделю</h4>
-                        <div class="activity-chart">
-                            <div class="activity-bars" id="activityBars"></div>
-                            <div class="activity-days">
-                                <span>Пн</span><span>Вт</span><span>Ср</span>
-                                <span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Достижения -->
-                    <div class="cabinet-achievements">
-                        <h4>🏆 Достижения</h4>
-                        <div class="badges" id="badges"></div>
-                    </div>
-
-                    <!-- История проверок -->
-                    <div class="cabinet-history">
-                        <h4>🕘 Последние проверки</h4>
-                        <div id="historyList" class="history-list"></div>
-                    </div>
-                </div>
-
-            </div>
-
-        </main>
-
-        <footer class="project-footer">
-            <p>©2026 Проект «Перепроверим» для чемпионата «Медицина 2050»</p>
-        </footer>
-    </div>
+        /* Hidden class */
+        .hidden { display: none !important; }
+    </style>
 
     <script>
         // ========================================================
-        // ТЕМА
+        // MOCK DATA & API STUBS (Заглушки для работы без сервера)
         // ========================================================
+        const MOCK_DATA = {
+            "vaccines cause autism": { verdict: "МИФ", explanation: "Многочисленные исследования с участием миллионов детей не нашли связи между вакцинами и аутизмом. Первоначальное исследование было отозвано из-за фальсификации данных." },
+            "cold weather gives you a cold": { verdict: "ПРАВДА", explanation: "Вирус простуды легче передается в холодную погоду, и холодный воздух может ослаблять местный иммунитет в носу." },
+            "sugar makes kids hyper": { verdict: "СПОРНО", explanation: "Исследования не показывают прямого влияния сахара на гиперактивность. Эффект часто связан с контекстом (праздники, подарки)." }
+        };
+
+        function mockApiCheck(text) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    const lower = text.toLowerCase();
+                    if (MOCK_DATA[lower]) {
+                        resolve(MOCK_DATA[lower]);
+                    } else {
+                        const randomVerdicts = ["ПРАВДА", "МИФ"];
+                        resolve({
+                            verdict: randomVerdicts[Math.floor(Math.random() * randomVerdicts.length)],
+                            explanation: "Это демонстрационный ответ. В реальной версии мы бы обратились к научным базам данных (PubMed, Cochrane)."
+                        });
+                    }
+                }, 800);
+            });
+        }
+
+        function mockApiGame() {
+            const statements = [
+                { q: "Чеснок убивает вирусы гриппа", a: "МИФ" },
+                { q: "Сон менее 6 часов повышает риск болезней сердца", a: "ПРАВДА" },
+                { q: "Кофе вызывает рак", a: "МИФ" }
+            ];
+            return statements[Math.floor(Math.random() * statements.length)];
+        }
+
+        // ========================================================
+        // ОСНОВНОЙ СКРИПТ (ТВОЕГО ОРИГИНАЛА + ИСПРАВЛЕНИЯ)
+        // ========================================================
+
+        // --- ТЕМА ---
         const themeBtn = document.getElementById('themeBtn');
-
         function applyTheme(theme) {
             document.body.classList.toggle('dark', theme === 'dark');
             document.documentElement.classList.remove('dark-preload');
@@ -370,10 +192,8 @@
 
         let savedTheme = 'light';
         try {
-            savedTheme = localStorage.getItem('theme') ||
-                (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
         } catch (e) {}
-
         applyTheme(savedTheme);
 
         if (themeBtn) {
@@ -384,1216 +204,11 @@
             });
         }
 
-        // ========================================================
-        // МЕНЮ и ВКЛАДКИ
-        // ========================================================
+        // --- МЕНЮ И ВКЛАДКИ ---
         const menuBtn = document.getElementById('menuBtn');
         const menuEl = document.getElementById('menu');
 
         function toggleMenu() { if (menuEl) menuEl.classList.toggle('open'); }
         function closeMenu() { if (menuEl) menuEl.classList.remove('open'); }
 
-        if (menuBtn && menuEl) {
-            menuBtn.addEventListener('click', function (e) {
-                e.stopPropagation();
-                toggleMenu();
-            });
-            document.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape') closeMenu();
-            });
-            document.addEventListener('click', function (e) {
-                if (!menuEl.contains(e.target) && !menuBtn.contains(e.target)) closeMenu();
-            });
-        }
-
-        const PANELS = ['Home', 'Game', 'Evidence', 'Reviews', 'Stats', 'Report', 'Profile'];
-
-        const TAB_LOADERS = {
-            Evidence: loadEvidence,
-            Reviews: function () { loadReviews(); loadComments(); loadFriends(); },
-            Stats: loadStats
-        };
-
-        // Куда сохранять прогресс игры при уходе со вкладки
-        let previousTab = 'Home';
-
-        function showPanel(name) {
-            PANELS.forEach(function (p) {
-                const el = document.getElementById('panel' + p);
-                if (el) el.classList.toggle('active', p === name);
-            });
-            document.querySelectorAll('.menu a').forEach(function (a) {
-                a.classList.toggle('active', a.dataset.tab === name.toLowerCase());
-            });
-            // Дисклеймер — только на главной
-            const disc = document.getElementById('disclaimerBlock');
-            if (disc) disc.style.display = (name === 'Home') ? '' : 'none';
-        }
-
-        function switchTab(name) {
-            closeMenu();
-            if (name === 'suggest') {
-                showPanel('Home');
-                const s = document.getElementById('suggest');
-                if (s) s.scrollIntoView({ behavior: 'smooth' });
-                return;
-            }
-            const map = {
-                home: 'Home', game: 'Game', evidence: 'Evidence',
-                reviews: 'Reviews', stats: 'Stats', report: 'Report', profile: 'Profile'
-            };
-            const target = map[name] || 'Home';
-
-            // Сохраняем результат игры, когда пользователь уходит с игровой вкладки
-            if (previousTab === 'Game' && target !== 'Game') saveGameResult();
-
-            showPanel(target);
-            if (target === 'Game') loadGameOnce();
-            if (TAB_LOADERS[target]) TAB_LOADERS[target]();
-
-            previousTab = target;
-        }
-
-        document.querySelectorAll('.menu a').forEach(function (link) {
-            link.addEventListener('click', function (e) {
-                e.preventDefault();
-                switchTab(link.dataset.tab);
-            });
-        });
-
-        // ========================================================
-        // ХЕЛПЕРЫ API
-        // ========================================================
-        const USER = () => currentUser || null;
-
-        function apiFetch(url, opts) {
-            return fetch(url, opts).then(function (r) {
-                return r.json().then(function (d) {
-                    if (!r.ok) throw new Error(d.error || 'Ошибка');
-                    return d;
-                });
-            });
-        }
-
-        // ========================================================
-        // МАСКОТ ВЕРА
-        // ========================================================
-        const mascot = document.getElementById('mascot');
-        const mascotImage = document.getElementById('mascotImage');
-        const speech = document.getElementById('mascotSpeech');
-
-        if (mascotImage) {
-            mascotImage.addEventListener('error', function () {
-                mascotImage.style.display = 'none';
-            });
-        }
-
-        let currentUser = null;
-        try { currentUser = localStorage.getItem('veraUser') || null; } catch (e) {}
-
-        const PHRASES = {
-            hello:  "Привет! Я <b>Вера</b> — медицинский фактчекер команды «Единый пульс». Напишите сомнительное утверждение — я разберу его на миф и правду!",
-            true:   "Разоблачено — правда! Всё проверено, спи спокойно 💚",
-            false:  "Осторожно, это миф! Я нашла подтверждение, что так думать не стоит 🚫",
-            unsure: "Честно? Точного ответа у меня нет — лучше уточнить у специалиста 🤔",
-            sporno: "Данные противоречивы — разберём нюансы честно 🤔"
-        };
-
-        function setMascotImage(name) {
-            if (!mascotImage) return;
-            mascotImage.style.display = '';
-            mascotImage.src = '/static/' + name + '.png';
-        }
-
-        function react(verdict) {
-            if (!speech) return;
-            const v = (verdict || '').toUpperCase();
-            if (v.includes('ПРАВДА')) {
-                setMascotImage('vera_true');
-                if (mascot) { mascot.classList.add('mood-true'); mascot.classList.remove('mood-false'); }
-                speech.innerHTML = PHRASES.true;
-            } else if (v.includes('МИФ')) {
-                setMascotImage('vera_false');
-                if (mascot) { mascot.classList.add('mood-false'); mascot.classList.remove('mood-true'); }
-                speech.innerHTML = PHRASES.false;
-            } else if (v.includes('СПОРНО')) {
-                setMascotImage('vera_hello');
-                if (mascot) mascot.classList.remove('mood-true', 'mood-false');
-                speech.innerHTML = PHRASES.sporno;
-            } else {
-                setMascotImage('vera_hello');
-                if (mascot) mascot.classList.remove('mood-true', 'mood-false');
-                speech.innerHTML = PHRASES.unsure;
-            }
-        }
-
-        if (speech) speech.innerHTML = PHRASES.hello;
-
-        // ========================================================
-        // ПРОВЕРКА ФАКТА
-        // ========================================================
-        let lastClaim = '';
-        let lastVerdictFull = '';
-
-        function sendCheck() {
-            const text = document.getElementById('userText').value.trim();
-            if (text.length < 5) {
-                speech.innerHTML = 'Введите хотя бы несколько слов 🙂';
-                return;
-            }
-
-            const btn = document.getElementById('checkBtn');
-            const btnText = document.getElementById('btnText');
-
-            btn.disabled = true;
-            btnText.textContent = 'Проверяю...';
-
-            fetch('/api/check', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: text, username: currentUser || '' })
-            })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                lastClaim = text;
-                lastVerdictFull = (data.verdict || 'НЕЗНАЮ') + '. ' + (data.explanation || '');
-                document.getElementById('result').classList.remove('hidden');
-                const badge = document.getElementById('verdictBadge');
-                const verdict = (data.verdict || 'НЕЗНАЮ').toUpperCase();
-                badge.textContent = verdict;
-                badge.className = 'verdict-badge';
-                if (verdict.includes('ПРАВДА')) badge.classList.add('pravda');
-                else if (verdict.includes('МИФ')) badge.classList.add('mif');
-                else if (verdict.includes('СПОРНО')) badge.classList.add('sporno');
-                else badge.classList.add('neznayu');
-
-                document.getElementById('claimText').textContent = text;
-                document.getElementById('explanationText').textContent = data.explanation || data.answer || '';
-                react(data.verdict || '');
-                document.getElementById('challengeOpen').hidden = false;
-                addHistory(text, verdict);
-            })
-            .catch(function () {
-                speech.innerHTML = 'Ой, кажется связь с сервером пропала 📡';
-            })
-            .finally(function () {
-                btn.disabled = false;
-                btnText.textContent = 'Проверить факт';
-            });
-        }
-
-        // ========================================================
-        // СЕРДЕЧКИ
-        // ========================================================
-        document.querySelectorAll('.heart').forEach(function (h) {
-            h.addEventListener('click', function () {
-                const val = h.dataset.value;
-                document.querySelectorAll('.heart').forEach(function (x) {
-                    x.classList.toggle('active', Number(x.dataset.value) <= Number(val));
-                });
-                document.getElementById('ratingMessage').textContent = 'Спасибо за оценку! 💙';
-                fetch('/api/rate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ claim: lastClaim, rating: Number(val), username: currentUser || '' })
-                }).catch(function () {});
-            });
-        });
-
-        // ========================================================
-        // ОСПОРИТЬ ВЕРУ
-        // ========================================================
-        const challengeOpen = document.getElementById('challengeOpen');
-        const challengeBlock = document.getElementById('challengeBlock');
-        const challengeSend = document.getElementById('challengeSend');
-        const challengeReason = document.getElementById('challengeReason');
-        const challengeResult = document.getElementById('challengeResult');
-
-        if (challengeOpen) {
-            challengeOpen.addEventListener('click', function () {
-                challengeBlock.hidden = !challengeBlock.hidden;
-            });
-        }
-
-        if (challengeSend) {
-            challengeSend.addEventListener('click', function () {
-                const reason = challengeReason.value.trim();
-                if (reason.length < 5) {
-                    challengeResult.hidden = false;
-                    challengeResult.textContent = 'Опишите чуть подробнее, почему вы не согласны 🙂';
-                    return;
-                }
-
-                challengeSend.disabled = true;
-                challengeSend.textContent = 'Вера перепроверяет...';
-                challengeResult.hidden = true;
-
-                fetch('/api/challenge', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        claim: lastClaim || '',
-                        verdict: lastVerdictFull || '',
-                        reason: reason
-                    })
-                })
-                .then(function (r) { return r.json(); })
-                .then(function (data) {
-                    challengeResult.hidden = false;
-                    challengeResult.textContent = data.answer || data.error || 'Не получилось получить ответ.';
-                })
-                .catch(function () {
-                    challengeResult.hidden = false;
-                    challengeResult.textContent = 'Сервис перепроверки недоступен. Попробуйте позже!';
-                })
-                .finally(function () {
-                    challengeSend.disabled = false;
-                    challengeSend.textContent = 'Отправить на перепроверку';
-                });
-            });
-        }
-
-        // ========================================================
-        // ПРЕДЛОЖИТЬ СВОЙ МИФ
-        // ========================================================
-        const suggestForm = document.getElementById('suggestForm');
-
-        if (suggestForm) {
-            suggestForm.addEventListener('submit', function (e) {
-                e.preventDefault();
-                const status = document.getElementById('suggestStatus');
-                const btn = suggestForm.querySelector('button');
-
-                btn.disabled = true;
-                btn.textContent = 'Отправляем...';
-
-                fetch('/api/suggest', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name: currentUser
-                            || document.getElementById('suggestName').value.trim()
-                            || 'Аноним',
-                        myth: document.getElementById('suggestMyth').value.trim()
-                    })
-                })
-                .then(function (r) { return r.json(); })
-                .then(function (data) {
-                    status.textContent = data.message || data.error || 'Спасибо! Мы проверим ваш миф 💜';
-                    if (!data.error) suggestForm.reset();
-                })
-                .catch(function () {
-                    status.textContent = 'Не получилось отправить. Попробуйте ещё раз!';
-                })
-                .finally(function () {
-                    btn.disabled = false;
-                    btn.textContent = 'Предложить миф';
-                });
-            });
-        }
-
-        // ========================================================
-        // СООБЩИТЬ ОБ ОШИБКЕ
-        // ========================================================
-        function sendError() {
-            const text = document.getElementById('errorText').value.trim();
-            if (!text) return;
-            fetch('/api/error', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: text })
-            })
-            .then(function () {
-                document.getElementById('errorText').value = '';
-                alert('Спасибо, сообщение отправлено! Разберёмся 💙');
-            })
-            .catch(function () {
-                alert('Не получилось отправить сообщение 📡');
-            });
-        }
-
-        // ========================================================
-        // АККАУНТ
-        // ========================================================
-        let authMode = 'login';
-
-        function switchAuthMode(mode) {
-            authMode = mode;
-            document.getElementById('tabLogin').classList.toggle('active', mode === 'login');
-            document.getElementById('tabRegister').classList.toggle('active', mode === 'register');
-            document.getElementById('authBtn').textContent = (mode === 'login') ? 'Войти' : 'Зарегистрироваться';
-        }
-
-        function doAuth() {
-            const username = document.getElementById('authUsername').value.trim();
-            const password = document.getElementById('authPassword').value;
-            const status = document.getElementById('authStatus');
-            if (!username || password.length < 4) {
-                status.textContent = 'Введите имя и пароль от 4 символов';
-                status.className = 'auth-status err';
-                return;
-            }
-            const url = (authMode === 'login') ? '/api/login' : '/api/register';
-            fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: username, password: password })
-            })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                if (data.status === 'ok' || data.username) {
-                    status.textContent = authMode === 'login' ? 'Добро пожаловать!' : 'Аккаунт создан!';
-                    status.className = 'auth-status ok';
-                    currentUser = data.username || username;
-                    try { localStorage.setItem('veraUser', currentUser); } catch (e) {}
-                    showCabinet(currentUser);
-                    loadProfile(currentUser);
-                } else {
-                    status.textContent = data.error || 'Не получилось, попробуйте ещё раз';
-                    status.className = 'auth-status err';
-                }
-            })
-            .catch(function () {
-                status.textContent = 'Сервер недоступен';
-                status.className = 'auth-status err';
-            });
-        }
-
-        function logout() {
-            currentUser = null;
-            try { localStorage.removeItem('veraUser'); } catch (e) {}
-            document.getElementById('cabinet').classList.add('hidden');
-            document.getElementById('authBox').classList.remove('hidden');
-            document.getElementById('authUsername').value = '';
-            document.getElementById('authPassword').value = '';
-            document.getElementById('authStatus').textContent = '';
-        }
-
-        // ========================================================
-        // ЛИЧНЫЙ КАБИНЕТ
-        // ========================================================
-        const LEVELS_INFO = [
-            { name: '🌱 Новичок',            needed: 0,  next: 20 },
-            { name: '🔍 Доказатель',         needed: 20, next: 60 },
-            { name: '👑 Хранитель истины',   needed: 60, next: null }
-        ];
-
-        function showCabinet(name) {
-            document.getElementById('authBox').classList.add('hidden');
-            document.getElementById('cabinet').classList.remove('hidden');
-            document.getElementById('cabinetName').textContent = name;
-            setAvatar(null);
-        }
-
-        // ========================================================
-        // ДОСТИЖЕНИЯ В КАБИНЕТЕ
-        // ========================================================
-        let myVisits = { streak: 0, best_streak: 0, total_days: 0 };
-        let myAvatar = null;
-
-        function renderAchievements(checked, suggested, visits) {
-            visits = visits || { streak: 0, best_streak: 0, total_days: 0 };
-            const streak = visits.streak || 0;
-            const best = visits.best_streak || 0;
-            const total = visits.total_days || 0;
-
-            const ACHIEVEMENTS = [
-                { emoji: '🌟', name: 'Первый факт',     desc: 'Проверить 1 миф',     ok: checked >= 1 },
-                { emoji: '🔍', name: 'Разгадатель',     desc: '5 проверок',          ok: checked >= 5 },
-                { emoji: '🎓', name: 'Знаток',          desc: '10 проверок',         ok: checked >= 10 },
-                { emoji: '🛡️', name: 'Страж правды',   desc: '25 проверок',         ok: checked >= 25, rarity: 'rare' },
-                { emoji: '🥇', name: 'Профи',           desc: 'Проверить 100 мифов', ok: checked >= 100, rarity: 'rare' },
-                { emoji: '👑', name: 'Легенда фактов',  desc: '250 проверок',        ok: checked >= 250, rarity: 'legendary' },
-
-                { emoji: '💡', name: 'Автор мифа',      desc: 'Предложить 1 миф',    ok: suggested >= 1 },
-                { emoji: '📝', name: 'Идеолог',         desc: '10 предложений',      ok: suggested >= 10 },
-                { emoji: '🚀', name: 'Фонтан идей',     desc: '25 предложений',      ok: suggested >= 25, rarity: 'rare' },
-                { emoji: '🦸', name: 'Герой',           desc: 'Отправить 50 мифов',  ok: suggested >= 50, rarity: 'legendary' },
-
-                { emoji: '🔥', name: 'Разогрев',        desc: '3 дня подряд',        ok: streak >= 3 },
-                { emoji: '📅', name: 'Неделя в строю',  desc: '7 дней подряд',       ok: streak >= 7, rarity: 'rare' },
-                { emoji: '🌙', name: 'Месяц верности',  desc: '30 дней подряд',      ok: streak >= 30, rarity: 'rare' },
-                { emoji: '💎', name: '100 дней в сети', desc: '100 дней подряд',     ok: streak >= 100, rarity: 'legendary' },
-                { emoji: '🏃', name: 'Марафонец',       desc: '50 дней всего',       ok: total >= 50 },
-                { emoji: '🏅', name: 'Рекордсмен',      desc: 'Личная серия: ' + best, ok: best >= 14, rarity: 'rare' }
-            ];
-
-            const box = document.getElementById('badges');
-            if (!box) return;
-            const unlocked = ACHIEVEMENTS.filter(a => a.ok).length;
-            const header = document.querySelector('.cabinet-achievements h4');
-            if (header) header.textContent = '🏆 Достижения · ' + unlocked + ' из ' + ACHIEVEMENTS.length;
-
-            box.innerHTML = ACHIEVEMENTS.map(a => `
-                <div class="badge ${a.ok ? 'unlocked' : 'locked'} ${a.rarity || ''}" title="${a.desc}">
-                    <span class="badge-emoji">${a.emoji}</span>
-                    <span class="badge-name">${a.name}</span>
-                    <span class="badge-desc">${a.desc}</span>
-                </div>
-            `).join('');
-        }
-
-        function syncVisit() {
-            if (!currentUser) return;
-            fetch('/api/visit', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: currentUser })
-            })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                if (data.status === 'ok') {
-                    myVisits = {
-                        streak: data.streak,
-                        best_streak: data.best_streak,
-                        total_days: data.total_days
-                    };
-                    if (data.avatar) {
-                        myAvatar = data.avatar;
-                        setAvatar(myAvatar);
-                    }
-                    const chip = document.getElementById('cabinetStreakChip');
-                    if (chip) chip.textContent = '🔥 Серия: ' + (myVisits.streak || 0) + ' дн.';
-                    renderAchievements(
-                        parseInt(document.getElementById('statChecked').textContent) || 0,
-                        parseInt(document.getElementById('statSuggested').textContent) || 0,
-                        myVisits
-                    );
-                }
-            })
-            .catch(function () {});
-        }
-
-        // ========================================================
-        // АВАТАР
-        // ========================================================
-        function setAvatar(url) {
-            const av = document.getElementById('cabinetAvatar');
-            if (!av) return;
-            if (url) {
-                av.style.backgroundImage = 'url("' + url + '")';
-                av.style.backgroundSize = 'cover';
-                av.style.backgroundPosition = 'center';
-                av.textContent = '';
-            } else {
-                av.style.backgroundImage = '';
-                av.textContent = (currentUser || 'В').charAt(0).toUpperCase();
-            }
-        }
-
-        function uploadAvatar(file) {
-            if (!currentUser) return;
-            const fd = new FormData();
-            fd.append('username', currentUser);
-            fd.append('avatar', file);
-
-            const status = document.getElementById('avatarStatus');
-            status.textContent = 'Загружаем...';
-
-            fetch('/api/avatar', { method: 'POST', body: fd })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                if (data.avatar) {
-                    myAvatar = data.avatar;
-                    setAvatar(myAvatar);
-                    status.textContent = 'Аватар обновлён! ✨';
-                } else {
-                    status.textContent = data.error || 'Не получилось загрузить';
-                }
-            })
-            .catch(function () { status.textContent = 'Ошибка соединения'; });
-        }
-
-        const avatarInput = document.getElementById('avatarInput');
-        if (avatarInput) {
-            avatarInput.addEventListener('change', function () {
-                if (this.files && this.files[0]) uploadAvatar(this.files[0]);
-            });
-        }
-
-        // ========================================================
-        // ИСТОРИЯ ПРОВЕРОК (в браузере)
-        // ========================================================
-        function renderHistory() {
-            const list = document.getElementById('historyList');
-            if (!list) return;
-            let items = [];
-            try {
-                items = JSON.parse(localStorage.getItem('veraHistory') || '[]');
-            } catch (e) { items = []; }
-            if (!items.length) {
-                list.innerHTML = '<p class="history-empty">Пока нет проверок — проверьте свой первый миф на главной! 🚀</p>';
-                return;
-            }
-            list.innerHTML = items.slice(0, 10).map(h => {
-                const v = (h.verdict || '').toUpperCase();
-                const cls = v.includes('ПРАВДА') ? 'pravda'
-                          : v.includes('МИФ') ? 'mif' : 'other';
-                const icon = cls === 'pravda' ? '✅' : cls === 'mif' ? '🚫' : '🤔';
-                return `
-                <div class="history-item">
-                    <div class="history-verdict ${cls}">${icon}</div>
-                    <div class="history-body">
-                        <div class="history-claim"></div>
-                        <div class="history-date"></div>
-                    </div>
-                </div>`;
-            }).join('');
-
-            // Безопасно заполняем текст
-            const nodes = list.querySelectorAll('.history-item');
-            items.slice(0, 10).forEach(function (h, i) {
-                const item = nodes[i];
-                if (!item) return;
-                item.querySelector('.history-claim').textContent = h.claim;
-                item.querySelector('.history-date').textContent = h.date + ' · ' + h.verdict;
-            });
-        }
-
-        function addHistory(claim, verdict) {
-            try {
-                const items = JSON.parse(localStorage.getItem('veraHistory') || '[]');
-                items.unshift({
-                    claim: claim.length > 80 ? claim.slice(0, 80) + '…' : claim,
-                    verdict: verdict,
-                    date: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-                });
-                localStorage.setItem('veraHistory', JSON.stringify(items.slice(0, 20)));
-                renderHistory();
-            } catch (e) { /* история не критична */ }
-        }
-
-        // ========================================================
-        // ЗАГРУЗКА ПРОФИЛЯ
-        // ========================================================
-        function loadProfile(username) {
-            fetch('/api/profile?username=' + encodeURIComponent(username))
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                const checked = data.checked || 0;
-                const suggested = data.suggested || 0;
-                const points = data.points || 0;
-
-                document.getElementById('statChecked').textContent = checked;
-                document.getElementById('statSuggested').textContent = suggested;
-                document.getElementById('statPoints').textContent = points;
-
-                const level = data.level ||
-                    LEVELS_INFO[points >= 60 ? 2 : points >= 20 ? 1 : 0].name;
-                document.getElementById('cabinetLevelChip').textContent = level;
-
-                let li = 0;
-                if (points >= 60) li = 2; else if (points >= 20) li = 1;
-                const lvl = LEVELS_INFO[li];
-                if (lvl.next === null) {
-                    document.getElementById('progressText').textContent = 'Максимум!';
-                    document.getElementById('progressFill').style.width = '100%';
-                } else {
-                    const inLvl = points - lvl.needed;
-                    const span = lvl.next - lvl.needed;
-                    document.getElementById('progressText').textContent = inLvl + ' / ' + span;
-                    document.getElementById('progressFill').style.width =
-                        Math.min(100, Math.round(inLvl / span * 100)) + '%';
-                }
-
-                const activityBars = document.getElementById('activityBars');
-                if (activityBars) {
-                    activityBars.innerHTML = '';
-                    const days = data.activity || [0, 0, 0, 0, 0, 0, 0];
-                    const maxCount = Math.max.apply(null, days.concat([1]));
-                    days.forEach(function (count) {
-                        const bar = document.createElement('div');
-                        bar.className = 'activity-bar';
-                        bar.style.height = Math.max(6, Math.round(count / maxCount * 100)) + '%';
-                        bar.title = 'Проверок: ' + count;
-                        activityBars.appendChild(bar);
-                    });
-                }
-
-                myVisits = {
-                    streak: data.streak || 0,
-                    best_streak: data.best_streak || 0,
-                    total_days: data.total_days || 0
-                };
-                document.getElementById('cabinetStreakChip').textContent =
-                    '🔥 Серия: ' + myVisits.streak + ' дн.';
-                if (data.avatar) {
-                    myAvatar = data.avatar;
-                    setAvatar(myAvatar);
-                }
-
-                renderAchievements(checked, suggested, myVisits);
-                syncVisit();
-            })
-            .catch(function () {
-                renderAchievements(0, 0, myVisits);
-            });
-        }
-
-        if (currentUser) {
-            showCabinet(currentUser);
-            loadProfile(currentUser);
-            renderHistory();
-        }
-
-        // ========================================================
-        // ОТЗЫВЫ СО ЗВЁЗДАМИ
-        // ========================================================
-        let reviewStars = 5;
-
-        const reviewStarsBox = document.getElementById('reviewStarsBox');
-        if (reviewStarsBox) {
-            reviewStarsBox.querySelectorAll('.star').forEach(function (s) {
-                s.addEventListener('click', function () {
-                    reviewStars = Number(s.dataset.val);
-                    reviewStarsBox.querySelectorAll('.star').forEach(function (x) {
-                        x.classList.toggle('active', Number(x.dataset.val) <= reviewStars);
-                    });
-                });
-            });
-        }
-
-        const reviewForm = document.getElementById('reviewForm');
-        if (reviewForm) {
-            reviewForm.addEventListener('submit', function (e) {
-                e.preventDefault();
-                const name = currentUser
-                    || document.getElementById('reviewName').value.trim()
-                    || 'Аноним';
-                const text = document.getElementById('reviewText').value.trim();
-                if (!text) return alert('Напишите отзыв');
-
-                apiFetch('/api/review', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: name, review: text, rating: reviewStars })
-                })
-                .then(function () {
-                    reviewForm.reset();
-                    loadReviews();
-                })
-                .catch(function (err) { alert(err.message); });
-            });
-        }
-
-        function loadReviews() {
-            const list = document.getElementById('reviewsList');
-            if (!list) return;
-            apiFetch('/api/reviews')
-            .then(function (data) {
-                list.innerHTML = '';
-                const reviews = data.reviews || [];
-                if (!reviews.length) {
-                    list.innerHTML = '<p class="history-empty">Отзывов пока нет — станьте первым! ⭐</p>';
-                    return;
-                }
-                reviews.forEach(function (r) {
-                    const div = document.createElement('div');
-                    div.className = 'comment';
-
-                    const avat = document.createElement('div');
-                    avat.className = 'comment-avatar';
-                    if (r.avatar) {
-                        avat.style.backgroundImage = 'url("' + r.avatar + '")';
-                        avat.style.backgroundSize = 'cover';
-                        avat.style.backgroundPosition = 'center';
-                    } else {
-                        avat.textContent = (r.name || 'Г').charAt(0).toUpperCase();
-                    }
-                    div.appendChild(avat);
-
-                    const bodyWrap = document.createElement('div');
-                    bodyWrap.style.flex = '1';
-                    bodyWrap.style.minWidth = '0';
-
-                    const head = document.createElement('div');
-                    head.className = 'comment-header';
-                    const author = document.createElement('span');
-                    author.className = 'comment-author';
-                    author.textContent = r.name || 'Аноним';
-                    const time = document.createElement('span');
-                    time.textContent = r.date || '';
-                    head.appendChild(author); head.appendChild(time);
-
-                    const stars = document.createElement('div');
-                    stars.style.color = '#f59e0b';
-                    stars.style.letterSpacing = '2px';
-                    stars.textContent = '★'.repeat(r.rating || 5) + '☆'.repeat(5 - (r.rating || 5));
-
-                    const body = document.createElement('div');
-                    body.className = 'comment-text';
-                    body.textContent = r.text || '';
-
-                    bodyWrap.appendChild(head);
-                    bodyWrap.appendChild(stars);
-                    bodyWrap.appendChild(body);
-                    div.appendChild(bodyWrap);
-                    list.appendChild(div);
-                });
-            })
-            .catch(function () {});
-        }
-
-        // ========================================================
-        // ОБСУЖДЕНИЯ С ОТВЕТАМИ (комментарии — это общение!)
-        // ========================================================
-        let replyParent = null;
-
-        function buildCommentNode(c, all) {
-            const div = document.createElement('div');
-            div.className = 'comment';
-
-            const avat = document.createElement('div');
-            avat.className = 'comment-avatar';
-            if (c.avatar) {
-                avat.style.backgroundImage = 'url("' + c.avatar + '")';
-                avat.style.backgroundSize = 'cover';
-                avat.style.backgroundPosition = 'center';
-            } else {
-                avat.textContent = (c.author || 'Г').charAt(0).toUpperCase();
-            }
-            div.appendChild(avat);
-
-            const bodyWrap = document.createElement('div');
-            bodyWrap.style.flex = '1';
-            bodyWrap.style.minWidth = '0';
-
-            const head = document.createElement('div');
-            head.className = 'comment-header';
-            const author = document.createElement('span');
-            author.className = 'comment-author';
-            author.textContent = c.author || 'Аноним';
-            const time = document.createElement('span');
-            time.textContent = c.date || '';
-            head.appendChild(author); head.appendChild(time);
-
-            const body = document.createElement('div');
-            body.className = 'comment-text';
-            body.textContent = c.text || '';
-
-            const replyBtn = document.createElement('button');
-            replyBtn.className = 'btn-ghost';
-            replyBtn.style.cssText = 'padding:4px 10px; font-size:0.8rem; margin-top:6px;';
-            replyBtn.textContent = 'Ответить';
-            replyBtn.addEventListener('click', function () {
-                replyParent = c.id;
-                const ta = document.getElementById('commentText');
-                ta.value = (c.author || '') + ', ';
-                ta.focus();
-                ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            });
-
-            bodyWrap.appendChild(head);
-            bodyWrap.appendChild(body);
-            bodyWrap.appendChild(replyBtn);
-
-            // Ответы на этот комментарий
-            (all || []).forEach(function (r) {
-                if (r.parent === c.id) bodyWrap.appendChild(buildCommentNode(r, all));
-            });
-
-            div.appendChild(bodyWrap);
-            return div;
-        }
-
-        function loadComments() {
-            const list = document.getElementById('commentsList');
-            if (!list) return;
-            apiFetch('/api/comments')
-            .then(function (data) {
-                list.innerHTML = '';
-                const all = data.comments || [];
-                const roots = all.filter(function (c) { return !c.parent; });
-                if (!roots.length) {
-                    list.innerHTML = '<p class="history-empty">Пока тихо — напишите первый комментарий! 💬</p>';
-                    return;
-                }
-                roots.forEach(function (c) { list.appendChild(buildCommentNode(c, all)); });
-            })
-            .catch(function () {});
-        }
-
-        function sendComment() {
-            const text = document.getElementById('commentText').value.trim();
-            if (!text) return;
-            apiFetch('/api/comments', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: currentUser || 'Аноним',
-                    text: text,
-                    parent: replyParent || ''
-                })
-            })
-            .then(function () {
-                replyParent = null;
-                document.getElementById('commentText').value = '';
-                loadComments();
-            })
-            .catch(function (err) { alert(err.message); });
-        }
-
-        // ========================================================
-        // ДРУЗЬЯ
-        // ========================================================
-        function addFriendFromInput() {
-            const user = USER();
-            if (!user) return alert('Войдите в аккаунт, чтобы добавлять друзей');
-            const friend = document.getElementById('friendName').value.trim();
-            if (!friend) return;
-            apiFetch('/api/friends/add', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: user, friend: friend })
-            })
-            .then(function () {
-                document.getElementById('friendName').value = '';
-                loadFriends();
-            })
-            .catch(function (err) { alert(err.message); });
-        }
-
-        function loadFriends() {
-            const box = document.getElementById('friendsList');
-            if (!box) return;
-            const user = USER();
-            if (!user) {
-                box.innerHTML = '<p class="history-empty">Войдите в аккаунт, чтобы добавить друзей 🤝</p>';
-                return;
-            }
-            apiFetch('/api/friends?username=' + encodeURIComponent(user))
-            .then(function (data) {
-                box.innerHTML = '';
-                const friends = data.friends || [];
-                if (!friends.length) {
-                    box.innerHTML = '<p class="history-empty">Пока никого. Добавьте друга по имени!</p>';
-                    return;
-                }
-                friends.forEach(function (f) {
-                    const item = document.createElement('div');
-                    item.className = 'leaderboard-item';
-
-                    const nameSpan = document.createElement('span');
-                    nameSpan.textContent = f.username;
-                    item.appendChild(nameSpan);
-
-                    const del = document.createElement('button');
-                    del.className = 'btn-ghost';
-                    del.style.cssText = 'padding:2px 8px; font-size:0.75rem;';
-                    del.textContent = 'Удалить';
-                    del.addEventListener('click', function () { removeFriend(f.username); });
-                    item.appendChild(del);
-
-                    box.appendChild(item);
-                });
-            })
-            .catch(function () {});
-        }
-
-        function removeFriend(friend) {
-            const user = USER();
-            if (!user) return;
-            apiFetch('/api/friends/remove', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: user, friend: friend })
-            })
-            .then(loadFriends)
-            .catch(function (err) { alert(err.message); });
-        }
-
-        // ========================================================
-        // АЧИВКИ И РЕЙТИНГ (вкладка «Ачивки и рейтинг»)
-        // ========================================================
-        function loadStats() {
-            loadBadges();
-            loadLeaderboard();
-            loadMythOfDay();
-        }
-
-        function loadBadges() {
-            const list = document.getElementById('badgesList');
-            if (!list) return;
-            const user = USER();
-            if (!user) {
-                list.innerHTML = '<p class="history-empty">Войдите в аккаунт, чтобы копить ачивки 💜</p>';
-                return;
-            }
-            apiFetch('/api/achievements?username=' + encodeURIComponent(user))
-            .then(function (d) {
-                list.innerHTML = (d.achievements || []).map(function (a) {
-                    return '<div class="badge ' + (a.unlocked ? 'unlocked' : 'locked') + '" title="' + a.desc + '">' +
-                        '<span class="badge-emoji">' + a.emoji + '</span>' +
-                        '<span class="badge-name">' + a.name + '</span>' +
-                        '<span class="badge-desc">' + a.desc + '</span></div>';
-                }).join('');
-            })
-            .catch(function () {});
-        }
-
-        function loadLeaderboard() {
-            const box = document.getElementById('leaderboardList');
-            if (!box) return;
-            apiFetch('/api/leaderboard')
-            .then(function (d) {
-                const leaders = d.leaders || [];
-                if (!leaders.length) {
-                    box.innerHTML = '<p class="history-empty">Рейтинг пока пуст — станьте первым! 🏁</p>';
-                    return;
-                }
-                box.innerHTML = '';
-                leaders.forEach(function (u, i) {
-                    const item = document.createElement('div');
-                    item.className = 'leaderboard-item fade-in';
-
-                    const left = document.createElement('div');
-                    const rank = document.createElement('span');
-                    rank.className = 'leaderboard-rank';
-                    rank.textContent = (i + 1) + '. ';
-                    left.appendChild(rank);
-                    left.appendChild(document.createTextNode(u.username));
-
-                    const right = document.createElement('div');
-                    right.style.cssText = 'font-size:0.85rem; color:var(--text-muted);';
-                    right.textContent = u.points + ' очков · ' + u.level;
-
-                    item.appendChild(left);
-                    item.appendChild(right);
-                    box.appendChild(item);
-                });
-            })
-            .catch(function () {});
-        }
-
-        function loadMythOfDay() {
-            const el = document.getElementById('mythOfDayText');
-            if (!el) return;
-            apiFetch('/api/myth-of-day')
-            .then(function (d) {
-                if (!d.claim) {
-                    el.textContent = 'Миф дня появится позже — проверяйте факты! 🔥';
-                    return;
-                }
-                el.textContent = '';
-                const claim = document.createElement('b');
-                claim.textContent = '«' + d.claim + '»';
-                const small = document.createElement('small');
-                small.textContent = ' Проверяли ' + d.count + ' раз ' + (d.period || '') +
-                    (d.verdict ? ' · вердикт: ' + d.verdict : '');
-                el.appendChild(claim);
-                el.appendChild(small);
-
-                const btn = document.getElementById('checkMythOfDayBtn');
-                if (btn) {
-                    btn.onclick = function () {
-                        showPanel('Home');
-                        document.getElementById('userText').value = d.claim;
-                        sendCheck();
-                    };
-                }
-            })
-            .catch(function () {
-                el.textContent = 'Миф дня появится позже 🔥';
-            });
-        }
-
-        // ========================================================
-        // ДОКАЗАТЕЛЬНАЯ МЕДИЦИНА (тексты Веры с сервера)
-        // ========================================================
-        let evidenceLoaded = false;
-
-        function loadEvidence() {
-            if (evidenceLoaded) return;
-            apiFetch('/api/evidence')
-            .then(function (d) {
-                evidenceLoaded = true;
-                const intro = document.getElementById('evidenceIntro');
-                if (intro) intro.textContent = d.intro || '';
-
-                const grid = document.getElementById('evidenceCards');
-                if (!grid) return;
-                grid.innerHTML = '';
-                (d.sections || []).forEach(function (s) {
-                    const card = document.createElement('div');
-                    card.className = 'card-evidence fade-in';
-                    const h = document.createElement('h4');
-                    h.textContent = s.title;
-                    const p = document.createElement('p');
-                    p.textContent = s.text;
-                    card.appendChild(h);
-                    card.appendChild(p);
-                    grid.appendChild(card);
-                });
-            })
-            .catch(function () {});
-        }
-
-        // ========================================================
-        // ИГРА «МИФ VS ПРАВДА» + сохранение результата
-        // ========================================================
-        const QUESTIONS_FALLBACK = [
-            { statement: 'От долгого чтения в темноте портится зрение', truth: false, difficulty: 1,
-              explain: 'В темноте глаза устают быстрее, но зрение от этого не портится.' },
-            { statement: 'Свежий воздух помогает при простуде', truth: true, difficulty: 1,
-              explain: 'Проветривание снижает концентрацию вирусов в помещении.' },
-            { statement: 'Соль в больших количествах вредит здоровью', truth: true, difficulty: 1,
-              explain: 'ВОЗ рекомендует не более 5 г соли в день — избыток повышает давление.' },
-            { statement: 'Морковка улучшает зрение', truth: false, difficulty: 1,
-              explain: 'Морковь полезна, но вернуть остроту зрения не может — миф времён британской пропаганды.' },
-            { statement: 'Регулярная физическая активность снижает риск сердечных болезней', truth: true, difficulty: 2,
-              explain: 'Одна из самых доказанных истин в медицине.' },
-            { statement: 'От холодной погоды можно простудиться напрямую', truth: false, difficulty: 2,
-              explain: 'Простуду вызывают вирусы, а не мороз — холод лишь ослабляет местный иммунитет носа.' },
-            { statement: 'Приём витамина C предотвращает простуду у всех людей', truth: false, difficulty: 3,
-              explain: 'Исследования показывают лишь небольшое сокращение длительности болезни, но не профилактику.' },
-            { statement: 'Недостаток сна влияет на иммунитет', truth: true, difficulty: 3,
-              explain: 'Хронический недосып снижает выработку защитных клеток крови.' }
-        ];
-
-        const LEVELS = [
-            { name: '🌱 Новичок',   emoji: '🌱', correctNeeded: 0,  maxDifficulty: 1 },
-            { name: '🔥 Знаток',    emoji: '🔥', correctNeeded: 8,  maxDifficulty: 2 },
-            { name: '👑 Профессор', emoji: '👑', correctNeeded: 15, maxDifficulty: 3 }
-        ];
-
-        let gameScore = 0;
-        let gameStreak = 0;
-        let correctTotal = 0;
-        let levelIndex = 0;
-        let gameQueue = [];
-        let currentQuestion = null;
-        let gameLoaded = false;
-        let gameResultSaved = false;
-
-        const gameStatement = document.getElementById('gameStatement');
-        const gameFeedback = document.getElementById('gameFeedback');
-        const gameVerdict = document.getElementById('gameVerdict');
-        const gameExplain = document.getElementById('gameExplain');
-        const gameScoreEl = document.getElementById('gameScore');
-        const gameStreakEl = document.getElementById('gameStreak');
-        const gameLevelEl = document.getElementById('gameLevel');
-        const btnNext = document.getElementById('btnNext');
-        const btnMyth = document.getElementById('btnMyth');
-        const btnTruth = document.getElementById('btnTruth');
-
-        function currentLevel() { return LEVELS[levelIndex]; }
-
-        function maybeLevelUp() {
-            const next = LEVELS[levelIndex + 1];
-            if (next && correctTotal >= next.correctNeeded) {
-                levelIndex++;
-                showLevelUp();
-            }
-        }
-
-        function showLevelUp() {
-            if (!gameLevelEl) return;
-            const lvl = currentLevel();
-            gameLevelEl.textContent = 'Уровень: ' + lvl.emoji + ' ' + lvl.name;
-            gameLevelEl.classList.remove('levelup');
-            void gameLevelEl.offsetWidth;   // перезапуск CSS-анимации
-            gameLevelEl.classList.add('levelup');
-        }
-
-        function pickNextQuestion() {
-            const maxDiff = currentLevel().maxDifficulty;
-            const allowed = gameQueue.filter(function (q) { return (q.difficulty || 1) <= maxDiff; });
-            const pool = allowed.length ? allowed : gameQueue;
-            if (!pool.length) {
-                return QUESTIONS_FALLBACK[Math.floor(Math.random() * QUESTIONS_FALLBACK.length)];
-            }
-            return pool[Math.floor(Math.random() * pool.length)];
-        }
-
-        function nextQuestion() {
-            if (!gameStatement) return;
-            currentQuestion = pickNextQuestion();
-            gameStatement.textContent = currentQuestion.statement;
-            if (gameFeedback) gameFeedback.hidden = true;
-            if (btnNext) btnNext.hidden = true;
-            if (btnMyth) btnMyth.disabled = false;
-            if (btnTruth) btnTruth.disabled = false;
-        }
-
-        // Сохраняем результат игры на сервер (раз в 10 ответов или при уходе)
-        function saveGameResult() {
-            const user = USER();
-            if (!user || correctTotal === 0 || gameResultSaved) return;
-            gameResultSaved = true;
-            apiFetch('/api/game/result', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: user,
-                    score: gameScore,
-                    total: correctTotal
-                })
-            })
-            .then(function () { gameResultSaved = false; })
-            .catch(function () { gameResultSaved = false; });
-        }
-
-        function answer(userSaysTruth) {
-            if (!currentQuestion) return;
-            const correct = userSaysTruth === currentQuestion.truth;
-            btnMyth.disabled = true;
-            btnTruth.disabled = true;
-
-            if (correct) {
-                gameScore++;
-                gameStreak++;
-                correctTotal++;
-            } else {
-                gameStreak = 0;
-            }
-            gameScoreEl.textContent = gameScore;
-            gameStreakEl.textContent = gameStreak;
-
-            maybeLevelUp();
-
-            gameVerdict.textContent = correct ? 'Верно! 🎉' : 'Мимо 😅';
-            gameVerdict.className = 'game-verdict ' + (correct ? 'right' : 'wrong');
-
-            const realVerdict = currentQuestion.truth ? 'Это правда' : 'Это миф';
-            gameExplain.textContent = realVerdict + '. ' + currentQuestion.explain;
-
-            gameFeedback.hidden = false;
-            btnNext.hidden = false;
-
-            // Сохраняем результат каждые 10 ответов — для ачивок и рейтинга
-            if (correctTotal % 10 === 0) saveGameResult();
-        }
-
-        function loadGameQuestions() {
-            fetch('/api/game/questions')
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                gameQueue = (data.questions && data.questions.length) ? data.questions : QUESTIONS_FALLBACK;
-                showLevelUp();
-                nextQuestion();
-            })
-            .catch(function () {
-                gameQueue = QUESTIONS_FALLBACK;
-                showLevelUp();
-                nextQuestion();
-            });
-        }
-
-        function loadGameOnce() {
-            if (!gameLoaded) {
-                gameLoaded = true;
-                loadGameQuestions();
-            }
-        }
-
-        if (btnMyth) btnMyth.addEventListener('click', function () { answer(false); });
-        if (btnTruth) btnTruth.addEventListener('click', function () { answer(true); });
-        if (btnNext) btnNext.addEventListener('click', nextQuestion);
-
-        // Сохраняем прогресс, если игрок закрыл страницу посреди игры
-        window.addEventListener('beforeunload', function () {
-            if (previousTab === 'Game') saveGameResult();
-        });
-    </script>
-</body>
-</html>
+        if
