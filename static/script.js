@@ -98,7 +98,9 @@ const I18N = {
         guest: 'Гость',
         anonymous: 'Аноним',
         checks_word: 'Проверок',
-        avatar_loading: 'Загружаем...', avatar_ok: 'Аватар обновлён! ✨', avatar_err: 'Ошибка соединения'
+        avatar_loading: 'Загружаем...', avatar_ok: 'Аватар обновлён! ✨', avatar_err: 'Ошибка соединения',
+        pb_rating: 'рейтинг платформы', pb_best: 'лучший игрок',
+        pb_myth: 'миф дня', pb_misses: 'твои промахи сегодня'
     },
     en: {
         title: 'Double-Check — Don\u2019t Believe, Verify',
@@ -160,7 +162,9 @@ const I18N = {
         guest: 'Guest',
         anonymous: 'Anonymous',
         checks_word: 'Checks',
-        avatar_loading: 'Uploading...', avatar_ok: 'Avatar updated! ✨', avatar_err: 'Connection error'
+        avatar_loading: 'Uploading...', avatar_ok: 'Avatar updated! ✨', avatar_err: 'Connection error',
+        pb_rating: 'platform rating', pb_best: 'best player',
+        pb_myth: 'myth of the day', pb_misses: 'your misses today'
     },
     be: {
         title: 'Пераправерым — Не веры, а правер',
@@ -222,7 +226,9 @@ const I18N = {
         guest: 'Госць',
         anonymous: 'Ананім',
         checks_word: 'Праверак',
-        avatar_loading: 'Загружаем...', avatar_ok: 'Аватар абноўлены! ✨', avatar_err: 'Памылка злучэння'
+        avatar_loading: 'Загружаем...', avatar_ok: 'Аватар абноўлены! ✨', avatar_err: 'Памылка злучэння',
+        pb_rating: 'рэйтынг платформы', pb_best: 'лепшы гулец',
+        pb_myth: 'міф дня', pb_misses: 'твае промахі сёння'
     },
     zh: {
         title: '重新核实 — 不要相信，要验证',
@@ -284,7 +290,9 @@ const I18N = {
         guest: '游客',
         anonymous: '匿名',
         checks_word: '次核查',
-        avatar_loading: '正在上传……', avatar_ok: '头像已更新！✨', avatar_err: '连接错误'
+        avatar_loading: '正在上传……', avatar_ok: '头像已更新！✨', avatar_err: '连接错误',
+        pb_rating: '平台评分', pb_best: '最佳玩家',
+        pb_myth: '今日谣言', pb_misses: '你今日的失误'
     }
 };
 
@@ -317,6 +325,15 @@ function setLanguage(lang) {
     if (disc) {
         disc.innerHTML = '<span class="warn-icon">⚠️</span> <strong>' +
             T('attention') + '</strong> ' + T('disclaimer');
+    }
+
+    // Полоска рейтинга платформы
+    const pbLabels = document.querySelectorAll('#platformBar .pb-text span');
+    if (pbLabels.length >= 4) {
+        pbLabels[0].textContent = T('pb_rating');
+        pbLabels[1].textContent = T('pb_best');
+        pbLabels[2].textContent = T('pb_myth');
+        pbLabels[3].textContent = T('pb_misses');
     }
 
     // Главная: заголовок, подзаголовок, форма проверки
@@ -461,6 +478,13 @@ function showPanel(name) {
             a.dataset.tab === name ||
             (name === 'Home' && a.dataset.tab === 'home'));
     });
+
+    // Полоска рейтинга: на главной скрыта, на остальных видна
+    const pb = document.getElementById('platformBar');
+    if (pb) {
+        pb.hidden = (name === 'Home');
+        if (name !== 'Home') updatePlatformBar();
+    }
 }
 
 function switchTab(name) {
@@ -1292,6 +1316,7 @@ function answer(userSaysTruth) {
         correctTotal++;
     } else {
         gameStreak = 0;
+        bumpGameMisses();   // промах — плюс к дневному счётчику полоски
     }
     gameScoreEl.textContent = gameScore;
     gameStreakEl.textContent = gameStreak;
@@ -1338,6 +1363,62 @@ function loadGameOnce() {
 if (btnMyth) btnMyth.addEventListener('click', function () { answer(false); });
 if (btnTruth) btnTruth.addEventListener('click', function () { answer(true); });
 if (btnNext) btnNext.addEventListener('click', nextQuestion);
+
+// ========================================================
+// ПОЛОСКА РЕЙТИНГА ПЛАТФОРМЫ
+// ========================================================
+
+// Считаем свои промахи в игре за сегодня (хранится в браузере)
+function bumpGameMisses() {
+    try {
+        const today = new Date().toDateString();
+        const data = JSON.parse(localStorage.getItem('veraMisses') || '{}');
+        if (data.day !== today) { data.day = today; data.count = 0; }
+        data.count++;
+        localStorage.setItem('veraMisses', JSON.stringify(data));
+
+        // Если полоска сейчас видна — обновим счётчик сразу
+        const pb = document.getElementById('platformBar');
+        if (pb && !pb.hidden) {
+            const el = document.getElementById('pbGameMisses');
+            if (el) el.textContent = String(data.count);
+        }
+    } catch (e) {}
+}
+
+function renderPlatformBar(data) {
+    const setTextSafe = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+    };
+    setTextSafe('pbRating', data && data.rating !== undefined && data.rating !== null
+        ? data.rating : '—');
+    setTextSafe('pbBestPlayer', data && data.best_player ? data.best_player : '—');
+
+    const mythText = data && data.myth_of_day
+        ? (data.myth_of_day.length > 38
+            ? data.myth_of_day.slice(0, 38) + '…'
+            : data.myth_of_day)
+        : '—';
+    setTextSafe('pbMythOfDay', mythText);
+
+    let misses = 0;
+    try {
+        const m = JSON.parse(localStorage.getItem('veraMisses') || '{}');
+        if (m.day === new Date().toDateString()) misses = m.count || 0;
+    } catch (e) {}
+    setTextSafe('pbGameMisses', String(misses));
+}
+
+function updatePlatformBar() {
+    fetch('/api/stats')
+    .then(function (r) { return r.json(); })
+    .then(renderPlatformBar)
+    .catch(function () {
+        // Сервер не дал статистику — показываем хотя бы личные данные
+        renderPlatformBar(null);
+    });
+}
 
 // ========================================================
 // ИНИЦИАЛИЗАЦИЯ ЯЗЫКА (селект в меню)
