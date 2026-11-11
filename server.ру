@@ -1463,5 +1463,4 @@ def debug_sheets():
 if __name__ == '__main__':
     print("🚀 Сервер запущен...")
     port = int(os.environ.get('PORT', 8080))
-    # ИСПРАВЛЕНО: debug=False — на сервере отладчик не нужен
-    app.run(host='0.0.0.0', port=port, debug=False)
+    
