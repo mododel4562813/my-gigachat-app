@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Перепроверим — Не верь, а проверь</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=9">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=17">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Sans:wght@400;700&display=swap" rel="stylesheet">
     <script>
         // Применяем тёмный фон до отрисовки — защита от «мигания» светлым
@@ -28,6 +28,7 @@
     <nav class="menu" id="menu" role="navigation">
         <a href="#" data-tab="home" class="active">🔍 Проверка мифов</a>
         <a href="#" data-tab="game">🎮 Миф vs Правда</a>
+        <a href="#" data-tab="useful">📚 Полезная информация</a>
         <a href="#" data-tab="reviews">💬 Обсуждение</a>
         <a href="#" data-tab="report">⚠️ Сообщить об ошибке</a>
         <a href="#" data-tab="profile">👤 Аккаунт</a>
@@ -159,7 +160,7 @@
             <!-- ===== ИГРА ===== -->
             <div class="tab-panel" id="panelGame">
                 <div class="game-section" style="border-top:none; padding-top:0; margin-top:0;">
-                    <h3>🎮 Миф vs Правда</h3>
+                    <h3 class="game-title-main">🎮 Миф vs Правда</h3>
                     <p class="game-subtitle">Проверьте свою интуицию — знаете ли вы, где миф, а где правда?</p>
 
                     <div class="game-card">
@@ -182,6 +183,59 @@
                         </div>
 
                         <button class="btn-secondary" id="btnNext" hidden>Следующий миф →</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== ПОЛЕЗНАЯ ИНФОРМАЦИЯ ===== -->
+            <div class="tab-panel" id="panelUseful">
+                <div class="useful-section">
+
+                    <!-- Анимированный блок с Верой -->
+                    <div class="vera-hero-container">
+                        <div class="vera-image-wrapper vera-search-state">
+                            <img src="{{ url_for('static', filename='img/vera_search.png') }}"
+                                 alt="Вера с лупой" class="vera-img">
+                            <div class="vera-caption">«Ищу факты и проверяю источники!»</div>
+                        </div>
+                        <div class="vera-image-wrapper vera-experiment-state">
+                            <img src="{{ url_for('static', filename='img/vera_experiment.png') }}"
+                                 alt="Вера с колбой" class="vera-img">
+                            <div class="vera-caption">«Проверяю гипотезы в лаборатории фактов!»</div>
+                        </div>
+                    </div>
+
+                    <h3 class="useful-title">📚 Полезная информация</h3>
+                    <p class="review-subtitle">Почему доверять науке надёжнее, чем «бабушкиным рецептам» — коротко и по делу.</p>
+
+                    <div class="explanation-box">
+                        <p>Привет! Я Вера. Ты наверняка слышал фразу «бабушка всегда лечила этим», и в ней есть своя теплота. Но когда речь заходит о здоровье, нам нужен не просто опыт поколений, а уверенность в том, что лечение действительно работает и не навредит. Давай расскажу, как наука помогает отделять правду от мифов.</p>
+                    </div>
+
+                    <h4 class="useful-h4">📜 Когда появилась доказательная медицина?</h4>
+                    <p class="useful-text">Хотя люди лечили друг друга тысячи лет, доказательная медицина (Evidence-Based Medicine) как строгий подход оформилась только в 1990-х годах. Но корни уходят гораздо глубже: ещё в 1747 году шотландский врач Джеймс Линд провёл первый в истории контролируемый эксперимент — доказал, что цитрусовые спасают моряков от цинги. Он разделил больных на группы и давал им разное лечение. Это и есть основа науки: сравнить и посмотреть, что реально работает.</p>
+
+                    <h4 class="useful-h4">🔬 В чём суть научного подхода?</h4>
+                    <p class="useful-text">Доказательная медицина опирается на три кита:</p>
+                    <ul class="useful-list">
+                        <li><strong>Научные исследования.</strong> Смотрим не на один случай («соседу помогло»), а на сотни и тысячи пациентов.</li>
+                        <li><strong>Клинический опыт врача.</strong> Цифры важны, но врач должен уметь применять их к конкретному человеку.</li>
+                        <li><strong>Ценности пациента.</strong> Учитываем твои желания, но всегда в рамках безопасности.</li>
+                    </ul>
+
+                    <h4 class="useful-h4">🌿 Почему «народное» не значит «безопасное»?</h4>
+                    <p class="useful-text">Не всё натуральное — безопасное. В растениях содержатся мощные вещества: например, в наперстянке есть дигоксин, лекарство для сердца, — но в неправильной дозе это яд. Народные методы обычно не проходят проверку на:</p>
+                    <ul class="useful-list">
+                        <li><strong>Дозировку</strong> — сколько именно нужно, точно не знает никто.</li>
+                        <li><strong>Побочные эффекты</strong> — травы могут конфликтовать с лекарствами, которые ты уже принимаешь.</li>
+                        <li><strong>Стандартизацию</strong> — в одной чашке отвара концентрация веществ может быть в десять раз выше, чем в другой.</li>
+                    </ul>
+
+                    <h4 class="useful-h4">🛡️ Зачем мы играем в «Миф vs Правда»?</h4>
+                    <p class="useful-text">Наша игра — тренировка критического мышления. Мы берём популярные убеждения и смотрим на них через призму науки. Это не значит, что мы отрицаем традиции, но мы хотим, чтобы ты знал факты. Метод прошёл клинические испытания и рекомендован врачами — «Правда». Красивая легенда без доказательств — «Миф».</p>
+
+                    <div class="disclaimer">
+                        <p><span class="warn-icon">⚠️</span> <strong>Важно:</strong> этот раздел — образовательный проект. Мы не ставим диагнозы и не назначаем лечение. При проблемах со здоровьем обязательно консультируйся с врачом.</p>
                     </div>
                 </div>
             </div>
@@ -313,6 +367,6 @@
         </footer>
     </div>
 
-    <script src="{{ url_for('static', filename='script.js') }}?v=5"></script>
+    <script src="{{ url_for('static', filename='script.js') }}?v=7"></script>
 </body>
 </html>
