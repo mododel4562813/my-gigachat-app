@@ -1284,19 +1284,18 @@ def remove_friend():
 # ============================================================
 # МИФ ДНЯ (самый популярный)
 # ============================================================
-@app.route('/api/myth-of-day')
-def myth_of_day():
+def _compute_myth_of_day():
     fallback = {"claim": None, "verdict": None, "explanation": "",
                 "count": 0, "period": ""}
     if not GS_CLIENT:
-        return jsonify(fallback)
+        return fallback
     try:
         sheet = get_sheet()
         if sheet is None:
-            return jsonify(fallback)
+            return fallback
         ws = ensure_worksheet(sheet, "Logs")
         if ws is None:
-            return jsonify(fallback)
+            return fallback
 
         values = ws.get_all_values()
         today_str = datetime.now().strftime("%Y-%m-%d")
@@ -1318,31 +1317,86 @@ def myth_of_day():
         counts, period = (counts_today, "сегодня") if counts_today \
             else (counts_week, "за неделю")
         if not counts:
-            return jsonify(fallback)
+            return fallback
 
         claim = counts.most_common(1)[0][0]
         info = _fact_lookup(claim) or {}
-        return jsonify({"claim": claim,
-                        "verdict": info.get("verdict") or verdicts.get(claim),
-                        "explanation": info.get("explanation", ""),
-                        "count": counts[claim],
-                        "period": period})
+        return {"claim": claim,
+                "verdict": info.get("verdict") or verdicts.get(claim),
+                "explanation": info.get("explanation", ""),
+                "count": counts[claim],
+                "period": period}
     except Exception:
         traceback.print_exc()
-        return jsonify(fallback)
+        return fallback
+
+
+@app.route('/api/myth-of-day')
+def myth_of_day():
+    return jsonify(_compute_myth_of_day())
+
+
+# ============================================================
+# СТАТИСТИКА ПЛАТФОРМЫ (полоска над вкладками)
+# ============================================================
+_stats_cache = {"data": None, "ts": 0}
+STATS_CACHE_TTL = 120  # секунды — не дёргаем Google Sheets на каждый чих
+
+
+@app.route('/api/stats')
+def platform_stats():
+    now = time.time()
+    if _stats_cache["data"] is not None and now - _stats_cache["ts"] < STATS_CACHE_TTL:
+        return jsonify(_stats_cache["data"])
+
+    result = {"rating": None, "best_player": None,
+              "best_player_points": None, "myth_of_day": None}
+
+    if GS_CLIENT:
+        try:
+            sheet = get_sheet()
+            if sheet is not None:
+                # Средняя оценка по сердечкам (лист Ratings: [claim, rating, ...])
+                ratings_ws = ensure_worksheet(sheet, "Ratings")
+                if ratings_ws:
+                    vals = []
+                    for r in ratings_ws.get_all_values()[1:]:
+                        try:
+                            vals.append(float(str(r[1]).replace(',', '.')))
+                        except (TypeError, ValueError, IndexError):
+                            pass
+                    if vals:
+                        result["rating"] = round(sum(vals) / len(vals), 1)
+
+                # Лучший игрок — №1 из рейтинга
+                leaders = _compute_leaders()
+                if leaders:
+                    result["best_player"] = leaders[0]["username"]
+                    result["best_player_points"] = leaders[0]["points"]
+
+                # Миф дня — самый проверяемый
+                myth = _compute_myth_of_day()
+                if myth.get("claim"):
+                    result["myth_of_day"] = myth["claim"]
+        except Exception:
+            traceback.print_exc()
+
+    _stats_cache["data"] = result
+    _stats_cache["ts"] = now
+    return jsonify(result)
 
 
 # ============================================================
 # РЕЙТИНГ ПОЛЬЗОВАТЕЛЕЙ
 # ============================================================
-@app.route('/api/leaderboard')
-def leaderboard():
+def _compute_leaders():
+    """Возвращает топ-10 игроков: [{username, points, level}]."""
     if not GS_CLIENT:
-        return jsonify({"leaders": []})
+        return []
     try:
         sheet = get_sheet()
         if sheet is None:
-            return jsonify({"leaders": []})
+            return []
 
         logs_ws = ensure_worksheet(sheet, "Logs")
         sugg_ws = ensure_worksheet(sheet, "Suggestions")
@@ -1387,10 +1441,15 @@ def leaderboard():
                                 "level": level_name(points)})
 
         leaders.sort(key=lambda x: -x["points"])
-        return jsonify({"leaders": leaders[:10]})
+        return leaders[:10]
     except Exception:
         traceback.print_exc()
-        return jsonify({"leaders": []})
+        return []
+
+
+@app.route('/api/leaderboard')
+def leaderboard():
+    return jsonify({"leaders": _compute_leaders()})
 
 
 # ============================================================
