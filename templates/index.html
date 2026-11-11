@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Перепроверим — Не верь, а проверь</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=9">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Sans:wght@400;700&display=swap" rel="stylesheet">
     <script>
         // Применяем тёмный фон до отрисовки — защита от «мигания» светлым
@@ -57,19 +57,51 @@
             <p class="slogan">Не верь, а проверь</p>
         </header>
 
-        <div class="disclaimer">
-            <p><span class="warn-icon">⚠️</span> <strong>Внимание!</strong> Это не медицинская консультация. При проблемах со здоровьем обязательно обратитесь к врачу.</p>
+        <!-- ПОЛОСКА РЕЙТИНГА ПЛАТФОРМЫ (видна на всех вкладках, кроме главной) -->
+        <div class="platform-bar" id="platformBar" hidden>
+            <div class="pb-item">
+                <span class="pb-icon pb-pulse">⭐</span>
+                <div class="pb-text">
+                    <b id="pbRating">—</b>
+                    <span>рейтинг платформы</span>
+                </div>
+            </div>
+            <div class="pb-item">
+                <span class="pb-icon">👑</span>
+                <div class="pb-text">
+                    <b id="pbBestPlayer">—</b>
+                    <span>лучший игрок</span>
+                </div>
+            </div>
+            <div class="pb-item">
+                <span class="pb-icon">🔥</span>
+                <div class="pb-text">
+                    <b id="pbMythOfDay">—</b>
+                    <span>миф дня</span>
+                </div>
+            </div>
+            <div class="pb-item">
+                <span class="pb-icon">🎯</span>
+                <div class="pb-text">
+                    <b id="pbGameMisses">0</b>
+                    <span>твои промахи сегодня</span>
+                </div>
+            </div>
         </div>
 
         <main class="glass-card">
 
             <!-- ===== ГЛАВНАЯ: проверка + предложение мифа ===== -->
             <div class="tab-panel active" id="panelHome">
+                <div class="disclaimer">
+                    <p><span class="warn-icon">⚠️</span> <strong>Внимание!</strong> Это не медицинская консультация. При проблемах со здоровьем обязательно обратитесь к врачу.</p>
+                </div>
+
                 <div class="mascot" id="mascot">
                     <img id="mascotImage"
-     src="{{ url_for('static', filename='vera_hello.png') }}"
-     alt="Вера — маскот проекта"
-     style="width: 260px;">
+                         src="{{ url_for('static', filename='vera_hello.png') }}"
+                         alt="Вера — маскот проекта"
+                         style="width: 260px;">
                     <div class="mascot-speech" id="mascotSpeech"></div>
                 </div>
 
@@ -282,6 +314,6 @@
         </footer>
     </div>
 
-    <script src="{{ url_for('static', filename='script.js') }}?v=4"></script>
+    <script src="{{ url_for('static', filename='script.js') }}?v=5"></script>
 </body>
 </html>
