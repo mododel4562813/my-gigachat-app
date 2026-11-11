@@ -1050,4 +1050,52 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
         border-top: 1px solid var(--border);
     }
 }
+/* ============================================================
+   СТИЛИЗАЦИЯ ЗАГОЛОВКА «МИФ VS ПРАВДА»
+   ============================================================ */
+
+.game-title-wrapper {
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+.game-title-wrapper h2 {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--text);
+    margin: 0;
+    position: relative;
+    display: inline-block;
+}
+
+/* Декоративная линия по бокам (опционально, для акцента) */
+.game-title-wrapper h2::before,
+.game-title-wrapper h2::after {
+    content: '';
+    display: inline-block;
+    width: 36px;
+    height: 2px;
+    background: var(--primary);
+    vertical-align: middle;
+    margin: 0 12px;
+    transform: translateY(-2px);
+}
+
+/* Иконка геймпада — фиксированный размер и цвет */
+.game-title-wrapper .game-icon {
+    font-size: 1.3rem;
+    color: var(--primary);
+    margin-right: 10px;
+    display: inline-block;
+    line-height: 1;
+}
+
+/* Подзаголовок — чуть меньше и спокойнее */
+.game-subtitle-custom {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.92rem;
+    margin-top: 6px;
+    line-height: 1.4;
+}
 
