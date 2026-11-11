@@ -118,7 +118,6 @@ body {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    overflow-y: auto;
 }
 .menu.open { transform: translateX(0); }
 
@@ -150,7 +149,6 @@ body {
     box-shadow: var(--shadow-sm);
     padding: 0;
     line-height: 1;
-    transition: transform 0.15s;
 }
 .theme-btn:hover { transform: scale(1.08); }
 
@@ -198,7 +196,6 @@ h1 {
     font-size: 0.88rem;
     margin-bottom: 24px;
 }
-.warn-icon { margin-right: 4px; }
 
 /* ---------- Стеклянная карточка ---------- */
 .glass-card {
@@ -218,12 +215,6 @@ h1 {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
-
-@keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(14px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-.fade-in { animation: fadeInUp 0.4s ease; }
 
 /* ---------- Маскот Вера ---------- */
 .mascot {
@@ -250,17 +241,6 @@ h1 {
 .mascot.mood-true .mascot-speech { border-color: var(--success); }
 .mascot.mood-false .mascot-speech { border-color: var(--danger); }
 
-/* Реплика Веры — синим цветом вместо жирного */
-.mascot-speech,
-.speech-bubble p {
-    color: #4f46e5;
-    font-weight: 400;
-}
-body.dark .mascot-speech,
-body.dark .speech-bubble p {
-    color: #a5b4fc;
-}
-
 /* ---------- Заголовок и форма проверки ---------- */
 .hero-section { text-align: center; margin-bottom: 20px; }
 .hero-title { font-size: 1.4rem; font-weight: 800; }
@@ -277,7 +257,6 @@ textarea, input[type="text"], input[type="password"] {
     font-size: 1rem;
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
-    margin-bottom: 10px;
 }
 textarea { resize: vertical; min-height: 90px; }
 textarea:focus, input:focus {
@@ -324,7 +303,6 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
     background: transparent;
     border: 1px solid var(--primary);
     color: var(--primary);
-    font-weight: 600;
 }
 .btn-ghost:hover { background: var(--primary-soft); }
 
@@ -345,9 +323,6 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 .verdict-badge.mif { background: var(--danger-bg); color: #991b1b; }
 .verdict-badge.sporno { background: var(--warning-bg); color: #92400e; }
 .verdict-badge.neznayu { background: var(--inner); color: var(--text-muted); }
-body.dark .verdict-badge.pravda { color: #6ee7b7; }
-body.dark .verdict-badge.mif { color: #fca5a5; }
-body.dark .verdict-badge.sporno { color: #fcd34d; }
 
 .claim-text { font-size: 1.05rem; margin-bottom: 14px; }
 
@@ -400,52 +375,53 @@ body.dark .verdict-badge.sporno { color: #fcd34d; }
 .suggest-section input { margin-bottom: 10px; }
 .suggest-status { margin-top: 10px; font-weight: 600; }
 
-/* ---------- Игра «Миф vs Правда» ---------- */
+/* ---------- Игра ---------- */
 .game-section h3 { margin-bottom: 6px; }
-.game-subtitle { color: var(--text-muted); font-size: 0.92rem; margin-bottom: 16px; }
+.game-subtitle { color: var(--text-muted); margin-bottom: 16px; }
+
 .game-card {
     background: var(--inner);
     border: 1px solid var(--border);
     border-radius: 16px;
-    padding: 20px;
+    padding: 22px;
+    text-align: center;
 }
 .game-level {
     display: inline-block;
     background: var(--primary-soft);
     color: var(--primary);
-    border-radius: 50px;
-    padding: 6px 14px;
-    font-size: 0.85rem;
     font-weight: 700;
+    font-size: 0.88rem;
+    padding: 6px 14px;
+    border-radius: 50px;
     margin-bottom: 14px;
 }
-.game-level.levelup { animation: levelPulse 0.6s ease; }
-@keyframes levelPulse {
+.game-level.levelup { animation: pulse 0.6s ease; }
+
+@keyframes pulse {
     0% { transform: scale(1); }
     50% { transform: scale(1.15); }
     100% { transform: scale(1); }
 }
+
 .game-statement {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     font-weight: 700;
     margin-bottom: 18px;
-    min-height: 3em;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
-.game-buttons { display: flex; gap: 12px; margin-bottom: 16px; }
-.game-buttons button { flex: 1; }
-.btn-myth {
-    background: var(--danger-bg);
-    color: #991b1b;
-    font-weight: 800;
-}
-.btn-truth {
-    background: var(--success-bg);
-    color: #065f46;
-    font-weight: 800;
-}
+
+.game-buttons { display: flex; gap: 12px; justify-content: center; margin-bottom: 14px; }
+.btn-myth { background: var(--danger); color: #fff; }
+.btn-myth:hover:not(:disabled) { background: #dc2626; }
+.btn-truth { background: var(--success); color: #fff; }
+.btn-truth:hover:not(:disabled) { background: #059669; }
+
 .game-feedback {
     background: var(--surface-solid);
-    border: 1px solid var(--border);
     border-radius: 12px;
     padding: 14px 16px;
     margin-bottom: 14px;
@@ -453,82 +429,39 @@ body.dark .verdict-badge.sporno { color: #fcd34d; }
 .game-verdict { font-weight: 800; margin-bottom: 6px; }
 .game-verdict.right { color: var(--success); }
 .game-verdict.wrong { color: var(--danger); }
-.game-explain { color: var(--text-muted); font-size: 0.92rem; }
+.game-explain { font-size: 0.92rem; color: var(--text-muted); }
+
 .game-score {
     display: flex;
-    gap: 20px;
+    justify-content: center;
+    gap: 24px;
     margin-bottom: 14px;
-    font-size: 0.95rem;
-}
-
-/* ---------- Доказательная медицина ---------- */
-.mascot-evidence { margin-bottom: 18px; }
-.speech-bubble { flex: 1; }
-.cards-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-    gap: 14px;
-    margin-top: 18px;
-}
-.card-evidence {
-    background: var(--inner);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 16px;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-.card-evidence:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-lg);
-}
-.card-evidence h4 { margin-bottom: 8px; }
-.card-evidence p {
     color: var(--text-muted);
-    font-size: 0.92rem;
-    white-space: pre-wrap;
 }
 
-/* ---------- Отзывы, обсуждения, друзья ---------- */
-.reviews-section h3,
-.comments-section h3,
-.friends-section h3 { margin-bottom: 6px; }
-.comments-subtitle { color: var(--text-muted); font-size: 0.92rem; margin-bottom: 14px; }
-
-.stars-rating { display: flex; gap: 6px; margin: 10px 0; }
-.star {
-    font-size: 1.5rem;
-    color: #f59e0b;
-    opacity: 0.35;
-    cursor: pointer;
-    transition: opacity 0.15s, transform 0.15s;
+/* ---------- Комментарии и отзывы ---------- */
+.comments-section h3, .review-section h3 { margin-bottom: 6px; }
+.comments-section input, .review-section textarea, .comments-section textarea {
+    margin-bottom: 10px;
 }
-.star.active, .star:hover { opacity: 1; transform: scale(1.1); }
-
-.divider {
-    height: 1px;
-    background: var(--border);
-    margin: 24px 0;
-}
+.comments-section .btn-secondary, .review-section .btn-secondary { margin-bottom: 6px; }
 
 .comment {
     display: flex;
     gap: 12px;
-    background: var(--inner);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 14px;
-    margin-bottom: 10px;
+    padding: 14px 0;
+    border-top: 1px solid var(--border);
 }
 .comment-avatar {
-    width: 42px;
-    height: 42px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    background: var(--primary);
-    color: #fff;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-weight: 800;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 800;
     flex-shrink: 0;
     background-size: cover;
     background-position: center;
@@ -540,148 +473,101 @@ body.dark .verdict-badge.sporno { color: #fcd34d; }
     margin-bottom: 4px;
 }
 .comment-author { font-weight: 700; }
-.comment-header span:last-child {
-    color: var(--text-muted);
-    font-size: 0.8rem;
-}
+.comment-header span:last-child { font-size: 0.78rem; color: var(--text-muted); }
 .comment-text { font-size: 0.95rem; word-break: break-word; }
-
-.friends-add-row { display: flex; gap: 8px; }
-.friends-add-row input { flex: 1; margin-bottom: 0; }
-
-/* ---------- Ачивки и рейтинг ---------- */
-.stats-header { margin-bottom: 16px; }
-.badges-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 10px;
-}
-.badge {
-    background: var(--inner);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 12px;
-    text-align: center;
-    transition: transform 0.15s;
-}
-.badge:hover { transform: translateY(-3px); }
-.badge.unlocked { border-color: var(--success); }
-.badge.locked { opacity: 0.45; filter: grayscale(1); }
-.badge.rare { border-color: var(--primary); }
-.badge.legendary {
-    border-color: var(--warning);
-    box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
-}
-.badge-emoji { display: block; font-size: 1.7rem; margin-bottom: 4px; }
-.badge-name { display: block; font-weight: 700; font-size: 0.85rem; }
-.badge-desc { display: block; font-size: 0.72rem; color: var(--text-muted); }
-
-.leaderboard, .myth-of-day { margin-top: 24px; }
-.leaderboard-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    background: var(--inner);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 10px 14px;
-    margin-bottom: 8px;
-}
-.leaderboard-rank { font-weight: 800; color: var(--primary); }
-.myth-card {
-    background: var(--inner);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 16px;
-}
-.myth-text { margin-bottom: 12px; }
-.myth-text small { color: var(--text-muted); }
 
 /* ---------- Аккаунт ---------- */
 .profile-welcome { text-align: center; margin-bottom: 20px; }
 .profile-avatar-big {
-    width: 80px;
-    height: 80px;
+    width: 76px;
+    height: 76px;
+    margin: 0 auto 12px;
     border-radius: 50%;
-    background: var(--primary);
-    color: #fff;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-size: 2rem;
+    font-weight: 800;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2rem;
-    font-weight: 800;
-    margin: 0 auto 12px;
     background-size: cover;
     background-position: center;
 }
+
 .auth-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
-.auth-tabs button { flex: 1; background: var(--inner); color: var(--text-muted); }
-.auth-tabs button.active { background: var(--primary); color: #fff; }
-.auth-fields { display: flex; flex-direction: column; gap: 10px; }
-.auth-btn-wrapper { margin-top: 14px; }
+.auth-tabs button {
+    flex: 1;
+    background: var(--inner);
+    color: var(--text-muted);
+}
+.auth-tabs button.active {
+    background: var(--primary);
+    color: #fff;
+}
+.auth-fields { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
 .auth-btn-wrapper button { width: 100%; background: var(--primary); color: #fff; }
-.auth-status { margin-top: 10px; font-weight: 600; text-align: center; }
+.auth-status { text-align: center; font-weight: 600; min-height: 24px; }
 .auth-status.ok { color: var(--success); }
 .auth-status.err { color: var(--danger); }
 
+/* ---------- Кабинет ---------- */
 .cabinet-header {
     display: flex;
     align-items: center;
     gap: 14px;
-    margin-bottom: 16px;
     flex-wrap: wrap;
+    margin-bottom: 12px;
 }
 .profile-avatar-wrap { position: relative; }
 .avatar-edit {
     position: absolute;
     bottom: -4px;
     right: -4px;
-    background: var(--primary);
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
-    width: 28px;
-    height: 28px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 0.9rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.85rem;
     cursor: pointer;
+    box-shadow: var(--shadow-sm);
 }
-.cabinet-head-info { flex: 1; min-width: 140px; }
+.cabinet-head-info { flex: 1; min-width: 160px; }
 .cabinet-level-chip {
     display: inline-block;
     background: var(--primary-soft);
     color: var(--primary);
-    border-radius: 50px;
-    padding: 4px 12px;
     font-size: 0.8rem;
     font-weight: 700;
-    margin-right: 6px;
-    margin-top: 6px;
+    padding: 4px 12px;
+    border-radius: 50px;
+    margin: 4px 6px 0 0;
 }
 .btn-logout {
-    background: var(--danger-bg);
-    color: #991b1b;
-    font-weight: 600;
+    background: transparent;
+    border: 1px solid var(--danger);
+    color: var(--danger);
+    font-size: 0.85rem;
     padding: 8px 16px;
 }
+.btn-logout:hover { background: var(--danger-bg); }
 
-.cabinet-progress {
-    background: var(--inner);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 14px 16px;
-    margin-bottom: 16px;
-}
+#avatarStatus { min-height: 20px; font-size: 0.88rem; }
+
+.cabinet-progress { margin: 16px 0; }
 .cabinet-progress-label {
     display: flex;
     justify-content: space-between;
-    font-size: 0.9rem;
-    margin-bottom: 8px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 6px;
 }
 .cabinet-progress-bar {
     height: 10px;
-    background: var(--border);
+    background: var(--inner);
     border-radius: 50px;
     overflow: hidden;
 }
@@ -689,14 +575,14 @@ body.dark .verdict-badge.sporno { color: #fcd34d; }
     height: 100%;
     background: linear-gradient(90deg, var(--primary), #818cf8);
     border-radius: 50px;
-    transition: width 0.4s ease;
+    transition: width 0.5s ease;
 }
 
 .cabinet-stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
-    margin-bottom: 16px;
+    margin: 16px 0;
 }
 .stat {
     background: var(--inner);
@@ -707,94 +593,109 @@ body.dark .verdict-badge.sporno { color: #fcd34d; }
 }
 .stat-num {
     display: block;
-    font-size: 1.4rem;
+    font-size: 1.5rem;
     font-weight: 800;
     color: var(--primary);
 }
-.stat-label { font-size: 0.8rem; color: var(--text-muted); }
+.stat-label { font-size: 0.82rem; color: var(--text-muted); }
 
-.cabinet-activity { margin-bottom: 16px; }
-.cabinet-activity h4 { margin-bottom: 10px; }
-.activity-chart {
-    background: var(--inner);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 14px;
+.cabinet-activity, .cabinet-achievements, .cabinet-history {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
 }
+.cabinet-activity h4, .cabinet-achievements h4, .cabinet-history h4 {
+    margin-bottom: 12px;
+}
+
+.activity-chart { padding: 0 4px; }
 .activity-bars {
     display: flex;
     align-items: flex-end;
     gap: 8px;
     height: 80px;
-    margin-bottom: 6px;
 }
 .activity-bar {
     flex: 1;
+    min-height: 6px;
     background: linear-gradient(180deg, var(--primary), #818cf8);
     border-radius: 6px 6px 0 0;
-    min-height: 6px;
+    transition: height 0.4s ease;
 }
 .activity-days {
     display: flex;
-    gap: 8px;
-    font-size: 0.72rem;
+    justify-content: space-between;
+    font-size: 0.75rem;
     color: var(--text-muted);
-    text-align: center;
+    margin-top: 6px;
 }
-.activity-days span { flex: 1; }
 
-.cabinet-achievements { margin-bottom: 16px; }
-.cabinet-achievements h4 { margin-bottom: 10px; }
-.badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-
-.cabinet-history h4 { margin-bottom: 10px; }
-.history-list { display: flex; flex-direction: column; gap: 8px; }
-.history-item {
-    display: flex;
-    gap: 12px;
+.badges {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+}
+.badge {
     background: var(--inner);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 10px 14px;
-    align-items: center;
+    border-radius: 14px;
+    padding: 12px;
+    text-align: center;
+    transition: transform 0.15s;
 }
+.badge.unlocked:hover { transform: translateY(-3px); }
+.badge.locked { opacity: 0.45; filter: grayscale(1); }
+.badge.rare { border-color: #818cf8; }
+.badge.legendary {
+    border-color: #f59e0b;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(79, 70, 229, 0.08));
+}
+.badge-emoji { display: block; font-size: 1.7rem; }
+.badge-name { display: block; font-weight: 700; font-size: 0.85rem; margin-top: 4px; }
+.badge-desc { display: block; font-size: 0.72rem; color: var(--text-muted); }
+
+.history-list { display: flex; flex-direction: column; }
+.history-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid var(--border);
+}
+.history-item:first-child { border-top: none; }
 .history-verdict {
-    font-size: 1.2rem;
-    flex-shrink: 0;
     width: 36px;
     height: 36px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--surface-solid);
-    border: 1px solid var(--border);
+    flex-shrink: 0;
+    font-size: 1rem;
 }
-.history-claim { font-size: 0.92rem; font-weight: 600; word-break: break-word; }
-.history-date { font-size: 0.78rem; color: var(--text-muted); }
-.history-empty {
-    color: var(--text-muted);
-    text-align: center;
-    padding: 14px;
-    font-size: 0.92rem;
-}
+.history-verdict.pravda { background: var(--success-bg); }
+.history-verdict.mif { background: var(--danger-bg); }
+.history-verdict.other { background: var(--inner); }
+.history-claim { font-weight: 600; font-size: 0.92rem; }
+.history-date { font-size: 0.76rem; color: var(--text-muted); }
+.history-empty { color: var(--text-muted); text-align: center; padding: 12px; }
 
-/* ---------- Футер ---------- */
+/* ---------- Подвал ---------- */
 .project-footer {
     text-align: center;
-    margin-top: 30px;
+    padding: 26px 0 10px;
     color: var(--text-muted);
-    font-size: 0.85rem;
+    font-size: 0.82rem;
 }
 
-/* ---------- Адаптивность ---------- */
-@media (max-width: 600px) {
+/* ---------- Мобильная версия ---------- */
+@media (max-width: 640px) {
+    .app-container { padding: 84px 12px 30px; }
     .glass-card { padding: 18px; }
+    h1 { font-size: 1.4rem; }
     .mascot { flex-direction: column; text-align: center; }
-    .mascot img { max-width: 120px; }
+    .mascot img { width: 120px; }
+    .cabinet-stats { grid-template-columns: 1fr; }
     .game-buttons { flex-direction: column; }
-    .cabinet-stats { grid-template-columns: 1fr 1fr 1fr; }
-    .cabinet-header { flex-direction: column; align-items: flex-start; }
-    .friends-add-row { flex-direction: column; }
-    .menu { width: 240px; }
+    .btn-myth, .btn-truth { width: 100%; }
 }
