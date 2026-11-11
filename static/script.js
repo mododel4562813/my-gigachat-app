@@ -43,6 +43,7 @@ const I18N = {
         slogan: 'Не верь, а проверь',
         attention: 'Внимание!',
         nav_home: '🔍 Проверка мифов', nav_game: '🎮 Миф vs Правда',
+        nav_useful: '📚 Полезная информация',
         nav_reviews: '💬 Обсуждение', nav_report: '⚠️ Сообщить об ошибке', nav_profile: '👤 Аккаунт',
         disclaimer: 'Это не медицинская консультация. При проблемах со здоровьем обязательно обратитесь к врачу.',
         hero_title: 'Не уверен, правда это или миф?',
@@ -67,7 +68,7 @@ const I18N = {
         suggest_fail: 'Не получилось отправить. Попробуйте ещё раз!',
         game_title: '🎮 Миф vs Правда',
         game_sub: 'Проверьте свою интуицию — знаете ли вы, где миф, а где правда?',
-        btn_myth: '❌ Миф', btn_truth: '✅ Правда', btn_next: 'Следующий миф →',
+        btn_myth: 'Миф', btn_truth: 'Правда', btn_next: 'Следующий миф →',
         game_loading: 'Загружаем вопрос…',
         game_right: 'Верно! 🎉', game_wrong: 'Мимо 😅',
         game_true: 'Это правда', game_myth: 'Это миф',
@@ -107,6 +108,7 @@ const I18N = {
         slogan: "DON'T BELIEVE, VERIFY",
         attention: 'Attention!',
         nav_home: '🔍 Myth Check', nav_game: '🎮 Myth vs Truth',
+        nav_useful: '📚 Useful Info',
         nav_reviews: '💬 Discussions', nav_report: '⚠️ Report an Error', nav_profile: '👤 Account',
         disclaimer: 'This is not medical advice. For health issues, please consult a doctor.',
         hero_title: 'Not sure if it\u2019s true or a myth?',
@@ -131,7 +133,7 @@ const I18N = {
         suggest_fail: "Couldn't send it. Please try again!",
         game_title: '🎮 Myth vs Truth',
         game_sub: 'Test your intuition — do you know what\u2019s a myth and what\u2019s true?',
-        btn_myth: '❌ Myth', btn_truth: '✅ Truth', btn_next: 'Next myth →',
+        btn_myth: 'Myth', btn_truth: 'Truth', btn_next: 'Next myth →',
         game_loading: 'Loading a question…',
         game_right: 'Correct! 🎉', game_wrong: 'Missed 😅',
         game_true: "It's true", game_myth: "It's a myth",
@@ -171,6 +173,7 @@ const I18N = {
         slogan: 'НЕ ВЕРЫ, А ПРАВЕР',
         attention: 'Увага!',
         nav_home: '🔍 Праверка міфаў', nav_game: '🎮 Міф супраць Праўды',
+        nav_useful: '📚 Карысная інфармацыя',
         nav_reviews: '💬 Абмеркаванне', nav_report: '⚠️ Паведаміць пра памылку', nav_profile: '👤 Акаўнт',
         disclaimer: 'Гэта не медыцынская кансультацыя. Пры праблемах са здароўем абавязкова звярніцеся да лекара.',
         hero_title: 'Не ўпэўнены, праўда гэта ці міф?',
@@ -195,7 +198,7 @@ const I18N = {
         suggest_fail: 'Не атрымалася адправіць. Паспрабуйце яшчэ раз!',
         game_title: '🎮 Міф супраць Праўды',
         game_sub: 'Праверце сваю інтуіцыю — ці ведаеце вы, дзе міф, а дзе праўда?',
-        btn_myth: '❌ Міф', btn_truth: '✅ Праўда', btn_next: 'Наступны міф →',
+        btn_myth: 'Міф', btn_truth: 'Праўда', btn_next: 'Наступны міф →',
         game_loading: 'Загружаем пытанне…',
         game_right: 'Правільна! 🎉', game_wrong: 'Міма 😅',
         game_true: 'Гэта праўда', game_myth: 'Гэта міф',
@@ -235,6 +238,7 @@ const I18N = {
         slogan: '不要相信，要验证',
         attention: '注意！',
         nav_home: '🔍 事实核查', nav_game: '🎮 谣言 vs 真相',
+        nav_useful: '📚 有用信息',
         nav_reviews: '💬 讨论', nav_report: '⚠️ 报告错误', nav_profile: '👤 账户',
         disclaimer: '这不是医疗建议。如有健康问题，请务必咨询医生。',
         hero_title: '不确定这是真相还是谣言？',
@@ -259,7 +263,7 @@ const I18N = {
         suggest_fail: '发送失败，请再试一次！',
         game_title: '🎮 谣言 vs 真相',
         game_sub: '测试你的直觉——你知道哪是谣言，哪是真相吗？',
-        btn_myth: '❌ 谣言', btn_truth: '✅ 真相', btn_next: '下一个谣言 →',
+        btn_myth: '谣言', btn_truth: '真相', btn_next: '下一个谣言 →',
         game_loading: '正在加载问题……',
         game_right: '答对了！🎉', game_wrong: '差一点 😅',
         game_true: '这是真相', game_myth: '这是谣言',
@@ -315,6 +319,7 @@ function setLanguage(lang) {
     // Меню
     setText(document.querySelector('.menu a[data-tab="home"]'), T('nav_home'));
     setText(document.querySelector('.menu a[data-tab="game"]'), T('nav_game'));
+    setText(document.querySelector('.menu a[data-tab="useful"]'), T('nav_useful'));
     setText(document.querySelector('.menu a[data-tab="reviews"]'), T('nav_reviews'));
     setText(document.querySelector('.menu a[data-tab="report"]'), T('nav_report'));
     setText(document.querySelector('.menu a[data-tab="profile"]'), T('nav_profile'));
@@ -466,7 +471,7 @@ if (menuBtn && menuEl) {
     });
 }
 
-const PANELS = ['Home', 'Game', 'Reviews', 'Report', 'Profile'];
+const PANELS = ['Home', 'Game', 'Useful', 'Reviews', 'Report', 'Profile'];
 
 function showPanel(name) {
     PANELS.forEach(function (p) {
@@ -497,7 +502,10 @@ function switchTab(name) {
         if (s) s.scrollIntoView({ behavior: 'smooth' });
         return;
     }
-    const map = { home: 'Home', game: 'Game', reviews: 'Reviews', report: 'Report', profile: 'Profile' };
+    const map = {
+        home: 'Home', game: 'Game', useful: 'Useful',
+        reviews: 'Reviews', report: 'Report', profile: 'Profile'
+    };
     showPanel(map[name] || 'Home');
     if (name === 'game') loadGameOnce();
 }
@@ -1173,7 +1181,7 @@ function loadComments() {
             head.className = 'comment-header';
             const author = document.createElement('span');
             author.className = 'comment-author';
-            author.textContent = c.name || T('guest');   // было T('send') — подписывало «Отправить»
+            author.textContent = c.name || T('guest');
             const time = document.createElement('span');
             time.textContent = c.date || '';
             head.appendChild(author); head.appendChild(time);
