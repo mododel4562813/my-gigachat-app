@@ -698,6 +698,9 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
     .cabinet-stats { grid-template-columns: 1fr; }
     .game-buttons { flex-direction: column; }
     .btn-myth, .btn-truth { width: 100%; }
+    .platform-bar { gap: 8px; padding: 10px 14px; }
+    .pb-item { width: 100%; justify-content: center; }
+    .pb-icon { font-size: 20px; }
 }
 
 /* ---------- Имя Веры в приветствии ---------- */
@@ -783,3 +786,45 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
     font-size: 13px;
 }
 
+/* ============================================================
+   ПОЛОСКА РЕЙТИНГА ПЛАТФОРМЫ
+   ============================================================ */
+.platform-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    max-width: 900px;
+    margin: 0 auto 18px;
+    padding: 14px 20px;
+    background: var(--surface);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: var(--shadow-sm);
+    animation: pbIn 0.5s ease;
+}
+
+@keyframes pbIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.pb-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pb-icon { font-size: 26px; }
+
+.pb-pulse { animation: pbPulse 2s ease-in-out infinite; }
+
+@keyframes pbPulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.25); }
+}
+
+.pb-text { display: flex; flex-direction: column; line-height: 1.2; }
+.pb-text b { font-size: 16px; }
+.pb-text span { font-size: 12px; color: var(--text-muted); }
