@@ -107,7 +107,7 @@ let currentUser = null;
 try { currentUser = localStorage.getItem('veraUser') || null; } catch (e) {}
 
 const PHRASES = {
-    hello:  "Привет! Я <b>Вера</b> — медицинский фактчекер команды «Единый пульс». Напишите сомнительное утверждение — я разберу его на миф и правду!",
+    hello:  "Привет! Я <span class=\"vera-name\">Вера</span> — медицинский фактчекер команды «Единый пульс». Напишите сомнительное утверждение — я разберу его на миф и правду!",
     true:   "Разоблачено — правда! Всё проверено, спи спокойно 💚",
     false:  "Осторожно, это миф! Я нашла подтверждение, что так думать не стоит 🚫",
     unsure: "Честно? Точного ответа у меня нет — лучше уточнить у специалиста 🤔",
@@ -874,8 +874,3 @@ function loadGameOnce() {
 if (btnMyth) btnMyth.addEventListener('click', function () { answer(false); });
 if (btnTruth) btnTruth.addEventListener('click', function () { answer(true); });
 if (btnNext) btnNext.addEventListener('click', nextQuestion);
-
-// Сохраняем прогресс, если игрок закрыл страницу посреди игры
-window.addEventListener('beforeunload', function () {
-    if (previousTab === 'Game') saveGameResult();
-});
