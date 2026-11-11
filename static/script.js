@@ -11,14 +11,19 @@ function applyTheme(theme) {
     if (themeBtn) themeBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
 }
 
-applyTheme(localStorage.getItem('theme') ||
-    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+let savedTheme = 'light';
+try {
+    savedTheme = localStorage.getItem('theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+} catch (e) { /* приватный режим */ }
+
+applyTheme(savedTheme);
 
 if (themeBtn) {
     themeBtn.addEventListener('click', function () {
         const newTheme = document.body.classList.contains('dark') ? 'light' : 'dark';
         applyTheme(newTheme);
-        localStorage.setItem('theme', newTheme);
+        try { localStorage.setItem('theme', newTheme); } catch (e) {}
     });
 }
 
@@ -26,22 +31,31 @@ if (themeBtn) {
 const menuBtn = document.getElementById('menuBtn');
 const menuEl = document.getElementById('menu');
 
-function toggleMenu() { menuEl.classList.toggle('open'); }
-function closeMenu()  { menuEl.classList.remove('open'); }
+function toggleMenu() { if (menuEl) menuEl.classList.toggle('open'); }
+function closeMenu()  { if (menuEl) menuEl.classList.remove('open'); }
 
-menuBtn.addEventListener('click', function (e) {
-    e.stopPropagation();
-    toggleMenu();
-});
+if (menuBtn && menuEl) {
+    menuBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        toggleMenu();
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeMenu();
+    });
+    document.addEventListener('click', function (e) {
+        if (!menuEl.contains(e.target) && !menuBtn.contains(e.target)) closeMenu();
+    });
+}
 
-document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') closeMenu();
-});
-document.addEventListener('click', function (e) {
-    if (!menuEl.contains(e.target) && !menuBtn.contains(e.target)) closeMenu();
-});
+const PANELS = ['Home', 'Game', 'Evidence', 'Reviews', 'Stats', 'Report', 'Profile'];
 
-const PANELS = ['Home', 'Game', 'Reviews', 'Report', 'Profile'];
+const TAB_LOADERS = {
+    Evidence: loadEvidence,
+    Reviews: function () { loadReviews(); loadComments(); loadFriends(); },
+    Stats: loadStats
+};
+
+let previousTab = 'Home';
 
 function showPanel(name) {
     PANELS.forEach(function (p) {
@@ -49,8 +63,11 @@ function showPanel(name) {
         if (el) el.classList.toggle('active', p === name);
     });
     document.querySelectorAll('.menu a').forEach(function (a) {
-        a.classList.toggle('active', a.dataset.tab === name);
+        a.classList.toggle('active', a.dataset.tab === name.toLowerCase());
     });
+    // Дисклеймер — только на главной
+    const disc = document.getElementById('disclaimerBlock');
+    if (disc) disc.style.display = (name === 'Home') ? '' : 'none';
 }
 
 function switchTab(name) {
@@ -61,9 +78,20 @@ function switchTab(name) {
         if (s) s.scrollIntoView({ behavior: 'smooth' });
         return;
     }
-    const map = { home: 'Home', game: 'Game', reviews: 'Reviews', report: 'Report', profile: 'Profile' };
-    showPanel(map[name] || 'Home');
-    if (name === 'game') loadGameOnce();
+    const map = {
+        home: 'Home', game: 'Game', evidence: 'Evidence',
+        reviews: 'Reviews', stats: 'Stats', report: 'Report', profile: 'Profile'
+    };
+    const target = map[name] || 'Home';
+
+    // Уход с игровой вкладки — сохраняем результат
+    if (previousTab === 'Game' && target !== 'Game') saveGameResult();
+
+    showPanel(target);
+    if (target === 'Game') loadGameOnce();
+    if (TAB_LOADERS[target]) TAB_LOADERS[target]();
+
+    previousTab = target;
 }
 
 document.querySelectorAll('.menu a').forEach(function (link) {
@@ -73,12 +101,31 @@ document.querySelectorAll('.menu a').forEach(function (link) {
     });
 });
 
+// ---------- Хелперы API ----------
+const USER = () => currentUser || null;
+
+function apiFetch(url, opts) {
+    return fetch(url, opts).then(function (r) {
+        return r.json().then(function (d) {
+            if (!r.ok) throw new Error(d.error || 'Ошибка');
+            return d;
+        });
+    });
+}
+
 // ---------- Маскот Вера ----------
 const mascot = document.getElementById('mascot');
 const mascotImage = document.getElementById('mascotImage');
 const speech = document.getElementById('mascotSpeech');
 
-let currentUser = localStorage.getItem('veraUser') || null;
+if (mascotImage) {
+    mascotImage.addEventListener('error', function () {
+        mascotImage.style.display = 'none';
+    });
+}
+
+let currentUser = null;
+try { currentUser = localStorage.getItem('veraUser') || null; } catch (e) {}
 
 const PHRASES = {
     hello:  "Привет! Я <b>Вера</b> — медицинский фактчекер команды «Единый пульс». Напишите сомнительное утверждение — я разберу его на миф и правду!",
@@ -89,37 +136,34 @@ const PHRASES = {
 };
 
 function setMascotImage(name) {
+    if (!mascotImage) return;
+    mascotImage.style.display = '';
     mascotImage.src = '/static/' + name + '.png';
 }
 
 function react(verdict) {
+    if (!speech) return;
     const v = (verdict || '').toUpperCase();
     if (v.includes('ПРАВДА')) {
         setMascotImage('vera_true');
-        mascot.classList.add('mood-true'); mascot.classList.remove('mood-false');
+        if (mascot) { mascot.classList.add('mood-true'); mascot.classList.remove('mood-false'); }
         speech.innerHTML = PHRASES.true;
     } else if (v.includes('МИФ')) {
         setMascotImage('vera_false');
-        mascot.classList.add('mood-false'); mascot.classList.remove('mood-true');
+        if (mascot) { mascot.classList.add('mood-false'); mascot.classList.remove('mood-true'); }
         speech.innerHTML = PHRASES.false;
     } else if (v.includes('СПОРНО')) {
         setMascotImage('vera_hello');
-        mascot.classList.remove('mood-true', 'mood-false');
+        if (mascot) mascot.classList.remove('mood-true', 'mood-false');
         speech.innerHTML = PHRASES.sporno;
     } else {
         setMascotImage('vera_hello');
-        mascot.classList.remove('mood-true', 'mood-false');
+        if (mascot) mascot.classList.remove('mood-true', 'mood-false');
         speech.innerHTML = PHRASES.unsure;
     }
 }
 
-speech.innerHTML = PHRASES.hello;
-
-if (currentUser) {
-    document.getElementById('authBox').classList.add('hidden');
-    document.getElementById('userBox').classList.remove('hidden');
-    document.getElementById('userChip').textContent = '👋 ' + currentUser;
-}
+if (speech) speech.innerHTML = PHRASES.hello;
 
 // ---------- Проверка факта ----------
 let lastClaim = '';
@@ -161,6 +205,7 @@ function sendCheck() {
         document.getElementById('explanationText').textContent = data.explanation || data.answer || '';
         react(data.verdict || '');
         document.getElementById('challengeOpen').hidden = false;
+        addHistory(text, verdict);
     })
     .catch(function () {
         speech.innerHTML = 'Ой, кажется связь с сервером пропала 📡';
@@ -324,10 +369,9 @@ function doAuth() {
             status.textContent = authMode === 'login' ? 'Добро пожаловать!' : 'Аккаунт создан!';
             status.className = 'auth-status ok';
             currentUser = data.username || username;
-            localStorage.setItem('veraUser', currentUser);
-            document.getElementById('authBox').classList.add('hidden');
-            document.getElementById('userBox').classList.remove('hidden');
-            document.getElementById('userChip').textContent = '👋 ' + currentUser;
+            try { localStorage.setItem('veraUser', currentUser); } catch (e) {}
+            showCabinet(currentUser);
+            loadProfile(currentUser);
         } else {
             status.textContent = data.error || 'Не получилось, попробуйте ещё раз';
             status.className = 'auth-status err';
@@ -341,59 +385,649 @@ function doAuth() {
 
 function logout() {
     currentUser = null;
-    localStorage.removeItem('veraUser');
-    document.getElementById('userBox').classList.add('hidden');
+    try { localStorage.removeItem('veraUser'); } catch (e) {}
+    document.getElementById('cabinet').classList.add('hidden');
     document.getElementById('authBox').classList.remove('hidden');
     document.getElementById('authUsername').value = '';
     document.getElementById('authPassword').value = '';
+    document.getElementById('authStatus').textContent = '';
 }
 
-// ---------- Обсуждение ----------
-function sendComment() {
-    const name = currentUser
-        || document.getElementById('commentName').value.trim()
-        || 'Гость';
-    const text = document.getElementById('commentText').value.trim();
-    if (!text) return;
-    fetch('/api/review', {
+// ---------- Личный кабинет ----------
+const LEVELS_INFO = [
+    { name: '🌱 Новичок',            needed: 0,  next: 20 },
+    { name: '🔍 Доказатель',         needed: 20, next: 60 },
+    { name: '👑 Хранитель истины',   needed: 60, next: null }
+];
+
+function showCabinet(name) {
+    document.getElementById('authBox').classList.add('hidden');
+    document.getElementById('cabinet').classList.remove('hidden');
+    document.getElementById('cabinetName').textContent = name;
+    setAvatar(null);
+}
+
+let myVisits = { streak: 0, best_streak: 0, total_days: 0 };
+let myAvatar = null;
+
+function renderAchievements(checked, suggested, visits) {
+    visits = visits || { streak: 0, best_streak: 0, total_days: 0 };
+    const streak = visits.streak || 0;
+    const best = visits.best_streak || 0;
+    const total = visits.total_days || 0;
+
+    const ACHIEVEMENTS = [
+        { emoji: '🌟', name: 'Первый факт',     desc: 'Проверить 1 миф',     ok: checked >= 1 },
+        { emoji: '🔍', name: 'Разгадатель',     desc: '5 проверок',          ok: checked >= 5 },
+        { emoji: '🎓', name: 'Знаток',          desc: '10 проверок',         ok: checked >= 10 },
+        { emoji: '🛡️', name: 'Страж правды',   desc: '25 проверок',         ok: checked >= 25, rarity: 'rare' },
+        { emoji: '🥇', name: 'Профи',           desc: 'Проверить 100 мифов', ok: checked >= 100, rarity: 'rare' },
+        { emoji: '👑', name: 'Легенда фактов',  desc: '250 проверок',        ok: checked >= 250, rarity: 'legendary' },
+
+        { emoji: '💡', name: 'Автор мифа',      desc: 'Предложить 1 миф',    ok: suggested >= 1 },
+        { emoji: '📝', name: 'Идеолог',         desc: '10 предложений',      ok: suggested >= 10 },
+        { emoji: '🚀', name: 'Фонтан идей',     desc: '25 предложений',      ok: suggested >= 25, rarity: 'rare' },
+        { emoji: '🦸', name: 'Герой',           desc: 'Отправить 50 мифов',  ok: suggested >= 50, rarity: 'legendary' },
+
+        { emoji: '🔥', name: 'Разогрев',        desc: '3 дня подряд',        ok: streak >= 3 },
+        { emoji: '📅', name: 'Неделя в строю',  desc: '7 дней подряд',       ok: streak >= 7, rarity: 'rare' },
+        { emoji: '🌙', name: 'Месяц верности',  desc: '30 дней подряд',      ok: streak >= 30, rarity: 'rare' },
+        { emoji: '💎', name: '100 дней в сети', desc: '100 дней подряд',     ok: streak >= 100, rarity: 'legendary' },
+        { emoji: '🏃', name: 'Марафонец',       desc: '50 дней всего',       ok: total >= 50 },
+        { emoji: '🏅', name: 'Рекордсмен',      desc: 'Личная серия: ' + best, ok: best >= 14, rarity: 'rare' }
+    ];
+
+    const box = document.getElementById('badges');
+    if (!box) return;
+    const unlocked = ACHIEVEMENTS.filter(a => a.ok).length;
+    const header = document.querySelector('.cabinet-achievements h4');
+    if (header) header.textContent = '🏆 Достижения · ' + unlocked + ' из ' + ACHIEVEMENTS.length;
+
+    box.innerHTML = ACHIEVEMENTS.map(a => `
+        <div class="badge ${a.ok ? 'unlocked' : 'locked'} ${a.rarity || ''}" title="${a.desc}">
+            <span class="badge-emoji">${a.emoji}</span>
+            <span class="badge-name">${a.name}</span>
+            <span class="badge-desc">${a.desc}</span>
+        </div>
+    `).join('');
+}
+
+function syncVisit() {
+    if (!currentUser) return;
+    fetch('/api/visit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name, review: text })
+        body: JSON.stringify({ username: currentUser })
     })
-    .then(function () {
-        document.getElementById('commentText').value = '';
-        loadComments();
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+        if (data.status === 'ok') {
+            myVisits = {
+                streak: data.streak,
+                best_streak: data.best_streak,
+                total_days: data.total_days
+            };
+            if (data.avatar) {
+                myAvatar = data.avatar;
+                setAvatar(myAvatar);
+            }
+            const chip = document.getElementById('cabinetStreakChip');
+            if (chip) chip.textContent = '🔥 Серия: ' + (myVisits.streak || 0) + ' дн.';
+            renderAchievements(
+                parseInt(document.getElementById('statChecked').textContent) || 0,
+                parseInt(document.getElementById('statSuggested').textContent) || 0,
+                myVisits
+            );
+        }
     })
     .catch(function () {});
 }
 
-function loadComments() {
-    fetch('/api/reviews')
+// ---------- Аватар ----------
+function setAvatar(url) {
+    const av = document.getElementById('cabinetAvatar');
+    if (!av) return;
+    if (url) {
+        av.style.backgroundImage = 'url("' + url + '")';
+        av.style.backgroundSize = 'cover';
+        av.style.backgroundPosition = 'center';
+        av.textContent = '';
+    } else {
+        av.style.backgroundImage = '';
+        av.textContent = (currentUser || 'В').charAt(0).toUpperCase();
+    }
+}
+
+function uploadAvatar(file) {
+    if (!currentUser) return;
+    const fd = new FormData();
+    fd.append('username', currentUser);
+    fd.append('avatar', file);
+
+    const status = document.getElementById('avatarStatus');
+    status.textContent = 'Загружаем...';
+
+    fetch('/api/avatar', { method: 'POST', body: fd })
     .then(function (r) { return r.json(); })
     .then(function (data) {
-        const list = document.getElementById('commentsList');
+        if (data.avatar) {
+            myAvatar = data.avatar;
+            setAvatar(myAvatar);
+            status.textContent = 'Аватар обновлён! ✨';
+        } else {
+            status.textContent = data.error || 'Не получилось загрузить';
+        }
+    })
+    .catch(function () { status.textContent = 'Ошибка соединения'; });
+}
+
+const avatarInput = document.getElementById('avatarInput');
+if (avatarInput) {
+    avatarInput.addEventListener('change', function () {
+        if (this.files && this.files[0]) uploadAvatar(this.files[0]);
+    });
+}
+
+// ---------- История проверок (в браузере) ----------
+function renderHistory() {
+    const list = document.getElementById('historyList');
+    if (!list) return;
+    let items = [];
+    try {
+        items = JSON.parse(localStorage.getItem('veraHistory') || '[]');
+    } catch (e) { items = []; }
+    if (!items.length) {
+        list.innerHTML = '<p class="history-empty">Пока нет проверок — проверьте свой первый миф на главной! 🚀</p>';
+        return;
+    }
+    list.innerHTML = items.slice(0, 10).map(h => {
+        const v = (h.verdict || '').toUpperCase();
+        const cls = v.includes('ПРАВДА') ? 'pravda'
+                  : v.includes('МИФ') ? 'mif' : 'other';
+        const icon = cls === 'pravda' ? '✅' : cls === 'mif' ? '🚫' : '🤔';
+        return `
+        <div class="history-item">
+            <div class="history-verdict ${cls}">${icon}</div>
+            <div class="history-body">
+                <div class="history-claim"></div>
+                <div class="history-date"></div>
+            </div>
+        </div>`;
+    }).join('');
+
+    const nodes = list.querySelectorAll('.history-item');
+    items.slice(0, 10).forEach(function (h, i) {
+        const item = nodes[i];
+        if (!item) return;
+        item.querySelector('.history-claim').textContent = h.claim;
+        item.querySelector('.history-date').textContent = h.date + ' · ' + h.verdict;
+    });
+}
+
+function addHistory(claim, verdict) {
+    try {
+        const items = JSON.parse(localStorage.getItem('veraHistory') || '[]');
+        items.unshift({
+            claim: claim.length > 80 ? claim.slice(0, 80) + '…' : claim,
+            verdict: verdict,
+            date: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+        });
+        localStorage.setItem('veraHistory', JSON.stringify(items.slice(0, 20)));
+        renderHistory();
+    } catch (e) { /* история не критична */ }
+}
+
+// ---------- Загрузка профиля ----------
+function loadProfile(username) {
+    fetch('/api/profile?username=' + encodeURIComponent(username))
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+        const checked = data.checked || 0;
+        const suggested = data.suggested || 0;
+        const points = data.points || 0;
+
+        document.getElementById('statChecked').textContent = checked;
+        document.getElementById('statSuggested').textContent = suggested;
+        document.getElementById('statPoints').textContent = points;
+
+        const level = data.level ||
+            LEVELS_INFO[points >= 60 ? 2 : points >= 20 ? 1 : 0].name;
+        document.getElementById('cabinetLevelChip').textContent = level;
+
+        let li = 0;
+        if (points >= 60) li = 2; else if (points >= 20) li = 1;
+        const lvl = LEVELS_INFO[li];
+        if (lvl.next === null) {
+            document.getElementById('progressText').textContent = 'Максимум!';
+            document.getElementById('progressFill').style.width = '100%';
+        } else {
+            const inLvl = points - lvl.needed;
+            const span = lvl.next - lvl.needed;
+            document.getElementById('progressText').textContent = inLvl + ' / ' + span;
+            document.getElementById('progressFill').style.width =
+                Math.min(100, Math.round(inLvl / span * 100)) + '%';
+        }
+
+        const activityBars = document.getElementById('activityBars');
+        if (activityBars) {
+            activityBars.innerHTML = '';
+            const days = data.activity || [0, 0, 0, 0, 0, 0, 0];
+            const maxCount = Math.max.apply(null, days.concat([1]));
+            days.forEach(function (count) {
+                const bar = document.createElement('div');
+                bar.className = 'activity-bar';
+                bar.style.height = Math.max(6, Math.round(count / maxCount * 100)) + '%';
+                bar.title = 'Проверок: ' + count;
+                activityBars.appendChild(bar);
+            });
+        }
+
+        myVisits = {
+            streak: data.streak || 0,
+            best_streak: data.best_streak || 0,
+            total_days: data.total_days || 0
+        };
+        document.getElementById('cabinetStreakChip').textContent =
+            '🔥 Серия: ' + myVisits.streak + ' дн.';
+        if (data.avatar) {
+            myAvatar = data.avatar;
+            setAvatar(myAvatar);
+        }
+
+        renderAchievements(checked, suggested, myVisits);
+        syncVisit();
+    })
+    .catch(function () {
+        renderAchievements(0, 0, myVisits);
+    });
+}
+
+if (currentUser) {
+    showCabinet(currentUser);
+    loadProfile(currentUser);
+    renderHistory();
+}
+
+// ---------- Отзывы со звёздами ----------
+let reviewStars = 5;
+
+const reviewStarsBox = document.getElementById('reviewStarsBox');
+if (reviewStarsBox) {
+    reviewStarsBox.querySelectorAll('.star').forEach(function (s) {
+        s.addEventListener('click', function () {
+            reviewStars = Number(s.dataset.val);
+            reviewStarsBox.querySelectorAll('.star').forEach(function (x) {
+                x.classList.toggle('active', Number(x.dataset.val) <= reviewStars);
+            });
+        });
+    });
+}
+
+const reviewForm = document.getElementById('reviewForm');
+if (reviewForm) {
+    reviewForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const name = currentUser
+            || document.getElementById('reviewName').value.trim()
+            || 'Аноним';
+        const text = document.getElementById('reviewText').value.trim();
+        if (!text) return alert('Напишите отзыв');
+
+        apiFetch('/api/review', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name, review: text, rating: reviewStars })
+        })
+        .then(function () {
+            reviewForm.reset();
+            loadReviews();
+        })
+        .catch(function (err) { alert(err.message); });
+    });
+}
+
+function loadReviews() {
+    const list = document.getElementById('reviewsList');
+    if (!list) return;
+    apiFetch('/api/reviews')
+    .then(function (data) {
         list.innerHTML = '';
-        (data.reviews || []).forEach(function (c) {
+        const reviews = data.reviews || [];
+        if (!reviews.length) {
+            list.innerHTML = '<p class="history-empty">Отзывов пока нет — станьте первым! ⭐</p>';
+            return;
+        }
+        reviews.forEach(function (r) {
             const div = document.createElement('div');
             div.className = 'comment';
+
+            const avat = document.createElement('div');
+            avat.className = 'comment-avatar';
+            if (r.avatar) {
+                avat.style.backgroundImage = 'url("' + r.avatar + '")';
+                avat.style.backgroundSize = 'cover';
+                avat.style.backgroundPosition = 'center';
+            } else {
+                avat.textContent = (r.name || 'Г').charAt(0).toUpperCase();
+            }
+            div.appendChild(avat);
+
+            const bodyWrap = document.createElement('div');
+            bodyWrap.style.flex = '1';
+            bodyWrap.style.minWidth = '0';
+
             const head = document.createElement('div');
             head.className = 'comment-header';
             const author = document.createElement('span');
             author.className = 'comment-author';
-            author.textContent = c.name || 'Гость';
+            author.textContent = r.name || 'Аноним';
             const time = document.createElement('span');
-            time.textContent = c.date || '';
+            time.textContent = r.date || '';
             head.appendChild(author); head.appendChild(time);
+
+            const stars = document.createElement('div');
+            stars.style.color = '#f59e0b';
+            stars.style.letterSpacing = '2px';
+            stars.textContent = '★'.repeat(r.rating || 5) + '☆'.repeat(5 - (r.rating || 5));
+
             const body = document.createElement('div');
             body.className = 'comment-text';
-            body.textContent = c.text || '';
-            div.appendChild(head); div.appendChild(body);
+            body.textContent = r.text || '';
+
+            bodyWrap.appendChild(head);
+            bodyWrap.appendChild(stars);
+            bodyWrap.appendChild(body);
+            div.appendChild(bodyWrap);
             list.appendChild(div);
         });
     })
     .catch(function () {});
 }
-loadComments();
+
+// ---------- Обсуждения с ответами ----------
+let replyParent = null;
+
+function buildCommentNode(c, all) {
+    const div = document.createElement('div');
+    div.className = 'comment';
+
+    const avat = document.createElement('div');
+    avat.className = 'comment-avatar';
+    if (c.avatar) {
+        avat.style.backgroundImage = 'url("' + c.avatar + '")';
+        avat.style.backgroundSize = 'cover';
+        avat.style.backgroundPosition = 'center';
+    } else {
+        avat.textContent = (c.author || 'Г').charAt(0).toUpperCase();
+    }
+    div.appendChild(avat);
+
+    const bodyWrap = document.createElement('div');
+    bodyWrap.style.flex = '1';
+    bodyWrap.style.minWidth = '0';
+
+    const head = document.createElement('div');
+    head.className = 'comment-header';
+    const author = document.createElement('span');
+    author.className = 'comment-author';
+    author.textContent = c.author || 'Аноним';
+    const time = document.createElement('span');
+    time.textContent = c.date || '';
+    head.appendChild(author); head.appendChild(time);
+
+    const body = document.createElement('div');
+    body.className = 'comment-text';
+    body.textContent = c.text || '';
+
+    const replyBtn = document.createElement('button');
+    replyBtn.className = 'btn-ghost';
+    replyBtn.style.cssText = 'padding:4px 10px; font-size:0.8rem; margin-top:6px;';
+    replyBtn.textContent = 'Ответить';
+    replyBtn.addEventListener('click', function () {
+        replyParent = c.id;
+        const ta = document.getElementById('commentText');
+        ta.value = (c.author || '') + ', ';
+        ta.focus();
+        ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+
+    bodyWrap.appendChild(head);
+    bodyWrap.appendChild(body);
+    bodyWrap.appendChild(replyBtn);
+
+    (all || []).forEach(function (r) {
+        if (r.parent === c.id) bodyWrap.appendChild(buildCommentNode(r, all));
+    });
+
+    div.appendChild(bodyWrap);
+    return div;
+}
+
+function loadComments() {
+    const list = document.getElementById('commentsList');
+    if (!list) return;
+    apiFetch('/api/comments')
+    .then(function (data) {
+        list.innerHTML = '';
+        const all = data.comments || [];
+        const roots = all.filter(function (c) { return !c.parent; });
+        if (!roots.length) {
+            list.innerHTML = '<p class="history-empty">Пока тихо — напишите первый комментарий! 💬</p>';
+            return;
+        }
+        roots.forEach(function (c) { list.appendChild(buildCommentNode(c, all)); });
+    })
+    .catch(function () {});
+}
+
+function sendComment() {
+    const text = document.getElementById('commentText').value.trim();
+    if (!text) return;
+    apiFetch('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            username: currentUser || 'Аноним',
+            text: text,
+            parent: replyParent || ''
+        })
+    })
+    .then(function () {
+        replyParent = null;
+        document.getElementById('commentText').value = '';
+        loadComments();
+    })
+    .catch(function (err) { alert(err.message); });
+}
+
+// ---------- Друзья ----------
+function addFriendFromInput() {
+    const user = USER();
+    if (!user) return alert('Войдите в аккаунт, чтобы добавлять друзей');
+    const friend = document.getElementById('friendName').value.trim();
+    if (!friend) return;
+    apiFetch('/api/friends/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: user, friend: friend })
+    })
+    .then(function () {
+        document.getElementById('friendName').value = '';
+        loadFriends();
+    })
+    .catch(function (err) { alert(err.message); });
+}
+
+function loadFriends() {
+    const box = document.getElementById('friendsList');
+    if (!box) return;
+    const user = USER();
+    if (!user) {
+        box.innerHTML = '<p class="history-empty">Войдите в аккаунт, чтобы добавить друзей 🤝</p>';
+        return;
+    }
+    apiFetch('/api/friends?username=' + encodeURIComponent(user))
+    .then(function (data) {
+        box.innerHTML = '';
+        const friends = data.friends || [];
+        if (!friends.length) {
+            box.innerHTML = '<p class="history-empty">Пока никого. Добавьте друга по имени!</p>';
+            return;
+        }
+        friends.forEach(function (f) {
+            const item = document.createElement('div');
+            item.className = 'leaderboard-item';
+
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = f.username;
+            item.appendChild(nameSpan);
+
+            const del = document.createElement('button');
+            del.className = 'btn-ghost';
+            del.style.cssText = 'padding:2px 8px; font-size:0.75rem;';
+            del.textContent = 'Удалить';
+            del.addEventListener('click', function () { removeFriend(f.username); });
+            item.appendChild(del);
+
+            box.appendChild(item);
+        });
+    })
+    .catch(function () {});
+}
+
+function removeFriend(friend) {
+    const user = USER();
+    if (!user) return;
+    apiFetch('/api/friends/remove', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: user, friend: friend })
+    })
+    .then(loadFriends)
+    .catch(function (err) { alert(err.message); });
+}
+
+// ---------- Ачивки и рейтинг ----------
+function loadStats() {
+    loadBadges();
+    loadLeaderboard();
+    loadMythOfDay();
+}
+
+function loadBadges() {
+    const list = document.getElementById('badgesList');
+    if (!list) return;
+    const user = USER();
+    if (!user) {
+        list.innerHTML = '<p class="history-empty">Войдите в аккаунт, чтобы копить ачивки 💜</p>';
+        return;
+    }
+    apiFetch('/api/achievements?username=' + encodeURIComponent(user))
+    .then(function (d) {
+        list.innerHTML = (d.achievements || []).map(function (a) {
+            return '<div class="badge ' + (a.unlocked ? 'unlocked' : 'locked') + '" title="' + a.desc + '">' +
+                '<span class="badge-emoji">' + a.emoji + '</span>' +
+                '<span class="badge-name">' + a.name + '</span>' +
+                '<span class="badge-desc">' + a.desc + '</span></div>';
+        }).join('');
+    })
+    .catch(function () {});
+}
+
+function loadLeaderboard() {
+    const box = document.getElementById('leaderboardList');
+    if (!box) return;
+    apiFetch('/api/leaderboard')
+    .then(function (d) {
+        const leaders = d.leaders || [];
+        if (!leaders.length) {
+            box.innerHTML = '<p class="history-empty">Рейтинг пока пуст — станьте первым! 🏁</p>';
+            return;
+        }
+        box.innerHTML = '';
+        leaders.forEach(function (u, i) {
+            const item = document.createElement('div');
+            item.className = 'leaderboard-item fade-in';
+
+            const left = document.createElement('div');
+            const rank = document.createElement('span');
+            rank.className = 'leaderboard-rank';
+            rank.textContent = (i + 1) + '. ';
+            left.appendChild(rank);
+            left.appendChild(document.createTextNode(u.username));
+
+            const right = document.createElement('div');
+            right.style.cssText = 'font-size:0.85rem; color:var(--text-muted);';
+            right.textContent = u.points + ' очков · ' + u.level;
+
+            item.appendChild(left);
+            item.appendChild(right);
+            box.appendChild(item);
+        });
+    })
+    .catch(function () {});
+}
+
+function loadMythOfDay() {
+    const el = document.getElementById('mythOfDayText');
+    if (!el) return;
+    apiFetch('/api/myth-of-day')
+    .then(function (d) {
+        if (!d.claim) {
+            el.textContent = 'Миф дня появится позже — проверяйте факты! 🔥';
+            return;
+        }
+        el.textContent = '';
+        const claim = document.createElement('b');
+        claim.textContent = '«' + d.claim + '»';
+        const small = document.createElement('small');
+        small.textContent = ' Проверяли ' + d.count + ' раз ' + (d.period || '') +
+            (d.verdict ? ' · вердикт: ' + d.verdict : '');
+        el.appendChild(claim);
+        el.appendChild(small);
+
+        const btn = document.getElementById('checkMythOfDayBtn');
+        if (btn) {
+            btn.onclick = function () {
+                showPanel('Home');
+                document.getElementById('userText').value = d.claim;
+                sendCheck();
+            };
+        }
+    })
+    .catch(function () {
+        el.textContent = 'Миф дня появится позже 🔥';
+    });
+}
+
+// ---------- Доказательная медицина ----------
+let evidenceLoaded = false;
+
+function loadEvidence() {
+    if (evidenceLoaded) return;
+    apiFetch('/api/evidence')
+    .then(function (d) {
+        evidenceLoaded = true;
+        const intro = document.getElementById('evidenceIntro');
+        if (intro) intro.textContent = d.intro || '';
+
+        const grid = document.getElementById('evidenceCards');
+        if (!grid) return;
+        grid.innerHTML = '';
+        (d.sections || []).forEach(function (s) {
+            const card = document.createElement('div');
+            card.className = 'card-evidence fade-in';
+            const h = document.createElement('h4');
+            h.textContent = s.title;
+            const p = document.createElement('p');
+            p.textContent = s.text;
+            card.appendChild(h);
+            card.appendChild(p);
+            grid.appendChild(card);
+        });
+    })
+    .catch(function () {});
+}
 
 // ---------- Игра «Миф vs Правда» ----------
 const QUESTIONS_FALLBACK = [
@@ -428,6 +1062,7 @@ let levelIndex = 0;
 let gameQueue = [];
 let currentQuestion = null;
 let gameLoaded = false;
+let gameResultSaved = false;
 
 const gameStatement = document.getElementById('gameStatement');
 const gameFeedback = document.getElementById('gameFeedback');
@@ -451,6 +1086,7 @@ function maybeLevelUp() {
 }
 
 function showLevelUp() {
+    if (!gameLevelEl) return;
     const lvl = currentLevel();
     gameLevelEl.textContent = 'Уровень: ' + lvl.emoji + ' ' + lvl.name;
     gameLevelEl.classList.remove('levelup');
@@ -469,15 +1105,35 @@ function pickNextQuestion() {
 }
 
 function nextQuestion() {
+    if (!gameStatement) return;
     currentQuestion = pickNextQuestion();
     gameStatement.textContent = currentQuestion.statement;
-    gameFeedback.hidden = true;
-    btnNext.hidden = true;
-    btnMyth.disabled = false;
-    btnTruth.disabled = false;
+    if (gameFeedback) gameFeedback.hidden = true;
+    if (btnNext) btnNext.hidden = true;
+    if (btnMyth) btnMyth.disabled = false;
+    if (btnTruth) btnTruth.disabled = false;
+}
+
+// Сохраняем результат игры на сервер
+function saveGameResult() {
+    const user = USER();
+    if (!user || correctTotal === 0 || gameResultSaved) return;
+    gameResultSaved = true;
+    apiFetch('/api/game/result', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            username: user,
+            score: gameScore,
+            total: correctTotal
+        })
+    })
+    .then(function () { gameResultSaved = false; })
+    .catch(function () { gameResultSaved = false; });
 }
 
 function answer(userSaysTruth) {
+    if (!currentQuestion) return;
     const correct = userSaysTruth === currentQuestion.truth;
     btnMyth.disabled = true;
     btnTruth.disabled = true;
@@ -502,6 +1158,9 @@ function answer(userSaysTruth) {
 
     gameFeedback.hidden = false;
     btnNext.hidden = false;
+
+    // Сохраняем каждые 10 ответов — для ачивок и рейтинга
+    if (correctTotal % 10 === 0) saveGameResult();
 }
 
 function loadGameQuestions() {
@@ -526,44 +1185,11 @@ function loadGameOnce() {
     }
 }
 
-btnMyth.addEventListener('click', function () { answer(false); });
-btnTruth.addEventListener('click', function () { answer(true); });
-btnNext.addEventListener('click', nextQuestion);
+if (btnMyth) btnMyth.addEventListener('click', function () { answer(false); });
+if (btnTruth) btnTruth.addEventListener('click', function () { answer(true); });
+if (btnNext) btnNext.addEventListener('click', nextQuestion);
 
-// ---------- Личный кабинет (если есть блок статистики) ----------
-function loadProfile(username) {
-    const statChecked = document.getElementById('statChecked');
-    if (!statChecked) return;
-
-    fetch('/api/profile?username=' + encodeURIComponent(username))
-    .then(function (r) { return r.json(); })
-    .then(function (data) {
-        const profileName = document.getElementById('profileName');
-        if (profileName) profileName.innerText = username;
-        statChecked.innerText = data.checked ?? 0;
-        const statSuggested = document.getElementById('statSuggested');
-        const statPoints = document.getElementById('statPoints');
-        if (statSuggested) statSuggested.innerText = data.suggested ?? 0;
-        if (statPoints) statPoints.innerText = data.points ?? 0;
-        const profileLevel = document.getElementById('profileLevel');
-        if (profileLevel) profileLevel.innerText = 'Уровень: ' + (data.level || '🌱 Новичок');
-
-        const activityBars = document.getElementById('activityBars');
-        if (activityBars) {
-            activityBars.innerHTML = '';
-            const days = data.activity || [0, 0, 0, 0, 0, 0, 0];
-            const maxCount = Math.max.apply(null, days.concat([1]));
-            days.forEach(function (count) {
-                const bar = document.createElement('div');
-                bar.className = 'activity-bar';
-                bar.style.height = Math.max(6, Math.round(count / maxCount * 100)) + '%';
-                activityBars.appendChild(bar);
-            });
-        }
-    })
-    .catch(function () {});
-}
-
-if (currentUser && document.getElementById('statChecked')) {
-    loadProfile(currentUser);
-}
+// Сохраняем прогресс, если игрок закрыл страницу посреди игры
+window.addEventListener('beforeunload', function () {
+    if (previousTab === 'Game') saveGameResult();
+});
