@@ -1330,6 +1330,7 @@ function answer(userSaysTruth) {
 
     gameVerdict.textContent = correct ? T('game_right') : T('game_wrong');
     gameVerdict.className = 'game-verdict ' + (correct ? 'right' : 'wrong');
+    if (correct) burstConfetti();   // конфетти за верный ответ 🎉
 
     const realVerdict = currentQuestion.truth ? T('game_true') : T('game_myth');
     gameExplain.textContent = realVerdict + '. ' + currentQuestion.explain;
@@ -1418,6 +1419,36 @@ function updatePlatformBar() {
         // Сервер не дал статистику — показываем хотя бы личные данные
         renderPlatformBar(null);
     });
+}
+
+// ========================================================
+// КОНФЕТТИ ЗА ПРАВИЛЬНЫЙ ОТВЕТ
+// ========================================================
+function burstConfetti() {
+    const colors = ['#4f46e5', '#818cf8', '#f472b6', '#38bdf8', '#10b981', '#f59e0b'];
+    const rect = btnMyth ? btnMyth.parentElement.getBoundingClientRect() : null;
+    const cx = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
+    const cy = rect ? rect.top : window.innerHeight / 3;
+
+    for (let i = 0; i < 24; i++) {
+        const p = document.createElement('span');
+        p.textContent = ['🎉', '✨', '💜', '⭐'][Math.floor(Math.random() * 4)];
+        p.style.cssText =
+            'position:fixed;pointer-events:none;z-index:9999;font-size:' +
+            (12 + Math.random() * 14) + 'px;left:' + cx + 'px;top:' + cy + 'px;';
+        document.body.appendChild(p);
+
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 60 + Math.random() * 130;
+        p.animate([
+            { transform: 'translate(0,0) rotate(0deg)', opacity: 1 },
+            { transform: 'translate(' + Math.cos(angle) * dist + 'px,' +
+              (Math.sin(angle) * dist - 40) + 'px) rotate(' +
+              (Math.random() * 360 - 180) + 'deg)', opacity: 0 }
+        ], { duration: 900 + Math.random() * 600, easing: 'cubic-bezier(0.2,0.8,0.3,1)' });
+
+        setTimeout(function () { p.remove(); }, 1600);
+    }
 }
 
 // ========================================================
