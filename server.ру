@@ -14,7 +14,13 @@ from datetime import datetime, timedelta, date
 from flask import Flask, request, jsonify, render_template, Response
 from dotenv import load_dotenv
 
-from facts import find_fact  # локальная база фактов
+# Локальная база фактов: если файла facts.py нет — сервер всё равно стартует
+try:
+    from facts import find_fact
+except Exception:
+    def find_fact(_key):
+        return None
+    print("⚠️ facts.py не найден — локальная база отключена")
 
 # ============================================================
 # БАЗОВАЯ НАСТРОЙКА
@@ -406,30 +412,21 @@ def search_sheets(user_text):
         if not query_stems:
             return None
 
-        claim_stems_map = {}
-        for row in records:
-            if str(row.get('Источник', '')).strip().lower() == "ai":
-                continue
-            claim = str(row.get('Утверждение', '')).lower()
-            claim_stems_map[claim] = [_stem(w) for w in claim.split()]
-
         best_row, best_score, best_overlap = None, 0, 0.0
         for row in records:
             if str(row.get('Источник', '')).strip().lower() == "ai":
                 continue
             claim = str(row.get('Утверждение', '')).lower()
+            claim_stems = [_stem(w) for w in claim.split()]
             score = sum(1 for qs in query_stems
                         if any(cs.startswith(qs) or qs.startswith(cs)
-                               for cs in claim_stems_map.get(claim, [])))
+                               for cs in claim_stems))
             if user_text in claim:
                 score += 10
             if score > best_score:
                 best_score = score
                 best_row = row
-                found = sum(1 for qs in query_stems
-                            if any(cs.startswith(qs) or qs.startswith(cs)
-                                   for cs in claim_stems_map.get(claim, [])))
-                best_overlap = found / len(query_stems)
+                best_overlap = score / max(1, len(query_stems))
 
         if best_row is None:
             return None
@@ -838,6 +835,9 @@ def challenge():
         wait = int(CHALLENGE_COOLDOWN - (now - last))
         return jsonify({"error": f"Подождите {wait} сек."}), 429
     _challenge_times[ip] = now
+    if len(_challenge_times) > 500:
+        cutoff = now - 3600
+        _challenge_times = {k: v for k, v in _challenge_times.items() if v > cutoff}
 
     sheet_append("Disputes", [claim[:200], reason[:500], "новый", "",
                               datetime.now().strftime("%Y-%m-%d %H:%M")])
@@ -902,7 +902,7 @@ def game_questions():
 
 
 # ============================================================
-# НОВОЕ: РЕЗУЛЬТАТЫ ИГРЫ (для ачивок и рейтинга)
+# РЕЗУЛЬТАТЫ ИГРЫ (для ачивок и рейтинга)
 # ============================================================
 @app.route('/api/game/result', methods=['POST'])
 def game_result():
@@ -1026,7 +1026,7 @@ def rate_answer():
 
 
 # ============================================================
-# НОВОЕ: ОТЗЫВЫ СО ЗВЁЗДАМИ
+# ОТЗЫВЫ СО ЗВЁЗДАМИ
 # ============================================================
 @app.route('/api/review', methods=['POST'])
 def submit_review():
@@ -1097,7 +1097,7 @@ def get_reviews():
 
 
 # ============================================================
-# НОВОЕ: КОММЕНТАРИИ (ОБСУЖДЕНИЯ С ОТВЕТАМИ)
+# КОММЕНТАРИИ (ОБСУЖДЕНИЯ С ОТВЕТАМИ)
 # ============================================================
 _comment_times = {}
 COMMENT_COOLDOWN = 15
@@ -1157,6 +1157,9 @@ def add_comment():
         wait = int(COMMENT_COOLDOWN - (now - _comment_times[ip]))
         return jsonify({"error": f"Подождите {wait} сек."}), 429
     _comment_times[ip] = now
+    if len(_comment_times) > 500:
+        cutoff = now - 3600
+        _comment_times = {k: v for k, v in _comment_times.items() if v > cutoff}
 
     cid = uuid.uuid4().hex[:10]
     sheet = get_sheet()
@@ -1173,7 +1176,7 @@ def add_comment():
 
 
 # ============================================================
-# НОВОЕ: ДРУЗЬЯ
+# ДРУЗЬЯ
 # ============================================================
 @app.route('/api/friends', methods=['GET'])
 def get_friends():
@@ -1279,7 +1282,7 @@ def remove_friend():
 
 
 # ============================================================
-# НОВОЕ: МИФ ДНЯ (самый популярный)
+# МИФ ДНЯ (самый популярный)
 # ============================================================
 @app.route('/api/myth-of-day')
 def myth_of_day():
@@ -1330,7 +1333,7 @@ def myth_of_day():
 
 
 # ============================================================
-# НОВОЕ: РЕЙТИНГ ПОЛЬЗОВАТЕЛЕЙ
+# РЕЙТИНГ ПОЛЬЗОВАТЕЛЕЙ
 # ============================================================
 @app.route('/api/leaderboard')
 def leaderboard():
@@ -1356,7 +1359,8 @@ def leaderboard():
 
         if sugg_ws:
             for row in sugg_ws.get_all_values()[1:]:
-                if len(row) >= 1 and str(row[0]).strip():
+                if len(row) >= 1 and str(row[0]).strip() and \
+                        str(row[0]).strip().lower() != "аноним":
                     suggested_map[str(row[0]).strip().lower()] += 1
 
         if game_ws:
@@ -1377,7 +1381,7 @@ def leaderboard():
                     continue
                 key = name.lower()
                 points = checked_map.get(key, 0) * 2 \
-                    + suggested_map.get(key, 5) * 5 \
+                    + suggested_map.get(key, 0) * 5 \
                     + best_score_map.get(key, 0)
                 leaders.append({"username": name, "points": points,
                                 "level": level_name(points)})
@@ -1390,7 +1394,7 @@ def leaderboard():
 
 
 # ============================================================
-# НОВОЕ: АЧИВКИ
+# АЧИВКИ
 # ============================================================
 def _user_stats_for_achievements(username):
     stats = {"checked": 0, "suggested": 0, "games": 0, "best_score": 0,
@@ -1469,7 +1473,7 @@ def achievements():
 
 
 # ============================================================
-# НОВОЕ: ДОКАЗАТЕЛЬНАЯ МЕДИЦИНА (тексты Веры)
+# ДОКАЗАТЕЛЬНАЯ МЕДИЦИНА (тексты Веры)
 # ============================================================
 EVIDENCE_CONTENT = {
     "intro": ("Привет! Я Вера. Сейчас объясню, почему мы доверяем "
@@ -1606,8 +1610,7 @@ def debug_gigachat():
     return jsonify(info)
 
 
-# Глобальная защита: если где-то случится ошибка — сайт покажет её,
-# но сервер не упадёт целиком.
+# Глобальная защита: если где-то случится ошибка — сервер не упадёт целиком.
 @app.errorhandler(Exception)
 def handle_all_errors(e):
     print("❌ Общая ошибка:")
