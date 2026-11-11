@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Полезная информация — Перепроверим</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=16">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        // Защита от «мигания» при тёмной теме
+        try {
+            const t = localStorage.getItem('theme');
+            if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark-preload');
+            }
+        } catch (e) {}
+    </script>
+    <style>
+        /* ---------- Стили только для этой страницы ---------- */
+
+        .useful-container {
+            max-width: 780px;
+            margin: 0 auto;
+            padding: 90px 16px 40px;
+        }
+
+        .useful-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .useful-header h1 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+        .useful-header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-top: 6px;
+        }
+
+        /* Кнопка «назад» в левом углу — вместо меню */
+        .back-btn {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            z-index: 300;
+            width: 46px;
+            height: 46px;
+            border-radius: 14px;
+            border: none;
+            background: var(--primary);
+            color: #fff;
+            font-size: 1.3rem;
+            cursor: pointer;
+            box-shadow: var(--shadow-lg);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .back-btn:hover { background: var(--primary-hover); }
+
+        /* ---------- Герой-блок с Верой и анимацией ---------- */
+        .vera-hero-container {
+            position: relative;
+            width: 100%;
+            height: 320px;
+            margin-bottom: 10px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .vera-image-wrapper {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 240px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .vera-img {
+            width: 100%;
+            height: auto;
+            display: block;
+            filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.15));
+            will-change: transform;
+        }
+
+        .vera-caption {
+            margin-top: 10px;
+            font-weight: 600;
+            color: var(--text);
+            font-size: 0.95rem;
+            text-align: center;
+            max-width: 220px;
+            line-height: 1.4;
+        }
+
+        /* Состояние «Поиск» (лупа) — активно сразу */
+        .vera-search-state {
+            opacity: 1;
+            z-index: 2;
+            animation: veraFloat 4s ease-in-out infinite;
+        }
+
+        /* Состояние «Эксперимент» (колба) — выезжает через 1.5 сек */
+        .vera-experiment-state {
+            opacity: 0;
+            z-index: 1;
+            transform: translate(-50%, calc(-50% + 40px));
+            animation: veraSlideUp 1s ease forwards 1.5s;
+        }
+
+        @keyframes veraFloat {
+            0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+            50%      { transform: translate(-50%, -50%) translateY(-12px); }
+        }
+
+        @keyframes veraSlideUp {
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
+        }
+
+        /* ---------- Карточки контента ---------- */
+        .info-card {
+            background: var(--surface);
+            backdrop-filter: blur(14px);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 18px;
+            animation: cardIn 0.5s ease backwards;
+        }
+        .info-card:nth-child(1) { animation-delay: 0.1s; }
+        .info-card:nth-child(2) { animation-delay: 0.25s; }
+        .info-card:nth-child(3) { animation-delay: 0.4s; }
+        .info-card:nth-child(4) { animation-delay: 0.55s; }
+        .info-card:nth-child(5) { animation-delay: 0.7s; }
+
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .info-card h3 {
+            font-size: 1.1rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+        }
+        .info-card p, .info-card li {
+            font-size: 0.96rem;
+            line-height: 1.65;
+        }
+        .info-card p { margin-bottom: 10px; }
+        .info-card ol, .info-card ul {
+            padding-left: 22px;
+            margin: 8px 0 10px;
+        }
+        .info-card li { margin-bottom: 6px; }
+        .info-card strong { color: var(--primary); }
+
+        /* Предупреждение внизу */
+        .warning-box {
+            background: var(--warning-bg);
+            border-left: 5px solid var(--warning);
+            border-radius: 12px;
+            padding: 16px 18px;
+            font-size: 0.92rem;
+            margin-top: 6px;
+        }
+
+        .useful-footer {
+            text-align: center;
+            padding: 26px 0 10px;
+            color: var(--text-muted);
+            font-size: 0.82rem;
+        }
+
+        /* ---------- Мобильная версия ---------- */
+        @media (max-width: 640px) {
+            .useful-container { padding: 84px 12px 30px; }
+            .vera-hero-container { height: 250px; }
+            .vera-image-wrapper { width: 180px; }
+            .vera-caption { font-size: 0.85rem; max-width: 170px; }
+            .info-card { padding: 18px; }
+            .useful-header h1 { font-size: 1.3rem; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .vera-search-state, .vera-experiment-state, .info-card {
+                animation: none !important;
+            }
+            .vera-experiment-state { opacity: 1; transform: translate(-50%, -50%); }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <!-- Кнопка «назад на главную» -->
+    <a href="/" class="back-btn" aria-label="Вернуться на главную">←</a>
+
+    <!-- Переключатель темы -->
+    <button class="theme-btn" id="themeBtn" aria-label="Переключить тему">🌙</button>
+
+    <div class="useful-container">
+        <header class="useful-header">
+            <h1>📚 Полезная информация</h1>
+            <p>Что такое доказательная медицина и почему мы ей доверяем</p>
+        </header>
+
+        <!-- ===== Вера с анимацией ===== -->
+        <div class="vera-hero-container">
+            <div class="vera-image-wrapper vera-search-state">
+                <img src="{{ url_for('static', filename='img/vera_search.png') }}"
+                     alt="Вера с лупой ищет факты" class="vera-img">
+                <div class="vera-caption">«Ищу факты и проверяю источники!»</div>
+            </div>
+
+            <div class="vera-image-wrapper vera-experiment-state">
+                <img src="{{ url_for('static', filename='img/vera_experiment.png') }}"
+                     alt="Вера с колбой проверяет гипотезы" class="vera-img">
+                <div class="vera-caption">«Проверяю гипотезы в лаборатории фактов!»</div>
+            </div>
+        </div>
+
+        <!-- ===== Вступление от Веры ===== -->
+        <div class="info-card">
+            <p>Привет! Я <strong>Вера</strong>. Ты наверняка слышал фразу «бабушка всегда лечила этим» — и в ней есть своя теплота. Но когда речь заходит о здоровье, нам нужен не просто опыт поколений, а уверенность в том, что лечение действительно работает и не навредит. Давай я расскажу, как наука помогает нам отделять правду от мифов.</p>
+        </div>
+
+        <!-- ===== История ===== -->
+        <div class="info-card">
+            <h3>📜 Когда появилась доказательная медицина?</h3>
+            <p>Хотя люди лечили друг друга тысячи лет, доказательная медицина (Evidence-Based Medicine) как строгий подход оформилась только в 1990-х годах. Но корни уходят гораздо глубже.</p>
+            <p>Ещё в <strong>1747 году</strong> шотландский врач <strong>Джеймс Линд</strong> провёл первый в истории контролируемый эксперимент: он доказал, что цитрусовые спасают моряков от цинги. Линд разделил больных на группы и давал им разное лечение — это и есть основа науки: <strong>сравнить и посмотреть, что реально работает</strong>.</p>
+        </div>
+
+        <!-- ===== Три кита ===== -->
+        <div class="info-card">
+            <h3>🔬 В чём суть научного подхода?</h3>
+            <p>Доказательная медицина опирается на три кита:</p>
+            <ol>
+                <li><strong>Научные исследования.</strong> Мы смотрим не на один случай («соседу помогло»), а на сотни и тысячи пациентов. Только так можно понять, работает ли метод.</li>
+                <li><strong>Клинический опыт врача.</strong> Цифры важны, но врач должен уметь применять их к конкретному человеку.</li>
+                <li><strong>Ценности пациента.</strong> Учитываем и твои желания, но всегда в рамках безопасности.</li>
+            </ol>
+        </div>
+
+        <!-- ===== Про народную медицину ===== -->
+        <div class="info-card">
+            <h3>🌿 Почему «народное» не значит «безопасное»?</h3>
+            <p>Не всё натуральное — безопасное. В растениях содержатся мощные химические вещества: например, в наперстянке есть дигоксин — лекарство для сердца, которое в неправильной дозе становится ядом.</p>
+            <p>Народные методы часто не проходят проверку на:</p>
+            <ul>
+                <li><strong>Дозировку.</strong> Сколько именно нужно? Никто не знает точно.</li>
+                <li><strong>Побочные эффекты.</strong> Травы могут конфликтовать с лекарствами, которые ты уже принимаешь.</li>
+                <li><strong>Стандартизацию.</strong> В одной чашке отвара концентрация веществ может быть в 10 раз выше, чем в другой.</li>
+            </ul>
+        </div>
+
+        <!-- ===== Зачем наша игра ===== -->
+        <div class="info-card">
+            <h3>🛡️ Зачем мы играем в «Миф vs Правда»?</h3>
+            <p>Наша игра — это тренировка критического мышления. Мы берём популярные убеждения и смотрим на них через призму науки. Это не значит, что мы отрицаем традиции, но мы хотим, чтобы ты знал факты. Если метод прошёл клинические испытания и рекомендован врачами — мы скажем <strong>«Правда»</strong>. Если это просто красивая легенда без доказательств — это <strong>«Миф»</strong>.</p>
+        </div>
+
+        <!-- ===== Дисклеймер ===== -->
+        <div class="warning-box">
+            <strong>⚠️ Важное напоминание:</strong> этот сайт — образовательный проект. Мы не ставим диагнозы и не назначаем лечение. При любых проблемах со здоровьем обязательно консультируйся с врачом.
+        </div>
+
+        <footer class="useful-footer">
+            <p>©2026 Проект «Перепроверим» для чемпионата «Медицина 2050»</p>
+        </footer>
+    </div>
+
+    <script>
+        // ---------- Переключатель темы (как на главной) ----------
+        const themeBtn = document.getElementById('themeBtn');
+
+        function applyTheme(theme) {
+            document.body.classList.toggle('dark', theme === 'dark');
+            document.documentElement.classList.remove('dark-preload');
+            if (themeBtn) themeBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
+        }
+
+        let savedTheme = 'light';
+        try {
+            savedTheme = localStorage.getItem('theme') ||
+                (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        } catch (e) {}
+
+        applyTheme(savedTheme);
+
+        if (themeBtn) {
+            themeBtn.addEventListener('click', function () {
+                const newTheme = document.body.classList.contains('dark') ? 'light' : 'dark';
+                applyTheme(newTheme);
+                try { localStorage.setItem('theme', newTheme); } catch (e) {}
+            });
+        }
+    </script>
+</body>
+</html>
