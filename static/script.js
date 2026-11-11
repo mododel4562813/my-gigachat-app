@@ -1,11 +1,8 @@
-/* ============================================================
+/* ========================================================
    «Перепроверим» — static/script.js
-   Команда «Единый пульс» · Чемпионат «Медицина 2050»
-   ============================================================ */
+   ======================================================== */
 
-// ========================================================
-// ТЕМА (класс вешается на body — так же, как в CSS)
-// ========================================================
+// ---------- Тема ----------
 const themeBtn = document.getElementById('themeBtn');
 
 function applyTheme(theme) {
@@ -25,28 +22,24 @@ if (themeBtn) {
     });
 }
 
-// ========================================================
-// МЕНЮ (слева) и ВКЛАДКИ
-// ========================================================
+// ---------- Меню и вкладки ----------
 const menuBtn = document.getElementById('menuBtn');
 const menuEl = document.getElementById('menu');
 
 function toggleMenu() { menuEl.classList.toggle('open'); }
 function closeMenu()  { menuEl.classList.remove('open'); }
 
-if (menuBtn && menuEl) {
-    menuBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        toggleMenu();
-    });
+menuBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    toggleMenu();
+});
 
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') closeMenu();
-    });
-    document.addEventListener('click', function (e) {
-        if (!menuEl.contains(e.target) && !menuBtn.contains(e.target)) closeMenu();
-    });
-}
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeMenu();
+});
+document.addEventListener('click', function (e) {
+    if (!menuEl.contains(e.target) && !menuBtn.contains(e.target)) closeMenu();
+});
 
 const PANELS = ['Home', 'Game', 'Reviews', 'Report', 'Profile'];
 
@@ -56,16 +49,13 @@ function showPanel(name) {
         if (el) el.classList.toggle('active', p === name);
     });
     document.querySelectorAll('.menu a').forEach(function (a) {
-        a.classList.toggle('active',
-            a.dataset.tab === name ||
-            (name === 'Home' && a.dataset.tab === 'home'));
+        a.classList.toggle('active', a.dataset.tab === name);
     });
 }
 
 function switchTab(name) {
     closeMenu();
     if (name === 'suggest') {
-        // «Предложить миф» живёт на главной — показываем главную и прокручиваем к форме
         showPanel('Home');
         const s = document.getElementById('suggest');
         if (s) s.scrollIntoView({ behavior: 'smooth' });
@@ -83,9 +73,7 @@ document.querySelectorAll('.menu a').forEach(function (link) {
     });
 });
 
-// ========================================================
-// МАСКОТ ВЕРА
-// ========================================================
+// ---------- Маскот Вера ----------
 const mascot = document.getElementById('mascot');
 const mascotImage = document.getElementById('mascotImage');
 const speech = document.getElementById('mascotSpeech');
@@ -127,9 +115,13 @@ function react(verdict) {
 
 speech.innerHTML = PHRASES.hello;
 
-// ========================================================
-// ПРОВЕРКА ФАКТА (настоящий API /api/check)
-// ========================================================
+if (currentUser) {
+    document.getElementById('authBox').classList.add('hidden');
+    document.getElementById('userBox').classList.remove('hidden');
+    document.getElementById('userChip').textContent = '👋 ' + currentUser;
+}
+
+// ---------- Проверка факта ----------
 let lastClaim = '';
 let lastVerdictFull = '';
 
@@ -169,7 +161,6 @@ function sendCheck() {
         document.getElementById('explanationText').textContent = data.explanation || data.answer || '';
         react(data.verdict || '');
         document.getElementById('challengeOpen').hidden = false;
-        addHistory(text, verdict);   // запись в историю кабинета
     })
     .catch(function () {
         speech.innerHTML = 'Ой, кажется связь с сервером пропала 📡';
@@ -180,9 +171,7 @@ function sendCheck() {
     });
 }
 
-// ========================================================
-// СЕРДЕЧКИ
-// ========================================================
+// ---------- Сердечки ----------
 document.querySelectorAll('.heart').forEach(function (h) {
     h.addEventListener('click', function () {
         const val = h.dataset.value;
@@ -198,9 +187,7 @@ document.querySelectorAll('.heart').forEach(function (h) {
     });
 });
 
-// ========================================================
-// ОСПОРИТЬ ВЕРУ
-// ========================================================
+// ---------- Оспорить Веру ----------
 const challengeOpen = document.getElementById('challengeOpen');
 const challengeBlock = document.getElementById('challengeBlock');
 const challengeSend = document.getElementById('challengeSend');
@@ -251,9 +238,7 @@ if (challengeSend) {
     });
 }
 
-// ========================================================
-// ПРЕДЛОЖИТЬ СВОЙ МИФ (настоящий API /api/suggest)
-// ========================================================
+// ---------- Предложить свой миф ----------
 const suggestForm = document.getElementById('suggestForm');
 
 if (suggestForm) {
@@ -290,9 +275,7 @@ if (suggestForm) {
     });
 }
 
-// ========================================================
-// СООБЩИТЬ ОБ ОШИБКЕ
-// ========================================================
+// ---------- Сообщить об ошибке ----------
 function sendError() {
     const text = document.getElementById('errorText').value.trim();
     if (!text) return;
@@ -310,9 +293,7 @@ function sendError() {
     });
 }
 
-// ========================================================
-// АККАУНТ (настоящий API /api/login и /api/register)
-// ========================================================
+// ---------- Аккаунт ----------
 let authMode = 'login';
 
 function switchAuthMode(mode) {
@@ -344,8 +325,9 @@ function doAuth() {
             status.className = 'auth-status ok';
             currentUser = data.username || username;
             localStorage.setItem('veraUser', currentUser);
-            showCabinet(currentUser);
-            loadProfile(currentUser);
+            document.getElementById('authBox').classList.add('hidden');
+            document.getElementById('userBox').classList.remove('hidden');
+            document.getElementById('userChip').textContent = '👋 ' + currentUser;
         } else {
             status.textContent = data.error || 'Не получилось, попробуйте ещё раз';
             status.className = 'auth-status err';
@@ -360,294 +342,13 @@ function doAuth() {
 function logout() {
     currentUser = null;
     localStorage.removeItem('veraUser');
-    document.getElementById('cabinet').classList.add('hidden');
+    document.getElementById('userBox').classList.add('hidden');
     document.getElementById('authBox').classList.remove('hidden');
     document.getElementById('authUsername').value = '';
     document.getElementById('authPassword').value = '';
-    document.getElementById('authStatus').textContent = '';
 }
 
-// ========================================================
-// ЛИЧНЫЙ КАБИНЕТ — уровни, прогресс, статистика
-// ========================================================
-const LEVELS_INFO = [
-    { name: '🌱 Новичок',            needed: 0,  next: 20 },
-    { name: '🔍 Доказатель',         needed: 20, next: 60 },
-    { name: '👑 Хранитель истины',   needed: 60, next: null }
-];
-
-function showCabinet(name) {
-    document.getElementById('authBox').classList.add('hidden');
-    document.getElementById('cabinet').classList.remove('hidden');
-    document.getElementById('cabinetName').textContent = name;
-    // Аватар появится после загрузки профиля; пока — первая буква имени
-    setAvatar(null);
-}
-
-// ========================================================
-// СИСТЕМА ДОСТИЖЕНИЙ (серверная серия дней)
-// ========================================================
-let myVisits = { streak: 0, best_streak: 0, total_days: 0 };
-let myAvatar = null;
-
-function renderAchievements(checked, suggested, visits) {
-    visits = visits || { streak: 0, best_streak: 0, total_days: 0 };
-    const streak = visits.streak || 0;
-    const best = visits.best_streak || 0;
-    const total = visits.total_days || 0;
-
-    const ACHIEVEMENTS = [
-        // --- За проверки ---
-        { emoji: '🌟', name: 'Первый факт',     desc: 'Проверить 1 миф',     ok: checked >= 1 },
-        { emoji: '🔍', name: 'Разгадатель',     desc: '5 проверок',          ok: checked >= 5 },
-        { emoji: '🎓', name: 'Знаток',          desc: '10 проверок',         ok: checked >= 10 },
-        { emoji: '🛡️', name: 'Страж правды',   desc: '25 проверок',         ok: checked >= 25, rarity: 'rare' },
-        { emoji: '🥇', name: 'Профи',           desc: 'Проверить 100 мифов', ok: checked >= 100, rarity: 'rare' },
-        { emoji: '👑', name: 'Легенда фактов',  desc: '250 проверок',        ok: checked >= 250, rarity: 'legendary' },
-
-        // --- За предложения ---
-        { emoji: '💡', name: 'Автор мифа',      desc: 'Предложить 1 миф',    ok: suggested >= 1 },
-        { emoji: '📝', name: 'Идеолог',         desc: '10 предложений',      ok: suggested >= 10 },
-        { emoji: '🚀', name: 'Фонтан идей',     desc: '25 предложений',      ok: suggested >= 25, rarity: 'rare' },
-        { emoji: '🦸', name: 'Герой',           desc: 'Отправить 50 мифов',  ok: suggested >= 50, rarity: 'legendary' },
-
-        // --- За серии дней (только зарегистрированные) ---
-        { emoji: '🔥', name: 'Разогрев',        desc: '3 дня подряд',        ok: streak >= 3 },
-        { emoji: '📅', name: 'Неделя в строю',  desc: '7 дней подряд',       ok: streak >= 7, rarity: 'rare' },
-        { emoji: '🌙', name: 'Месяц верности',  desc: '30 дней подряд',      ok: streak >= 30, rarity: 'rare' },
-        { emoji: '💎', name: '100 дней в сети', desc: '100 дней подряд',     ok: streak >= 100, rarity: 'legendary' },
-        { emoji: '🏃', name: 'Марафонец',       desc: '50 дней всего',       ok: total >= 50 },
-        { emoji: '🏅', name: 'Рекордсмен',      desc: 'Личная серия: ' + best, ok: best >= 14, rarity: 'rare' }
-    ];
-
-    const box = document.getElementById('badges');
-    const unlocked = ACHIEVEMENTS.filter(a => a.ok).length;
-    const header = document.querySelector('.cabinet-achievements h4');
-    if (header) header.textContent = '🏆 Достижения · ' + unlocked + ' из ' + ACHIEVEMENTS.length;
-
-    box.innerHTML = ACHIEVEMENTS.map(a => `
-        <div class="badge ${a.ok ? 'unlocked' : 'locked'} ${a.rarity || ''}" title="${a.desc}">
-            <span class="badge-emoji">${a.emoji}</span>
-            <span class="badge-name">${a.name}</span>
-            <span class="badge-desc">${a.desc}</span>
-        </div>
-    `).join('');
-}
-
-// Отметка визита на сервере — серия копится только у зарегистрированных
-function syncVisit() {
-    if (!currentUser) return;
-    fetch('/api/visit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: currentUser })
-    })
-    .then(function (r) { return r.json(); })
-    .then(function (data) {
-        if (data.status === 'ok') {
-            myVisits = {
-                streak: data.streak,
-                best_streak: data.best_streak,
-                total_days: data.total_days
-            };
-            if (data.avatar) {
-                myAvatar = data.avatar;
-                setAvatar(myAvatar);
-            }
-            const chip = document.getElementById('cabinetStreakChip');
-            if (chip) chip.textContent = '🔥 Серия: ' + (myVisits.streak || 0) + ' дн.';
-            renderAchievements(
-                parseInt(document.getElementById('statChecked').textContent) || 0,
-                parseInt(document.getElementById('statSuggested').textContent) || 0,
-                myVisits
-            );
-        }
-    })
-    .catch(function () {});
-}
-
-// ========================================================
-// АВАТАР
-// ========================================================
-function setAvatar(url) {
-    const av = document.getElementById('cabinetAvatar');
-    if (!av) return;
-    if (url) {
-        av.style.backgroundImage = 'url("' + url + '")';
-        av.style.backgroundSize = 'cover';
-        av.style.backgroundPosition = 'center';
-        av.textContent = '';
-    } else {
-        av.style.backgroundImage = '';
-        av.textContent = (currentUser || 'В').charAt(0).toUpperCase();
-    }
-}
-
-function uploadAvatar(file) {
-    if (!currentUser) return;
-    const fd = new FormData();
-    fd.append('username', currentUser);
-    fd.append('avatar', file);
-
-    const status = document.getElementById('avatarStatus');
-    status.textContent = 'Загружаем...';
-
-    fetch('/api/avatar', { method: 'POST', body: fd })
-    .then(function (r) { return r.json(); })
-    .then(function (data) {
-        if (data.avatar) {
-            myAvatar = data.avatar;
-            setAvatar(myAvatar);
-            status.textContent = 'Аватар обновлён! ✨';
-        } else {
-            status.textContent = data.error || 'Не получилось загрузить';
-        }
-    })
-    .catch(function () { status.textContent = 'Ошибка соединения'; });
-}
-
-const avatarInput = document.getElementById('avatarInput');
-if (avatarInput) {
-    avatarInput.addEventListener('change', function () {
-        if (this.files && this.files[0]) uploadAvatar(this.files[0]);
-    });
-}
-
-// ========================================================
-// ИСТОРИЯ ПРОВЕРОК (хранится в браузере)
-// ========================================================
-function renderHistory() {
-    const list = document.getElementById('historyList');
-    if (!list) return;
-    let items = [];
-    try {
-        items = JSON.parse(localStorage.getItem('veraHistory') || '[]');
-    } catch (e) { items = []; }
-    if (!items.length) {
-        list.innerHTML = '<p class="history-empty">Пока нет проверок — проверьте свой первый миф на главной! 🚀</p>';
-        return;
-    }
-    list.innerHTML = items.slice(0, 10).map(function () {
-        return `
-        <div class="history-item">
-            <div class="history-verdict"></div>
-            <div class="history-body">
-                <div class="history-claim"></div>
-                <div class="history-date"></div>
-            </div>
-        </div>`;
-    }).join('');
-
-    // Пользовательский текст вставляем через textContent — безопасно
-    const nodes = list.querySelectorAll('.history-item');
-    items.slice(0, 10).forEach(function (h, i) {
-        const item = nodes[i];
-        const v = (h.verdict || '').toUpperCase();
-        const cls = v.includes('ПРАВДА') ? 'pravda'
-                  : v.includes('МИФ') ? 'mif' : 'other';
-        const icon = cls === 'pravda' ? '✅' : cls === 'mif' ? '🚫' : '🤔';
-        const ver = item.querySelector('.history-verdict');
-        ver.classList.add(cls);
-        ver.textContent = icon;
-        item.querySelector('.history-claim').textContent = h.claim;
-        item.querySelector('.history-date').textContent = h.date + ' · ' + h.verdict;
-    });
-}
-
-function addHistory(claim, verdict) {
-    try {
-        const items = JSON.parse(localStorage.getItem('veraHistory') || '[]');
-        items.unshift({
-            claim: claim.length > 80 ? claim.slice(0, 80) + '…' : claim,
-            verdict: verdict,
-            date: new Date().toLocaleDateString('ru-RU', {
-                day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
-            })
-        });
-        localStorage.setItem('veraHistory', JSON.stringify(items.slice(0, 20)));
-        renderHistory();
-    } catch (e) { /* история не критична */ }
-}
-
-// ========================================================
-// ЗАГРУЗКА ПРОФИЛЯ С СЕРВЕРА
-// ========================================================
-function loadProfile(username) {
-    fetch('/api/profile?username=' + encodeURIComponent(username))
-    .then(function (r) { return r.json(); })
-    .then(function (data) {
-        const checked = data.checked ?? 0;
-        const suggested = data.suggested ?? 0;
-        const points = data.points ?? 0;
-
-        document.getElementById('statChecked').textContent = checked;
-        document.getElementById('statSuggested').textContent = suggested;
-        document.getElementById('statPoints').textContent = points;
-
-        // Уровень: берём с сервера, иначе считаем по очкам
-        const level = data.level ||
-            LEVELS_INFO[points >= 60 ? 2 : points >= 20 ? 1 : 0].name;
-        document.getElementById('cabinetLevelChip').textContent = level;
-
-        // Прогресс до следующего уровня
-        let li = 0;
-        if (points >= 60) li = 2; else if (points >= 20) li = 1;
-        const lvl = LEVELS_INFO[li];
-        if (lvl.next === null) {
-            document.getElementById('progressText').textContent = 'Максимум!';
-            document.getElementById('progressFill').style.width = '100%';
-        } else {
-            const inLvl = points - lvl.needed;
-            const span = lvl.next - lvl.needed;
-            document.getElementById('progressText').textContent = inLvl + ' / ' + span;
-            document.getElementById('progressFill').style.width =
-                Math.min(100, Math.round(inLvl / span * 100)) + '%';
-        }
-
-        // Полоски активности за 7 дней
-        const activityBars = document.getElementById('activityBars');
-        activityBars.innerHTML = '';
-        const days = data.activity || [0, 0, 0, 0, 0, 0, 0];
-        const maxCount = Math.max.apply(null, days.concat([1]));
-        days.forEach(function (count) {
-            const bar = document.createElement('div');
-            bar.className = 'activity-bar';
-            bar.style.height = Math.max(6, Math.round(count / maxCount * 100)) + '%';
-            bar.title = 'Проверок: ' + count;
-            activityBars.appendChild(bar);
-        });
-
-        // Серия дней и аватар с сервера
-        myVisits = {
-            streak: data.streak || 0,
-            best_streak: data.best_streak || 0,
-            total_days: data.total_days || 0
-        };
-        document.getElementById('cabinetStreakChip').textContent =
-            '🔥 Серия: ' + myVisits.streak + ' дн.';
-        if (data.avatar) {
-            myAvatar = data.avatar;
-            setAvatar(myAvatar);
-        }
-
-        renderAchievements(checked, suggested, myVisits);
-        syncVisit();   // отметка сегодняшнего визита + свежая серия
-    })
-    .catch(function () {
-        renderAchievements(0, 0, myVisits);
-    });
-}
-
-// Если пользователь уже вошёл — сразу открываем кабинет
-if (currentUser) {
-    showCabinet(currentUser);
-    loadProfile(currentUser);
-    renderHistory();
-}
-
-// ========================================================
-// ОБСУЖДЕНИЕ (настоящий API /api/review и /api/reviews)
-// ========================================================
+// ---------- Обсуждение ----------
 function sendComment() {
     const name = currentUser
         || document.getElementById('commentName').value.trim()
@@ -675,23 +376,6 @@ function loadComments() {
         (data.reviews || []).forEach(function (c) {
             const div = document.createElement('div');
             div.className = 'comment';
-
-            // Аватар автора (если есть)
-            const avat = document.createElement('div');
-            avat.className = 'comment-avatar';
-            if (c.avatar) {
-                avat.style.backgroundImage = 'url("' + c.avatar + '")';
-                avat.style.backgroundSize = 'cover';
-                avat.style.backgroundPosition = 'center';
-            } else {
-                avat.textContent = (c.name || 'Г').charAt(0).toUpperCase();
-            }
-            div.appendChild(avat);
-
-            const bodyWrap = document.createElement('div');
-            bodyWrap.style.flex = '1';
-            bodyWrap.style.minWidth = '0';
-
             const head = document.createElement('div');
             head.className = 'comment-header';
             const author = document.createElement('span');
@@ -700,13 +384,10 @@ function loadComments() {
             const time = document.createElement('span');
             time.textContent = c.date || '';
             head.appendChild(author); head.appendChild(time);
-
             const body = document.createElement('div');
             body.className = 'comment-text';
             body.textContent = c.text || '';
-
-            bodyWrap.appendChild(head); bodyWrap.appendChild(body);
-            div.appendChild(bodyWrap);
+            div.appendChild(head); div.appendChild(body);
             list.appendChild(div);
         });
     })
@@ -714,9 +395,7 @@ function loadComments() {
 }
 loadComments();
 
-// ========================================================
-// ИГРА «МИФ VS ПРАВДА» С УРОВНЯМИ (настоящий API + запасной набор)
-// ========================================================
+// ---------- Игра «Миф vs Правда» ----------
 const QUESTIONS_FALLBACK = [
     { statement: 'От долгого чтения в темноте портится зрение', truth: false, difficulty: 1,
       explain: 'В темноте глаза устают быстрее, но зрение от этого не портится.' },
@@ -772,11 +451,10 @@ function maybeLevelUp() {
 }
 
 function showLevelUp() {
-    if (!gameLevelEl) return;
     const lvl = currentLevel();
     gameLevelEl.textContent = 'Уровень: ' + lvl.emoji + ' ' + lvl.name;
     gameLevelEl.classList.remove('levelup');
-    void gameLevelEl.offsetWidth;   // перезапуск CSS-анимации
+    void gameLevelEl.offsetWidth;
     gameLevelEl.classList.add('levelup');
 }
 
@@ -851,3 +529,41 @@ function loadGameOnce() {
 btnMyth.addEventListener('click', function () { answer(false); });
 btnTruth.addEventListener('click', function () { answer(true); });
 btnNext.addEventListener('click', nextQuestion);
+
+// ---------- Личный кабинет (если есть блок статистики) ----------
+function loadProfile(username) {
+    const statChecked = document.getElementById('statChecked');
+    if (!statChecked) return;
+
+    fetch('/api/profile?username=' + encodeURIComponent(username))
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+        const profileName = document.getElementById('profileName');
+        if (profileName) profileName.innerText = username;
+        statChecked.innerText = data.checked ?? 0;
+        const statSuggested = document.getElementById('statSuggested');
+        const statPoints = document.getElementById('statPoints');
+        if (statSuggested) statSuggested.innerText = data.suggested ?? 0;
+        if (statPoints) statPoints.innerText = data.points ?? 0;
+        const profileLevel = document.getElementById('profileLevel');
+        if (profileLevel) profileLevel.innerText = 'Уровень: ' + (data.level || '🌱 Новичок');
+
+        const activityBars = document.getElementById('activityBars');
+        if (activityBars) {
+            activityBars.innerHTML = '';
+            const days = data.activity || [0, 0, 0, 0, 0, 0, 0];
+            const maxCount = Math.max.apply(null, days.concat([1]));
+            days.forEach(function (count) {
+                const bar = document.createElement('div');
+                bar.className = 'activity-bar';
+                bar.style.height = Math.max(6, Math.round(count / maxCount * 100)) + '%';
+                activityBars.appendChild(bar);
+            });
+        }
+    })
+    .catch(function () {});
+}
+
+if (currentUser && document.getElementById('statChecked')) {
+    loadProfile(currentUser);
+}
