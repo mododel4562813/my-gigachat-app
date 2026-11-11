@@ -1,830 +1,318 @@
-/* ============================================================
-   ПЕРЕПРОВЕРИМ — static/style.css
-   Команда «Единый пульс» · Чемпионат «Медицина 2050»
-   ============================================================ */
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Перепроверим — Не верь, а проверь</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=9">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+        // Применяем тёмный фон до отрисовки — защита от «мигания» светлым
+        try {
+            const t = localStorage.getItem('theme');
+            if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark-preload');
+            }
+        } catch (e) { /* приватный режим — просто игнорируем */ }
+    </script>
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
 
-:root {
-    --primary: #4f46e5;
-    --primary-hover: #4338ca;
-    --primary-soft: rgba(79, 70, 229, 0.12);
-    --bg-top: #eef2ff;
-    --bg-bottom: #fdf2f8;
-    --surface: rgba(255, 255, 255, 0.85);
-    --surface-solid: #ffffff;
-    --inner: #f9fafb;
-    --text: #1f2937;
-    --text-muted: #6b7280;
-    --border: #e5e7eb;
-    --danger: #ef4444;
-    --danger-bg: #fee2e2;
-    --success: #10b981;
-    --success-bg: #d1fae5;
-    --warning: #f59e0b;
-    --warning-bg: #fef3c7;
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-    --shadow-lg: 0 10px 30px rgba(79, 70, 229, 0.12);
-    --radius: 20px;
-}
+    <!-- МЕНЮ СЛЕВА -->
+    <button class="menu-btn" id="menuBtn" aria-label="Открыть меню">⋮</button>
+    <nav class="menu" id="menu" role="navigation">
+        <a href="#" data-tab="home" class="active">🔍 Проверка мифов</a>
+        <a href="#" data-tab="game">🎮 Миф vs Правда</a>
+        <a href="#" data-tab="reviews">💬 Обсуждение</a>
+        <a href="#" data-tab="report">⚠️ Сообщить об ошибке</a>
+        <a href="#" data-tab="profile">👤 Аккаунт</a>
 
-/* ---------- Тёмная тема ---------- */
-body.dark {
-    --bg-top: #0f1226;
-    --bg-bottom: #1e1b4b;
-    --surface: rgba(30, 33, 60, 0.85);
-    --surface-solid: #1e213c;
-    --inner: rgba(255, 255, 255, 0.06);
-    --text: #f3f4f6;
-    --text-muted: #9ca3af;
-    --border: rgba(255, 255, 255, 0.12);
-    --danger-bg: rgba(239, 68, 68, 0.25);
-    --success-bg: rgba(16, 185, 129, 0.22);
-    --warning-bg: rgba(245, 158, 11, 0.22);
-    --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.45);
-}
+        <!-- Переключатель языка -->
+        <div class="lang-switcher">
+            <span>🌐</span>
+            <select id="langSelect" aria-label="Сменить язык">
+                <option value="ru">Русский</option>
+                <option value="en">English</option>
+                <option value="be">Беларуская</option>
+                <option value="zh">中文</option>
+            </select>
+        </div>
+    </nav>
 
-/* Защита от «мигания» при тёмной теме */
-html.dark-preload body {
-    background: linear-gradient(135deg, #0f1226 0%, #1e1b4b 100%);
-}
+    <!-- ТЕМА СПРАВА -->
+    <button class="theme-btn" id="themeBtn" aria-label="Переключить тему">🌙</button>
 
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-}
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <span class="logo-icon">✨</span>
+                <h1>Перепроверим</h1>
+                <span class="logo-icon">✨</span>
+            </div>
+            <p class="slogan">Не верь, а проверь</p>
+        </header>
 
-body {
-    min-height: 100vh;
-    color: var(--text);
-    line-height: 1.6;
-    background: linear-gradient(135deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
-    background-attachment: fixed;
-    transition: background 0.3s ease, color 0.3s ease;
-}
+        <!-- ПОЛОСКА РЕЙТИНГА ПЛАТФОРМЫ (видна на всех вкладках, кроме главной) -->
+        <div class="platform-bar" id="platformBar" hidden>
+            <div class="pb-item">
+                <span class="pb-icon pb-pulse">⭐</span>
+                <div class="pb-text">
+                    <b id="pbRating">—</b>
+                    <span>рейтинг платформы</span>
+                </div>
+            </div>
+            <div class="pb-item">
+                <span class="pb-icon">👑</span>
+                <div class="pb-text">
+                    <b id="pbBestPlayer">—</b>
+                    <span>лучший игрок</span>
+                </div>
+            </div>
+            <div class="pb-item">
+                <span class="pb-icon">🔥</span>
+                <div class="pb-text">
+                    <b id="pbMythOfDay">—</b>
+                    <span>миф дня</span>
+                </div>
+            </div>
+            <div class="pb-item">
+                <span class="pb-icon">🎯</span>
+                <div class="pb-text">
+                    <b id="pbGameMisses">0</b>
+                    <span>твои промахи сегодня</span>
+                </div>
+            </div>
+        </div>
 
-.hidden { display: none !important; }
+        <main class="glass-card">
 
-/* ---------- Декоративные пятна на фоне ---------- */
-.background-blobs {
-    position: fixed;
-    inset: 0;
-    z-index: -1;
-    overflow: hidden;
-    pointer-events: none;
-}
-.blob {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(90px);
-    opacity: 0.35;
-}
-.blob-1 { width: 420px; height: 420px; top: -120px; left: -120px; background: #818cf8; }
-.blob-2 { width: 380px; height: 380px; top: 40%; right: -140px; background: #f472b6; }
-.blob-3 { width: 300px; height: 300px; bottom: -100px; left: 25%; background: #38bdf8; }
+            <!-- ===== ГЛАВНАЯ: проверка + предложение мифа ===== -->
+            <div class="tab-panel active" id="panelHome">
+                <div class="disclaimer">
+                    <p><span class="warn-icon">⚠️</span> <strong>Внимание!</strong> Это не медицинская консультация. При проблемах со здоровьем обязательно обратитесь к врачу.</p>
+                </div>
 
-/* ---------- Кнопка меню и боковое меню ---------- */
-.menu-btn {
-    position: fixed;
-    top: 16px;
-    left: 16px;
-    z-index: 300;
-    width: 46px;
-    height: 46px;
-    border-radius: 14px;
-    border: none;
-    background: var(--primary);
-    color: #fff;
-    font-size: 1.4rem;
-    cursor: pointer;
-    box-shadow: var(--shadow-lg);
-    padding: 0;
-    line-height: 1;
-}
-.menu-btn:hover { background: var(--primary-hover); }
+                <div class="mascot" id="mascot">
+                    <img id="mascotImage"
+                         src="{{ url_for('static', filename='vera_hello.png') }}"
+                         alt="Вера — маскот проекта">
+                    <div class="mascot-speech" id="mascotSpeech"></div>
+                </div>
 
-.menu {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100vh;
-    width: 270px;
-    padding: 80px 16px 24px;
-    background: var(--surface-solid);
-    box-shadow: 6px 0 30px rgba(0, 0, 0, 0.15);
-    z-index: 250;
-    transform: translateX(-110%);
-    transition: transform 0.25s ease;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-.menu.open { transform: translateX(0); }
+                <div class="hero-section">
+                    <h2 class="hero-title">Не уверен, правда это или миф?</h2>
+                    <p class="hero-subtitle">Введи сомнительное медицинское утверждение — Вера разберёт его с опорой на надёжные источники.</p>
+                </div>
 
-.menu a {
-    display: block;
-    padding: 12px 16px;
-    border-radius: 12px;
-    color: var(--text);
-    text-decoration: none;
-    font-weight: 600;
-    transition: background 0.2s, color 0.2s;
-}
-.menu a:hover { background: var(--primary-soft); color: var(--primary); }
-.menu a.active { background: var(--primary); color: #fff; }
+                <textarea id="userText" placeholder="Например: вакцины вызывают аутизм..."></textarea>
+                <button id="checkBtn" onclick="sendCheck()">
+                    <span id="btnText">Проверить факт</span>
+                </button>
 
-/* ---------- Кнопка темы ---------- */
-.theme-btn {
-    position: fixed;
-    top: 16px;
-    right: 16px;
-    z-index: 300;
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-    border: none;
-    background: var(--surface-solid);
-    font-size: 1.3rem;
-    cursor: pointer;
-    box-shadow: var(--shadow-sm);
-    padding: 0;
-    line-height: 1;
-}
-.theme-btn:hover { transform: scale(1.08); }
+                <div id="result" class="result hidden">
+                    <div class="verdict-badge" id="verdictBadge"></div>
+                    <h3 class="claim-text" id="claimText"></h3>
+                    <div class="explanation-box">
+                        <p id="explanationText"></p>
+                    </div>
 
-/* ---------- Каркас ---------- */
-.app-container {
-    max-width: 780px;
-    margin: 0 auto;
-    padding: 90px 16px 40px;
-}
+                    <div class="rating-section">
+                        <p>Насколько полезен ответ?</p>
+                        <div class="hearts">
+                            <span class="heart" data-value="1">❤️</span>
+                            <span class="heart" data-value="2">❤️</span>
+                            <span class="heart" data-value="3">❤️</span>
+                            <span class="heart" data-value="4">❤️</span>
+                            <span class="heart" data-value="5">❤️</span>
+                        </div>
+                        <p class="rating-message" id="ratingMessage"></p>
+                    </div>
 
-header {
-    text-align: center;
-    margin-bottom: 20px;
-}
-.logo {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    background: var(--surface);
-    backdrop-filter: blur(10px);
-    padding: 12px 26px;
-    border-radius: 50px;
-    box-shadow: var(--shadow-sm);
-}
-.logo-icon { font-size: 1.4rem; }
-h1 {
-    font-size: 1.8rem;
-    font-weight: 800;
-    color: var(--primary);
-}
-.slogan {
-    margin-top: 8px;
-    text-transform: uppercase;
-    letter-spacing: 3px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--text-muted);
-}
+                    <button class="btn-ghost" id="challengeOpen" hidden>⚔️ Оспорить ответ</button>
 
-.disclaimer {
-    background: var(--warning-bg);
-    border-left: 5px solid var(--warning);
-    border-radius: 12px;
-    padding: 12px 16px;
-    font-size: 0.88rem;
-    margin-bottom: 24px;
-}
+                    <div class="challenge" id="challengeBlock" hidden>
+                        <h3>Не согласны с Верой? Оспорьте её!</h3>
+                        <textarea id="challengeReason" maxlength="500"
+                            placeholder="Напишите, почему вы не согласны — Вера перепроверит факт..."></textarea>
+                        <button class="btn-secondary" id="challengeSend">Отправить на перепроверку</button>
+                        <div class="challenge-result" id="challengeResult" hidden></div>
+                    </div>
+                </div>
 
-/* ---------- Стеклянная карточка ---------- */
-.glass-card {
-    background: var(--surface);
-    backdrop-filter: blur(14px);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 28px;
-    box-shadow: var(--shadow-lg);
-}
+                <div class="suggest-section" id="suggest">
+                    <h3>✨ Знаете миф, которого у нас нет?</h3>
+                    <p class="review-subtitle">Предложите его — мы проверим и добавим в базу!</p>
+                    <form id="suggestForm">
+                        <input type="text" id="suggestName" placeholder="Как вас зовут?">
+                        <input type="text" id="suggestMyth" placeholder="Например: «от фото на телефон мутнеет зрение»" required>
+                        <button type="submit" class="btn-secondary">Предложить миф</button>
+                    </form>
+                    <p class="suggest-status" id="suggestStatus"></p>
+                </div>
+            </div>
 
-/* ---------- Вкладки ---------- */
-.tab-panel { display: none; animation: fadeIn 0.3s ease; }
-.tab-panel.active { display: block; }
+            <!-- ===== ИГРА ===== -->
+            <div class="tab-panel" id="panelGame">
+                <div class="game-section" style="border-top:none; padding-top:0; margin-top:0;">
+                    <h3>🎮 Миф vs Правда</h3>
+                    <p class="game-subtitle">Проверьте свою интуицию — знаете ли вы, где миф, а где правда?</p>
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+                    <div class="game-card">
+                        <div class="game-level" id="gameLevel">Уровень: 🌱 Новичок</div>
+                        <p class="game-statement" id="gameStatement">Загружаем вопрос…</p>
 
-/* ---------- Маскот Вера ---------- */
-.mascot {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 24px;
-}
-.mascot img {
-    width: 150px;
-    max-width: 35vw;
-    border-radius: 20px;
-    flex-shrink: 0;
-}
-.mascot-speech {
-    flex: 1;
-    background: var(--inner);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 14px 18px;
-    font-size: 0.95rem;
-    position: relative;
-}
-.mascot.mood-true .mascot-speech { border-color: var(--success); }
-.mascot.mood-false .mascot-speech { border-color: var(--danger); }
+                        <div class="game-buttons">
+                            <button class="btn-myth" id="btnMyth">❌ Миф</button>
+                            <button class="btn-truth" id="btnTruth">✅ Правда</button>
+                        </div>
 
-/* ---------- Заголовок и форма проверки ---------- */
-.hero-section { text-align: center; margin-bottom: 20px; }
-.hero-title { font-size: 1.4rem; font-weight: 800; }
-.hero-subtitle { color: var(--text-muted); font-size: 0.95rem; margin-top: 6px; }
+                        <div class="game-feedback" id="gameFeedback" hidden>
+                            <p class="game-verdict" id="gameVerdict"></p>
+                            <p class="game-explain" id="gameExplain"></p>
+                        </div>
 
-textarea, input[type="text"], input[type="password"] {
-    width: 100%;
-    padding: 14px 16px;
-    border: 2px solid var(--border);
-    border-radius: 14px;
-    background: var(--surface-solid);
-    color: var(--text);
-    font-family: inherit;
-    font-size: 1rem;
-    outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-textarea { resize: vertical; min-height: 90px; }
-textarea:focus, input:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 4px var(--primary-soft);
-}
-textarea::placeholder, input::placeholder { color: var(--text-muted); }
+                        <div class="game-score">
+                            <span>Счёт: <b id="gameScore">0</b></span>
+                            <span>Серия: <b id="gameStreak">0</b> 🔥</span>
+                        </div>
 
-#userText { margin-bottom: 16px; }
+                        <button class="btn-secondary" id="btnNext" hidden>Следующий миф →</button>
+                    </div>
+                </div>
+            </div>
 
-/* ---------- Кнопки ---------- */
-button {
-    border: none;
-    border-radius: 14px;
-    padding: 13px 22px;
-    font-family: inherit;
-    font-size: 0.98rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: transform 0.1s, box-shadow 0.2s, background 0.2s;
-}
-button:disabled { opacity: 0.6; cursor: not-allowed; }
+            <!-- ===== ОБСУЖДЕНИЕ ===== -->
+            <div class="tab-panel" id="panelReviews">
+                <div class="comments-section" style="border-top:none; padding-top:0; margin-top:0;">
+                    <h3>💬 Комментарии</h3>
+                    <p class="comments-subtitle">Что думают другие?</p>
+                    <input type="text" id="commentName" placeholder="Твоё имя">
+                    <textarea id="commentText" placeholder="Твой комментарий..."></textarea>
+                    <button class="btn-secondary" onclick="sendComment()">Отправить</button>
+                    <div id="commentsList" style="margin-top:20px;"></div>
+                </div>
+            </div>
 
-#checkBtn {
-    width: 100%;
-    background: linear-gradient(135deg, var(--primary), #3730a3);
-    color: #fff;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-}
-#checkBtn:hover:not(:disabled) {
-    box-shadow: var(--shadow-lg);
-    transform: translateY(-2px);
-}
+            <!-- ===== СООБЩИТЬ ОБ ОШИБКЕ ===== -->
+            <div class="tab-panel" id="panelReport">
+                <div class="review-section" style="border-top:none; padding-top:0; margin-top:0;">
+                    <h3>🛠 Сообщить об ошибке</h3>
+                    <p class="review-subtitle">Нашли опечатку или неточность? Напишите нам!</p>
+                    <textarea id="errorText" placeholder="Опишите ошибку: где увидели и что не так..."></textarea>
+                    <button class="btn-secondary" onclick="sendError()">Отправить</button>
+                </div>
+            </div>
 
-.btn-secondary {
-    background: var(--primary-soft);
-    color: var(--primary);
-    font-weight: 600;
-}
-.btn-secondary:hover:not(:disabled) { background: rgba(79, 70, 229, 0.22); }
+            <!-- ===== АККАУНТ ===== -->
+            <div class="tab-panel" id="panelProfile">
 
-.btn-ghost {
-    background: transparent;
-    border: 1px solid var(--primary);
-    color: var(--primary);
-}
-.btn-ghost:hover { background: var(--primary-soft); }
+                <!-- Экран для НЕ вошедшего пользователя -->
+                <div id="authBox">
+                    <div class="profile-welcome">
+                        <div class="profile-avatar-big">👤</div>
+                        <h3>Личный кабинет</h3>
+                        <p class="review-subtitle">Войдите, чтобы копить очки, серию дней, достижения и аватар, который увидят все!</p>
+                    </div>
 
-/* ---------- Результат ---------- */
-.result { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); }
+                    <div class="auth-tabs">
+                        <button id="tabLogin" class="active" onclick="switchAuthMode('login')">Вход</button>
+                        <button id="tabRegister" onclick="switchAuthMode('register')">Регистрация</button>
+                    </div>
+                    <div class="auth-fields">
+                        <input type="text" id="authUsername" placeholder="Имя пользователя">
+                        <input type="password" id="authPassword" placeholder="Пароль (от 4 символов)">
+                    </div>
+                    <div class="auth-btn-wrapper">
+                        <button id="authBtn" onclick="doAuth()">Войти</button>
+                    </div>
+                    <p id="authStatus" class="auth-status"></p>
+                </div>
 
-.verdict-badge {
-    display: inline-block;
-    padding: 7px 16px;
-    border-radius: 50px;
-    font-size: 0.82rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 12px;
-}
-.verdict-badge.pravda { background: var(--success-bg); color: #065f46; }
-.verdict-badge.mif { background: var(--danger-bg); color: #991b1b; }
-.verdict-badge.sporno { background: var(--warning-bg); color: #92400e; }
-.verdict-badge.neznayu { background: var(--inner); color: var(--text-muted); }
+                <!-- Экран для ВОШЕДШЕГО пользователя -->
+                <div id="cabinet" class="hidden">
+                    <div class="cabinet-header">
+                        <div class="profile-avatar-wrap">
+                            <div class="profile-avatar-big" id="cabinetAvatar">В</div>
+                            <label class="avatar-edit" title="Сменить аватар">
+                                📷
+                                <input type="file" id="avatarInput" accept="image/png,image/jpeg,image/webp" hidden>
+                            </label>
+                        </div>
+                        <div class="cabinet-head-info">
+                            <h3 id="cabinetName">Гость</h3>
+                            <span class="cabinet-level-chip" id="cabinetLevelChip">🌱 Новичок</span>
+                            <span class="cabinet-level-chip" id="cabinetStreakChip">🔥 Серия: 0 дн.</span>
+                        </div>
+                        <button class="btn-logout" onclick="logout()">Выйти</button>
+                    </div>
+                    <p id="avatarStatus"></p>
 
-.claim-text { font-size: 1.05rem; margin-bottom: 14px; }
+                    <!-- Прогресс до следующего уровня -->
+                    <div class="cabinet-progress">
+                        <div class="cabinet-progress-label">
+                            <span>До следующего уровня</span>
+                            <span id="progressText">0 / 20</span>
+                        </div>
+                        <div class="cabinet-progress-bar">
+                            <div class="cabinet-progress-fill" id="progressFill" style="width: 0%;"></div>
+                        </div>
+                    </div>
 
-.explanation-box {
-    background: var(--inner);
-    border-left: 4px solid var(--primary);
-    border-radius: 12px;
-    padding: 16px 18px;
-    margin-bottom: 16px;
-}
+                    <!-- Статистика -->
+                    <div class="cabinet-stats">
+                        <div class="stat">
+                            <span class="stat-num" id="statChecked">0</span>
+                            <span class="stat-label">Проверено</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-num" id="statSuggested">0</span>
+                            <span class="stat-label">Предложено</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-num" id="statPoints">0</span>
+                            <span class="stat-label">Очки</span>
+                        </div>
+                    </div>
 
-/* ---------- Сердечки ---------- */
-.rating-section {
-    margin: 18px 0;
-    padding-top: 16px;
-    border-top: 1px solid var(--border);
-    text-align: center;
-}
-.hearts { display: flex; gap: 10px; justify-content: center; margin: 12px 0; }
-.heart {
-    cursor: pointer;
-    font-size: 1.5rem;
-    opacity: 0.35;
-    transition: transform 0.15s, opacity 0.15s;
-}
-.heart:hover { transform: scale(1.25); opacity: 1; }
-.heart.active { opacity: 1; transform: scale(1.1); }
-.rating-message { font-weight: 600; color: var(--success); }
+                    <!-- Активность за 7 дней -->
+                    <div class="cabinet-activity">
+                        <h4>📊 Активность за неделю</h4>
+                        <div class="activity-chart">
+                            <div class="activity-bars" id="activityBars"></div>
+                            <div class="activity-days">
+                                <span>Пн</span><span>Вт</span><span>Ср</span>
+                                <span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+                            </div>
+                        </div>
+                    </div>
 
-/* ---------- Оспаривание ---------- */
-.challenge { margin-top: 16px; }
-.challenge h3 { margin-bottom: 10px; }
-.challenge-result {
-    margin-top: 12px;
-    background: var(--inner);
-    border-left: 4px solid var(--warning);
-    border-radius: 12px;
-    padding: 14px 16px;
-    white-space: pre-wrap;
-}
+                    <!-- Достижения -->
+                    <div class="cabinet-achievements">
+                        <h4>🏆 Достижения</h4>
+                        <div class="badges" id="badges"></div>
+                    </div>
 
-/* ---------- Предложить миф ---------- */
-.suggest-section {
-    margin-top: 28px;
-    padding-top: 22px;
-    border-top: 1px solid var(--border);
-}
-.suggest-section h3 { margin-bottom: 6px; }
-.review-subtitle { color: var(--text-muted); font-size: 0.92rem; margin-bottom: 14px; }
-.suggest-section input { margin-bottom: 10px; }
-.suggest-status { margin-top: 10px; font-weight: 600; }
+                    <!-- История проверок -->
+                    <div class="cabinet-history">
+                        <h4>🕘 Последние проверки</h4>
+                        <div id="historyList" class="history-list"></div>
+                    </div>
+                </div>
 
-/* ---------- Игра ---------- */
-.game-section h3 { margin-bottom: 6px; }
-.game-subtitle { color: var(--text-muted); margin-bottom: 16px; }
+            </div>
 
-.game-card {
-    background: var(--inner);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 22px;
-    text-align: center;
-}
-.game-level {
-    display: inline-block;
-    background: var(--primary-soft);
-    color: var(--primary);
-    font-weight: 700;
-    font-size: 0.88rem;
-    padding: 6px 14px;
-    border-radius: 50px;
-    margin-bottom: 14px;
-}
-.game-level.levelup { animation: pulse 0.6s ease; }
+        </main>
 
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.15); }
-    100% { transform: scale(1); }
-}
+        <footer class="project-footer">
+            <p>©2026 Проект «Перепроверим» для чемпионата «Медицина 2050»</p>
+        </footer>
+    </div>
 
-.game-statement {
-    font-size: 1.15rem;
-    font-weight: 700;
-    margin-bottom: 18px;
-    min-height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.game-buttons { display: flex; gap: 12px; justify-content: center; margin-bottom: 14px; }
-.btn-myth { background: var(--danger); color: #fff; }
-.btn-myth:hover:not(:disabled) { background: #dc2626; }
-.btn-truth { background: var(--success); color: #fff; }
-.btn-truth:hover:not(:disabled) { background: #059669; }
-
-.game-feedback {
-    background: var(--surface-solid);
-    border-radius: 12px;
-    padding: 14px 16px;
-    margin-bottom: 14px;
-}
-.game-verdict { font-weight: 800; margin-bottom: 6px; }
-.game-verdict.right { color: var(--success); }
-.game-verdict.wrong { color: var(--danger); }
-.game-explain { font-size: 0.92rem; color: var(--text-muted); }
-
-.game-score {
-    display: flex;
-    justify-content: center;
-    gap: 24px;
-    margin-bottom: 14px;
-    color: var(--text-muted);
-}
-
-/* ---------- Комментарии и отзывы ---------- */
-.comments-section h3, .review-section h3 { margin-bottom: 6px; }
-.comments-section input, .review-section textarea, .comments-section textarea {
-    margin-bottom: 10px;
-}
-.comments-section .btn-secondary, .review-section .btn-secondary { margin-bottom: 6px; }
-
-.comment {
-    display: flex;
-    gap: 12px;
-    padding: 14px 0;
-    border-top: 1px solid var(--border);
-}
-.comment-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: var(--primary-soft);
-    color: var(--primary);
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    background-size: cover;
-    background-position: center;
-}
-.comment-header {
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 4px;
-}
-.comment-author { font-weight: 700; }
-.comment-header span:last-child { font-size: 0.78rem; color: var(--text-muted); }
-.comment-text { font-size: 0.95rem; word-break: break-word; }
-
-/* ---------- Аккаунт ---------- */
-.profile-welcome { text-align: center; margin-bottom: 20px; }
-.profile-avatar-big {
-    width: 76px;
-    height: 76px;
-    margin: 0 auto 12px;
-    border-radius: 50%;
-    background: var(--primary-soft);
-    color: var(--primary);
-    font-size: 2rem;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-size: cover;
-    background-position: center;
-}
-
-.auth-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
-.auth-tabs button {
-    flex: 1;
-    background: var(--inner);
-    color: var(--text-muted);
-}
-.auth-tabs button.active {
-    background: var(--primary);
-    color: #fff;
-}
-.auth-fields { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
-.auth-btn-wrapper button { width: 100%; background: var(--primary); color: #fff; }
-.auth-status { text-align: center; font-weight: 600; min-height: 24px; }
-.auth-status.ok { color: var(--success); }
-.auth-status.err { color: var(--danger); }
-
-/* ---------- Кабинет ---------- */
-.cabinet-header {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    flex-wrap: wrap;
-    margin-bottom: 12px;
-}
-.profile-avatar-wrap { position: relative; }
-.avatar-edit {
-    position: absolute;
-    bottom: -4px;
-    right: -4px;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: var(--primary);
-    color: #fff;
-    font-size: 0.9rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: var(--shadow-sm);
-}
-.cabinet-head-info { flex: 1; min-width: 160px; }
-.cabinet-level-chip {
-    display: inline-block;
-    background: var(--primary-soft);
-    color: var(--primary);
-    font-size: 0.8rem;
-    font-weight: 700;
-    padding: 4px 12px;
-    border-radius: 50px;
-    margin: 4px 6px 0 0;
-}
-.btn-logout {
-    background: transparent;
-    border: 1px solid var(--danger);
-    color: var(--danger);
-    font-size: 0.85rem;
-    padding: 8px 16px;
-}
-.btn-logout:hover { background: var(--danger-bg); }
-
-#avatarStatus { min-height: 20px; font-size: 0.88rem; }
-
-.cabinet-progress { margin: 16px 0; }
-.cabinet-progress-label {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    margin-bottom: 6px;
-}
-.cabinet-progress-bar {
-    height: 10px;
-    background: var(--inner);
-    border-radius: 50px;
-    overflow: hidden;
-}
-.cabinet-progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--primary), #818cf8);
-    border-radius: 50px;
-    transition: width 0.5s ease;
-}
-
-.cabinet-stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin: 16px 0;
-}
-.stat {
-    background: var(--inner);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 14px;
-    text-align: center;
-}
-.stat-num {
-    display: block;
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: var(--primary);
-}
-.stat-label { font-size: 0.82rem; color: var(--text-muted); }
-
-.cabinet-activity, .cabinet-achievements, .cabinet-history {
-    margin-top: 22px;
-    padding-top: 18px;
-    border-top: 1px solid var(--border);
-}
-.cabinet-activity h4, .cabinet-achievements h4, .cabinet-history h4 {
-    margin-bottom: 12px;
-}
-
-.activity-chart { padding: 0 4px; }
-.activity-bars {
-    display: flex;
-    align-items: flex-end;
-    gap: 8px;
-    height: 80px;
-}
-.activity-bar {
-    flex: 1;
-    min-height: 6px;
-    background: linear-gradient(180deg, var(--primary), #818cf8);
-    border-radius: 6px 6px 0 0;
-    transition: height 0.4s ease;
-}
-.activity-days {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    margin-top: 6px;
-}
-
-.badges {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 10px;
-}
-.badge {
-    background: var(--inner);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 12px;
-    text-align: center;
-    transition: transform 0.15s;
-}
-.badge.unlocked:hover { transform: translateY(-3px); }
-.badge.locked { opacity: 0.45; filter: grayscale(1); }
-.badge.rare { border-color: #818cf8; }
-.badge.legendary {
-    border-color: #f59e0b;
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(79, 70, 229, 0.08));
-}
-.badge-emoji { display: block; font-size: 1.7rem; }
-.badge-name { display: block; font-weight: 700; font-size: 0.85rem; margin-top: 4px; }
-.badge-desc { display: block; font-size: 0.72rem; color: var(--text-muted); }
-
-.history-list { display: flex; flex-direction: column; }
-.history-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 0;
-    border-top: 1px solid var(--border);
-}
-.history-item:first-child { border-top: none; }
-.history-verdict {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    font-size: 1rem;
-}
-.history-verdict.pravda { background: var(--success-bg); }
-.history-verdict.mif { background: var(--danger-bg); }
-.history-verdict.other { background: var(--inner); }
-.history-claim { font-weight: 600; font-size: 0.92rem; }
-.history-date { font-size: 0.76rem; color: var(--text-muted); }
-.history-empty { color: var(--text-muted); text-align: center; padding: 12px; }
-
-/* ---------- Подвал ---------- */
-.project-footer {
-    text-align: center;
-    padding: 26px 0 10px;
-    color: var(--text-muted);
-    font-size: 0.82rem;
-}
-
-/* ---------- Мобильная версия ---------- */
-@media (max-width: 640px) {
-    .app-container { padding: 84px 12px 30px; }
-    .glass-card { padding: 18px; }
-    h1 { font-size: 1.4rem; }
-    .mascot { flex-direction: column; text-align: center; }
-    .mascot img { width: 120px; }
-    .cabinet-stats { grid-template-columns: 1fr; }
-    .game-buttons { flex-direction: column; }
-    .btn-myth, .btn-truth { width: 100%; }
-    .platform-bar { gap: 8px; padding: 10px 14px; }
-    .pb-item { width: 100%; justify-content: center; }
-    .pb-icon { font-size: 20px; }
-}
-
-/* ---------- Имя Веры в приветствии ---------- */
-.vera-name {
-    color: var(--primary);
-    font-weight: 800;
-}
-
-/* ---------- Переключатель языка в меню ---------- */
-.lang-switcher {
-    margin-top: 16px;
-    padding: 8px 12px;
-    background: var(--inner);
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    position: relative;
-}
-.lang-switcher select {
-    background: transparent;
-    border: none;
-    color: var(--text);
-    font-weight: 600;
-    font-size: 0.95rem;
-    cursor: pointer;
-    outline: none;
-    appearance: none;
-    -webkit-appearance: none;
-    padding-right: 20px;
-    width: 100%;
-}
-.lang-switcher select option { color: #1f2937; background: #ffffff; }
-.lang-switcher::after {
-    content: '▼';
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    pointer-events: none;
-    position: absolute;
-    right: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-}
-.lang-switcher:hover select { color: var(--primary); }
-
-/* ---------- Компактная форма «Предложить миф» (необязательная) ----------
-   Используется только если заменишь в HTML блок .suggest-section
-   на .suggest-compact. Сейчас просто не задействована. */
-.suggest-compact {
-    margin-top: 24px;
-    padding: 16px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--surface-solid);
-}
-.suggest-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
-}
-.suggest-header h4 {
-    margin: 0;
-    font-size: 15px;
-    color: var(--text);
-}
-.suggest-form {
-    display: flex;
-    gap: 8px;
-}
-.suggest-form input {
-    flex: 1;
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    font-size: 14px;
-    background: var(--inner);
-    color: var(--text);
-}
-.suggest-form button {
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 13px;
-}
-
-/* ============================================================
-   ПОЛОСКА РЕЙТИНГА ПЛАТФОРМЫ
-   ============================================================ */
-.platform-bar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    justify-content: center;
-    max-width: 900px;
-    margin: 0 auto 18px;
-    padding: 14px 20px;
-    background: var(--surface);
-    backdrop-filter: blur(12px);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    box-shadow: var(--shadow-sm);
-    animation: pbIn 0.5s ease;
-}
-
-@keyframes pbIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-
-.pb-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.pb-icon { font-size: 26px; }
-
-.pb-pulse { animation: pbPulse 2s ease-in-out infinite; }
-
-@keyframes pbPulse {
-    0%, 100% { transform: scale(1); }
-    50%      { transform: scale(1.25); }
-}
-
-.pb-text { display: flex; flex-direction: column; line-height: 1.2; }
-.pb-text b { font-size: 16px; }
-.pb-text span { font-size: 12px; color: var(--text-muted); }
+    <script src="{{ url_for('static', filename='script.js') }}?v=5"></script>
+</body>
+</html>
