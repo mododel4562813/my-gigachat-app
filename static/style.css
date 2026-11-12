@@ -369,6 +369,10 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
     white-space: pre-wrap;
 }
 
+/* Бейдж вердикта внутри ответа перепроверки */
+.challenge-result .verdict-badge { margin-bottom: 10px; }
+.challenge-result .challenge-text { line-height: 1.55; }
+
 /* ---------- Предложить миф ---------- */
 .suggest-section {
     margin-top: 28px;
