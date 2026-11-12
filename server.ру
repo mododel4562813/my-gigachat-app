@@ -325,7 +325,6 @@ def ask_gigachat(user_text):
         result = json.loads(content)
         verdict = _normalize_verdict(result.get("verdict", "НЕЗНАЮ"))
         explanation = str(result.get("explanation", ""))
-        explanation = explanation.replace("**", "").replace("*", "").strip()
         return {"source": "gigachat",
                 "verdict": verdict,
                 "explanation": _add_ambulance_if_needed(explanation, verdict)}
@@ -335,20 +334,18 @@ def ask_gigachat(user_text):
 
 
 CHALLENGE_PROMPT = """Ты — Вера, фактчекер проекта «Перепроверим».
-Утверждение: {claim}
+Утверждение пользователя: {claim}
 Твой прежний вердикт: {verdict}
 Пользователь не согласен и пишет: {reason}
 
-Перепроверь утверждение. Если ты ошиблась — признай это в объяснении.
-Опирайся на доказательную медицину (ВОЗ, Минздрав, крупные исследования).
-Отвечай по-русски, тепло и КРАТКО: максимум 3 коротких предложения.
-Если утверждение касается экстренного состояния — добавь: «{ambulance}»
-
-Верни СТРОГО чистый JSON без разметки:
-{{
-  "verdict": "МИФ" | "ПРАВДА" | "СПОРНО",
-  "explanation": "краткое объяснение"
-}}"""
+Перепроверь утверждение. Ровно два исхода:
+1) Ты ошиблась. Тогда честно признай: "Признаю, я ошиблась — исправила ответ!",
+   дай новый вердикт (МИФ, ПРАВДА, СПОРНО) и краткое объяснение с опорой
+   на проверенные источники (ВОЗ, Минздрав, научные исследования).
+2) Ты права. Тогда вежливо приведи 2-3 аргумента с опорой на медицинские источники.
+Если утверждение касается экстренного состояния, обязательно упомяни:
+«{ambulance}»
+Отвечай по-русски, тепло и по делу, не длиннее 150 слов."""
 
 
 def ask_gigachat_challenge(claim, verdict, reason):
@@ -363,12 +360,12 @@ def ask_gigachat_challenge(claim, verdict, reason):
     payload = {
         "model": "GigaChat",
         "messages": [{"role": "user",
-                      "content": CHALLENGE_PROMPT.format(claim=claim[:300],
-                                                         verdict=verdict[:300],
-                                                         reason=reason[:400],
+                      "content": CHALLENGE_PROMPT.format(claim=claim,
+                                                         verdict=verdict,
+                                                         reason=reason,
                                                          ambulance=AMBULANCE_NOTE)}],
-        "temperature": 0.2,
-        "max_tokens": 200
+        "temperature": 0.3,
+        "max_tokens": 400
     }
     try:
         response = requests.post(
@@ -376,15 +373,7 @@ def ask_gigachat_challenge(claim, verdict, reason):
             verify=_gigachat_verify(), proxies=proxies, timeout=30
         )
         response.raise_for_status()
-        content = _extract_json(response.json()['choices'][0]['message']['content'])
-        result = json.loads(content)
-        v = _normalize_verdict(result.get("verdict", ""))
-        expl = str(result.get("explanation", "")).strip()
-        # подстраховка: убираем markdown-звёздочки, если модель их прислала
-        expl = expl.replace("**", "").replace("*", "").strip()
-        if v not in ("МИФ", "ПРАВДА", "СПОРНО") or not expl:
-            return None
-        return {"verdict": v, "answer": _add_ambulance_if_needed(expl, v)}
+        return response.json()['choices'][0]['message']['content']
     except Exception as e:
         print(f"❌ Ошибка запроса «Оспорить»: {e!r}")
         return None
@@ -862,7 +851,7 @@ def challenge():
     answer = ask_gigachat_challenge(claim, verdict, reason)
     if not answer:
         return jsonify({"error": "Не удалось перепроверить ответ. Попробуйте позже"}), 503
-    return jsonify({"verdict": answer["verdict"], "answer": answer["answer"]})
+    return jsonify({"answer": answer})
 
 
 @app.route('/api/suggest', methods=['POST'])
@@ -1548,6 +1537,9 @@ def achievements():
 
 # ============================================================
 # ДОКАЗАТЕЛЬНАЯ МЕДИЦИНА (тексты Веры)
+# Обновлено под новый раздел «📚 Полезная информация».
+# Сам раздел живёт прямо в index.html (вкладка), этот API —
+# запасной источник данных для него и будущих переводов.
 # ============================================================
 EVIDENCE_CONTENT = {
     "intro": ("Привет! Я Вера. Ты наверняка слышал фразу «бабушка всегда лечила этим», "
