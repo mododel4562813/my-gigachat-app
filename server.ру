@@ -159,6 +159,14 @@ def append_row_by_headers(ws, data_map):
         pass
 
 
+def _prune_rate_dict(rate_dict, now, limit=500):
+    """Чистит словарь лимитов «на месте» — без переприсваивания."""
+    if len(rate_dict) > limit:
+        cutoff = now - 3600
+        for key in [k for k, v in rate_dict.items() if v <= cutoff]:
+            rate_dict.pop(key, None)
+
+
 # ============================================================
 # КЭШ ОТВЕТОВ (экономия токенов)
 # ============================================================
@@ -835,9 +843,7 @@ def challenge():
         wait = int(CHALLENGE_COOLDOWN - (now - last))
         return jsonify({"error": f"Подождите {wait} сек."}), 429
     _challenge_times[ip] = now
-    if len(_challenge_times) > 500:
-        cutoff = now - 3600
-        _challenge_times = {k: v for k, v in _challenge_times.items() if v > cutoff}
+    _prune_rate_dict(_challenge_times, now)
 
     sheet_append("Disputes", [claim[:200], reason[:500], "новый", "",
                               datetime.now().strftime("%Y-%m-%d %H:%M")])
@@ -1157,9 +1163,7 @@ def add_comment():
         wait = int(COMMENT_COOLDOWN - (now - _comment_times[ip]))
         return jsonify({"error": f"Подождите {wait} сек."}), 429
     _comment_times[ip] = now
-    if len(_comment_times) > 500:
-        cutoff = now - 3600
-        _comment_times = {k: v for k, v in _comment_times.items() if v > cutoff}
+    _prune_rate_dict(_comment_times, now)
 
     cid = uuid.uuid4().hex[:10]
     sheet = get_sheet()
