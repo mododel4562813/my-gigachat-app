@@ -2,6 +2,50 @@
    ПЕРЕПРОВЕРИМ — static/style.css
    Команда «Единый пульс» · Чемпионат «Медицина 2050»
    ============================================================ */
+/* ============================================================
+   РЕМОНТ КАРКАСА — всегда в силе, стоит первым в файле
+   ============================================================ */
+.app-container {
+    max-width: 780px !important;
+    margin: 0 auto !important;
+    padding: 90px 16px 40px !important;
+}
+
+.glass-card {
+    background: var(--surface, rgba(255, 255, 255, 0.85)) !important;
+    backdrop-filter: blur(14px) !important;
+    border: 1px solid var(--border, #e5e7eb) !important;
+    border-radius: 20px !important;
+    padding: 28px !important;
+    box-shadow: 0 10px 30px rgba(79, 70, 229, 0.12) !important;
+    overflow: hidden;
+}
+
+.cabinet-header,
+.cabinet-progress,
+.cabinet-stats,
+.cabinet-activity,
+.cabinet-achievements,
+.cabinet-history {
+    max-width: 100% !important;
+}
+
+.cabinet-stats {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 10px !important;
+}
+
+.activity-bars {
+    display: flex !important;
+    align-items: flex-end !important;
+    height: 80px !important;
+    max-width: 100% !important;
+}
+
+@media (max-width: 640px) {
+    .cabinet-stats { grid-template-columns: 1fr !important; }
+}
 
 :root {
     --primary: #4f46e5;
