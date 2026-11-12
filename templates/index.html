@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Перепроверим — Не верь, а проверь</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=19">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=22">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Sans:wght@400;700&display=swap" rel="stylesheet">
     <script>
         // Применяем тёмный фон до отрисовки — защита от «мигания» светлым
@@ -188,62 +188,59 @@
             </div>
 
             <!-- ===== ПОЛЕЗНАЯ ИНФОРМАЦИЯ ===== -->
-<div class="tab-panel" id="panelUseful">
-    <section class="useful-section">
+            <div class="tab-panel" id="panelUseful">
+                <section class="useful-section">
 
-        <!-- Вера с лупой + заголовок -->
-        <div class="vera-hero">
-            <img src="{{ url_for('static', filename='vera-search.png') }}"
-                 alt="Вера с лупой" class="vera-hero-img">
-            <div class="vera-hero-text">
-                <h3 class="useful-title">📚 Полезная информация</h3>
-                <p class="useful-sub">Нажми на вопрос — узнай ответ</p>
-            </div>
-        </div>
+                    <!-- Вера с лупой + заголовок -->
+                    <div class="vera-hero">
+                        <img src="{{ url_for('static', filename='vera-search.png') }}"
+                             alt="Вера с лупой" class="vera-hero-img">
+                        <div class="vera-hero-text">
+                            <h3 class="useful-title">📚 Полезная информация</h3>
+                            <p class="useful-sub">Нажми на вопрос — узнай ответ</p>
+                        </div>
+                    </div>
 
-        <div class="accordion">
+                    <div class="accordion">
 
-            <details class="acc-item" open>
-                <summary>🔬 В чём суть научного подхода?</summary>
-                <div class="acc-body">
-                    <p>Наука опирается не на «соседу помогло», а на проверку: сотни и тысячи пациентов, контрольные группы, прозрачные источники.</p>
-                    <ul class="useful-list">
-                        <li><strong>Исследования</strong> — большие группы, а не один случай.</li>
-                        <li><strong>Опыт врача</strong> — цифры плюс конкретный человек.</li>
-                        <li><strong>Твой выбор</strong> — но всегда в рамках безопасности.</li>
-                    </ul>
-                </div>
-            </details>
+                        <details class="acc-item" open>
+                            <summary>🔬 В чём суть научного подхода?</summary>
+                            <div class="acc-body">
+                                <p>Наука опирается не на «соседу помогло», а на проверку: сотни и тысячи пациентов, контрольные группы, прозрачные источники.</p>
+                                <ul class="useful-list">
+                                    <li><strong>Исследования</strong> — большие группы, а не один случай.</li>
+                                    <li><strong>Опыт врача</strong> — цифры плюс конкретный человек.</li>
+                                    <li><strong>Твой выбор</strong> — но всегда в рамках безопасности.</li>
+                                </ul>
+                            </div>
+                        </details>
 
-            <details class="acc-item">
-                <summary>📜 Когда появилась доказательная медицина?</summary>
-                <div class="acc-body">
-                    <p>Как строгий подход — в 1990-х годах. Но первый контролируемый эксперимент провёл Джеймс Линд ещё в 1747 году: он доказал, что цитрусовые лечат цингу, сравнив группы моряков. Сравнить — значит узнать правду.</p>
-                </div>
-            </details>
+                        <details class="acc-item">
+                            <summary>📜 Когда появилась доказательная медицина?</summary>
+                            <div class="acc-body">
+                                <p>Как строгий подход — в 1990-х годах. Но первый контролируемый эксперимент провёл Джеймс Линд ещё в 1747 году: он доказал, что цитрусовые лечат цингу, сравнив группы моряков. Сравнить — значит узнать правду.</p>
+                            </div>
+                        </details>
 
-            <details class="acc-item">
-                <summary>🌿 Почему «натуральное» не значит «безопасное»?</summary>
-                <div class="acc-body">
-                    <p>В наперстянке есть дигоксин — лекарство для сердца. Но в неправильной дозе это яд. Травы никто не проверяет на точную дозировку, совместимость с лекарствами и стабильную концентрацию — в одной чашке отвара её может быть в десять раз больше, чем в другой.</p>
-                </div>
-            </details>
+                        <details class="acc-item">
+                            <summary>🌿 Почему «натуральное» не значит «безопасное»?</summary>
+                            <div class="acc-body">
+                                <p>В наперстянке есть дигоксин — лекарство для сердца. Но в неправильной дозе это яд. Травы никто не проверяет на точную дозировку, совместимость с лекарствами и стабильную концентрацию — в одной чашке отвара её может быть в десять раз больше, чем в другой.</p>
+                            </div>
+                        </details>
 
-            <details class="acc-item">
-                <summary>🛡️ Зачем нам игра «Миф vs Правда»?</summary>
-                <div class="acc-body">
-                    <p>Это тренировка критического мышления. Метод доказан клиническими испытаниями — «Правда». Красивая легенда без доказательств — «Миф». Традиции мы уважаем, но решение о здоровье принимаем по фактам.</p>
-                </div>
-            </details>
+                        <details class="acc-item">
+                            <summary>🛡️ Зачем нам игра «Миф vs Правда»?</summary>
+                            <div class="acc-body">
+                                <p>Это тренировка критического мышления. Метод доказан клиническими испытаниями — «Правда». Красивая легенда без доказательств — «Миф». Традиции мы уважаем, но решение о здоровье принимаем по фактам.</p>
+                            </div>
+                        </details>
 
-        </div>
+                    </div>
 
-        <div class="disclaimer" style="margin-top: 20px;">
-            <p><span class="warn-icon">⚠️</span> <strong>Важно:</strong> это образовательный проект. При проблемах со здоровьем консультируйся с врачом.</p>
-        </div>
-
-    </section>
-</div>
+                    <div class="disclaimer" style="margin-top: 20px;">
+                        <p><span class="warn-icon">⚠️</span> <strong>Важно:</strong> это образовательный проект. При проблемах со здоровьем консультируйся с врачом.</p>
+                    </div>
 
                 </section>
             </div>
