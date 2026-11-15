@@ -219,8 +219,8 @@ def find_fact(user_text: str):
     # 2. ТОЛЬКО ПОСЛЕ того, как цикл закончился, проверяем, нашли ли мы что-то
     if best_match:
         return {"source": "local_base",
-                "verdict": best_match,
-                "explanation": best_match}
-    
+                "verdict": best_match[0],
+                "explanation": best_match[1]}
     return None
+
 
