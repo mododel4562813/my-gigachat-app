@@ -190,26 +190,34 @@ def _stem(word):
 
 
 def find_fact(user_text: str):
-    """Строгий поиск: совпадение засчитывается только по половине
-    ключевых слов записи, с обрезкой окончаний."""
-    text = user_text.lower().replace(',', ' ').replace('.', ' ')
-    text = text.replace('?', ' ').replace('!', ' ').replace(':', ' ')
+    """Строгий поиск: совпадение засчитывается только по смысловым корням.
+    Возвращает факт только если найдено минимум 2 общих корня."""
+    text = user_text.lower().replace(',', ' ').replace('.', ' ').replace('?', ' ').replace('!', ' ').replace(':', ' ')
     query_words = [w for w in text.split() if len(w) > 3]
-    query_stems = [_stem(w) for w in query_words]
+    
+    # Получаем корни слов запроса
+    query_stems = set(_stem(w) for w in query_words)
     if not query_stems:
         return None
 
-    best, best_score = None, 0
-    for keywords, verdict, explanation in FACTS:
-        kw_stems = [_stem(w) for w in keywords.split()]
-        matched = 0
-        for qs in query_stems:
-            if any(cs.startswith(qs) or qs.startswith(cs) for cs in kw_stems):
-                matched += 1
-        if matched > best_score:
-            best, best_score = (verdict, explanation), matched
+    best_match = None
+    best_score = 0
 
-    # Совпадение — только если нашлась хотя бы половина ключевых слов записи
-    if best and best_score >= max(2, len(query_words) // 2):
-        return {"source": "local_base", "verdict": best[0], "explanation": best[1]}
+    for keywords, verdict, explanation in FACTS:
+        kw_stems = set(_stem(w) for w in keywords.split())
+        
+        # Считаем количество общих корней
+        common_roots = query_stems & kw_stems
+        score = len(common_roots)
+
+        # ГЛАВНОЕ ИЗМЕНЕНИЕ:
+        # 1. Требуем минимум 2 общих корня (чтобы отсечь случайные совпадения).
+        # 2. Если score больше текущего лучшего, запоминаем.
+        if score >= 2 and score > best_score:
+            best_match = (verdict, explanation)
+            best_score = score
+
+    if best_match:
+        return {"source": "local_base", "verdict": best_match, "explanation": best_match}
+    
     return None
