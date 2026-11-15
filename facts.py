@@ -217,7 +217,9 @@ def find_fact(user_text: str):
             best_match = (verdict, explanation)
             best_score = score
 
-    if best_match:
-        return {"source": "local_base", "verdict": best_match, "explanation": best_match}
-    
+        if best_match:
+        return {"source": "local_base",
+                "verdict": best_match[0],      # строка «МИФ» / «ПРАВДА» / «СПОРНО»
+                "explanation": best_match[1]}  # просто текст объяснения
     return None
+
