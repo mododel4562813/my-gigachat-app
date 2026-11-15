@@ -203,6 +203,7 @@ def find_fact(user_text: str):
     best_match = None
     best_score = 0
 
+    # 1. Перебираем ВСЕ факты, чтобы найти самый лучший (с максимальным score)
     for keywords, verdict, explanation in FACTS:
         kw_stems = set(_stem(w) for w in keywords.split())
         
@@ -210,16 +211,16 @@ def find_fact(user_text: str):
         common_roots = query_stems & kw_stems
         score = len(common_roots)
 
-        # ГЛАВНОЕ ИЗМЕНЕНИЕ:
-        # 1. Требуем минимум 2 общих корня (чтобы отсечь случайные совпадения).
-        # 2. Если score больше текущего лучшего, запоминаем.
+        # Обновляем лучший результат, если текущий факт лучше предыдущего
         if score >= 2 and score > best_score:
             best_match = (verdict, explanation)
             best_score = score
 
-        if best_match:
+    # 2. ТОЛЬКО ПОСЛЕ того, как цикл закончился, проверяем, нашли ли мы что-то
+    if best_match:
         return {"source": "local_base",
-                "verdict": best_match[0],      # строка «МИФ» / «ПРАВДА» / «СПОРНО»
-                "explanation": best_match[1]}  # просто текст объяснения
+                "verdict": best_match,
+                "explanation": best_match}
+    
     return None
 
